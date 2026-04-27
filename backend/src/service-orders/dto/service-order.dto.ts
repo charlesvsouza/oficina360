@@ -1,0 +1,196 @@
+import { IsNotEmpty, IsOptional, IsString, IsEnum, IsInt, IsArray, ValidateNested, Min, IsNumber, IsBoolean } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+
+export class CreateOrUpdateItemDto {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  serviceId?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  partId?: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  description: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  quantity?: number;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  type: 'service' | 'part' | 'labor';
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  unitPrice?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  discount?: number;
+}
+
+export class CreateOrcamentoDto {
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  customerId: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  vehicleId: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsInt()
+  kmEntrada?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  complaint?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateOrUpdateItemDto)
+  items?: CreateOrUpdateItemDto[];
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  scheduledDate?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  equipmentBrand?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  equipmentModel?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  serialNumber?: string;
+}
+
+export class CreateServiceOrderDto extends CreateOrcamentoDto {
+  @ApiProperty({ enum: ['ORDEM_SERVICO', 'ORCAMENTO'] })
+  @IsOptional()
+  @IsEnum(['ORDEM_SERVICO', 'ORCAMENTO'])
+  orderType?: 'ORDEM_SERVICO' | 'ORCAMENTO';
+}
+
+export class UpdateOrcamentoDto {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  complaint?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  diagnosis?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  technicalReport?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  observations?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  equipmentBrand?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  equipmentModel?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  serialNumber?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class UpdateStatusDto {
+  @ApiProperty({ enum: ['ABERTA', 'EM_DIAGNOSTICO', 'ORCAMENTO_PRONTO', 'AGUARDANDO_APROVACAO', 'APROVADO', 'REPROVADO', 'AGUARDANDO_PECAS', 'EM_EXECUCAO', 'PRONTO_ENTREGA', 'FATURADO', 'ENTREGUE', 'CANCELADO'] })
+  @IsNotEmpty()
+  @IsEnum(['ABERTA', 'EM_DIAGNOSTICO', 'ORCAMENTO_PRONTO', 'AGUARDANDO_APROVACAO', 'APROVADO', 'REPROVADO', 'AGUARDANDO_PECAS', 'EM_EXECUCAO', 'PRONTO_ENTREGA', 'FATURADO', 'ENTREGUE', 'CANCELADO'])
+  status: string;
+
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsInt()
+  kmSaida?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsBoolean()
+  testeRodagem?: boolean;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class AprovarOrcamentoDto {
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsBoolean()
+  approved: boolean;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class FinalizeOrderDto {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  paymentMethod?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  amountPaid?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsBoolean()
+  createIncomeTransaction?: boolean;
+}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { serviceOrdersApi, customersApi, vehiclesApi, servicesApi, inventoryApi, tenantsApi } from '../api/client';
 import {
   ClipboardList, Plus, Search, Car, User, Clock, CheckCircle, XCircle,
@@ -66,11 +66,40 @@ const PRINT_STYLE = `
 .os-doc hr { border: none; border-top: 1.5px solid #333; margin: 5px 0; }
 `;
 
+const PRINT_PREVIEW_STYLE = `
+body { margin: 0; padding: 10mm 12mm; background: #fff; }
+.os-doc {
+  font-family: Arial, "Helvetica Neue", sans-serif;
+  font-size: 10pt; color: #111; width: 100%;
+}
+.os-doc table { width: 100%; border-collapse: collapse; margin-bottom: 5px; }
+.os-doc td, .os-doc th {
+  border: 1px solid #888; padding: 4px 7px; font-size: 9pt; vertical-align: top;
+}
+.os-doc th { font-weight: bold; }
+.os-doc .hdr td, .os-doc .hdr th {
+  background: #1e293b !important; color: #fff !important;
+  border-color: #1e293b !important; font-weight: bold;
+  text-transform: uppercase; font-size: 9pt; letter-spacing: 0.04em;
+}
+.os-doc .total-final td {
+  font-weight: bold; font-size: 13pt;
+  background: #1e293b !important; color: #fff !important;
+  border-color: #1e293b !important;
+}
+.os-doc .nb td, .os-doc .nb th { border-color: transparent; }
+.os-doc .tr { text-align: right; }
+.os-doc .tc { text-align: center; }
+.os-doc hr { border: none; border-top: 1.5px solid #333; margin: 5px 0; }
+`;
+
 function fmtBR(v: number | string | undefined, dec = 2) {
   return Number(v ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 }
 
 export function ServiceOrdersPage() {
+  const printContentRef = useRef<HTMLDivElement>(null);
+  const printFrameRef = useRef<HTMLIFrameElement>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
@@ -95,6 +124,7 @@ export function ServiceOrdersPage() {
   const [partQties, setPartQties] = useState<Record<string, number>>({});
   const [pendingQtyByItem, setPendingQtyByItem] = useState<Record<string, number>>({});
   const [syncingTotals, setSyncingTotals] = useState(false);
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
 
   useEffect(() => { loadOrders(); loadBasics(); }, []);
 
@@ -192,6 +222,28 @@ export function ServiceOrdersPage() {
     }
   };
 
+  const pendingChangesCount = Object.entries(pendingQtyByItem).filter(([itemId, newQty]) => {
+    const current = selectedOrder?.items?.find((i: any) => i.id === itemId);
+    return current && Number(newQty) > 0 && Number(newQty) !== Number(current.quantity);
+  }).length;
+
+  const buildPrintPreviewHtml = () => {
+    const content = printContentRef.current?.innerHTML || '';
+    return `<!DOCTYPE html><html><head><meta charset="utf-8" /><title>OS</title><style>${PRINT_PREVIEW_STYLE}</style></head><body>${content}</body></html>`;
+  };
+
+  const openPrintPreview = () => {
+    if (!selectedOrder) return;
+    setShowPrintPreview(true);
+  };
+
+  const printOnlyOrder = () => {
+    const frameWindow = printFrameRef.current?.contentWindow;
+    if (!frameWindow) return;
+    frameWindow.focus();
+    frameWindow.print();
+  };
+
   const changeStatus = async (status: string) => {
     if (!selectedOrder) return;
     try {
@@ -282,7 +334,7 @@ export function ServiceOrdersPage() {
       {/* ── PRINT DOCUMENT ─────────────────────────────────────────── */}
       <div id="os-print-doc">
         {selectedOrder && tenantFullData && (
-          <div className="os-doc">
+          <div ref={printContentRef} className="os-doc">
             {/* Workshop header */}
             <table style={{ marginBottom: '5px' }}>
               <tbody>
@@ -638,13 +690,18 @@ export function ServiceOrdersPage() {
                   className="h-10 px-4 rounded-xl text-xs font-bold flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50 transition-all disabled:opacity-60"
                 >
                   {syncingTotals ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
-                  Atualizar cálculos
+                  Atualizar O.S.
+                  {pendingChangesCount > 0 && (
+                    <span className="ml-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-black text-amber-700">
+                      {pendingChangesCount}
+                    </span>
+                  )}
                 </button>
                 <button
-                  onClick={() => window.print()}
+                  onClick={openPrintPreview}
                   className="h-10 px-4 rounded-xl text-xs font-bold flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50 transition-all"
                 >
-                  <Printer size={15} /> Imprimir OS
+                  <Printer size={15} /> Visualizar / Imprimir OS
                 </button>
                 <button
                   onClick={() => saveDetails(true)}
@@ -878,6 +935,14 @@ export function ServiceOrdersPage() {
 
                 {/* Totais */}
                 <div className="bg-slate-900 rounded-[2rem] p-6 text-white shadow-xl flex flex-col gap-3">
+                  <button
+                    onClick={recalculateTotals}
+                    disabled={syncingTotals}
+                    className="mb-2 inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-700 bg-slate-800 px-4 py-2 text-[11px] font-black uppercase tracking-wider text-white transition-all hover:bg-slate-700 disabled:opacity-60"
+                  >
+                    {syncingTotals ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                    Atualizar O.S.
+                  </button>
                   {[
                     { label: 'Serviços', val: selectedOrder.totalServices },
                     { label: 'Peças', val: selectedOrder.totalParts },
@@ -901,6 +966,34 @@ export function ServiceOrdersPage() {
 
       {/* ── MODAL CATÁLOGO ─────────────────────────────────────────── */}
       <AnimatePresence>
+        {showPrintPreview && selectedOrder && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowPrintPreview(false)} className="absolute inset-0 bg-slate-900/55 backdrop-blur-sm" />
+            <motion.div initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }} className="relative flex h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+              <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-6 py-4">
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Visualização da Ordem de Serviço</h3>
+                  <p className="text-xs font-semibold text-slate-500">Somente a O.S. será impressa, sem os outros quadros da tela.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setShowPrintPreview(false)} className="h-10 rounded-xl border border-slate-200 px-4 text-xs font-bold text-slate-700 transition-all hover:bg-slate-100">
+                    Voltar
+                  </button>
+                  <button onClick={printOnlyOrder} className="h-10 rounded-xl bg-slate-900 px-4 text-xs font-bold text-white transition-all hover:bg-slate-800">
+                    Imprimir O.S.
+                  </button>
+                </div>
+              </div>
+              <iframe
+                ref={printFrameRef}
+                title="Visualizacao da O.S."
+                srcDoc={buildPrintPreviewHtml()}
+                className="h-full w-full bg-slate-200"
+              />
+            </motion.div>
+          </div>
+        )}
+
         {catalogMode && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setCatalogMode(null)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />

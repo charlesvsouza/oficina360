@@ -8,9 +8,9 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 
-const statusConfig: Record<string, { label: string; color: string }> = {
+const statusConfig: Record<string, { label: string; color: string; icon?: string }> = {
   ABERTA:               { label: 'Aberta',                color: 'bg-slate-100 text-slate-700' },
-  ORCAMENTO:            { label: 'Orçamento',             color: 'bg-slate-100 text-slate-700' },
+  ORCAMENTO:            { label: 'Aberta',                color: 'bg-slate-100 text-slate-700' }, // legado
   EM_DIAGNOSTICO:       { label: 'Em Diagnóstico',        color: 'bg-indigo-100 text-indigo-700' },
   ORCAMENTO_PRONTO:     { label: 'Orçamento Pronto',      color: 'bg-blue-100 text-blue-700' },
   AGUARDANDO_APROVACAO: { label: 'Aguardando Aprovação',  color: 'bg-orange-100 text-orange-700' },
@@ -29,30 +29,48 @@ const PAYMENT_METHODS = [
   'Transferência Bancária', 'Boleto', 'Cheque', 'A Prazo / Parcelado',
 ];
 
+// Fluxo de status permitidos (espelha o backend exato)
+// ABERTA → EM_DIAGNOSTICO → ORCAMENTO_PRONTO → AGUARDANDO_APROVACAO
+//   → APROVADO → [AGUARDANDO_PECAS →] EM_EXECUCAO → PRONTO_ENTREGA → FATURADO → ENTREGUE
 const STATUS_FLOW_UI: Record<string, string[]> = {
-  ABERTA: ['EM_DIAGNOSTICO', 'CANCELADO'],
-  ORCAMENTO: ['EM_DIAGNOSTICO', 'CANCELADO'],
-  EM_DIAGNOSTICO: ['ORCAMENTO_PRONTO', 'CANCELADO'],
-  ORCAMENTO_PRONTO: ['AGUARDANDO_APROVACAO', 'CANCELADO'],
+  ABERTA:               ['EM_DIAGNOSTICO', 'CANCELADO'],
+  ORCAMENTO:            ['EM_DIAGNOSTICO', 'ORCAMENTO_PRONTO', 'AGUARDANDO_APROVACAO', 'CANCELADO'], // legado
+  EM_DIAGNOSTICO:       ['ORCAMENTO_PRONTO', 'CANCELADO'],
+  ORCAMENTO_PRONTO:     ['AGUARDANDO_APROVACAO', 'CANCELADO'],
   AGUARDANDO_APROVACAO: ['APROVADO', 'REPROVADO', 'CANCELADO'],
-  APROVADO: ['AGUARDANDO_PECAS', 'EM_EXECUCAO', 'CANCELADO'],
-  REPROVADO: ['FATURADO', 'CANCELADO'],
-  AGUARDANDO_PECAS: ['EM_EXECUCAO', 'CANCELADO'],
-  EM_EXECUCAO: ['PRONTO_ENTREGA', 'CANCELADO'],
-  PRONTO_ENTREGA: ['FATURADO', 'CANCELADO'],
-  FATURADO: ['ENTREGUE'],
-  ENTREGUE: [],
-  CANCELADO: [],
+  APROVADO:             ['AGUARDANDO_PECAS', 'EM_EXECUCAO', 'CANCELADO'],
+  REPROVADO:            ['FATURADO', 'CANCELADO'],
+  AGUARDANDO_PECAS:     ['EM_EXECUCAO', 'CANCELADO'],
+  EM_EXECUCAO:          ['PRONTO_ENTREGA', 'CANCELADO'],
+  PRONTO_ENTREGA:       ['FATURADO', 'CANCELADO'],
+  FATURADO:             ['ENTREGUE'],
+  ENTREGUE:             [],
+  CANCELADO:            [],
+};
+
+// Labels de ação para cada transição (mais descritivos do que o nome do status)
+const STATUS_ACTION_LABEL: Record<string, string> = {
+  EM_DIAGNOSTICO:       '🔍 Iniciar Diagnóstico',
+  ORCAMENTO_PRONTO:     '📝 Orçamento Pronto',
+  AGUARDANDO_APROVACAO: '📤 Enviar para Aprovação',
+  APROVADO:             '✅ Marcar como Aprovado',
+  REPROVADO:            '❌ Marcar como Reprovado',
+  AGUARDANDO_PECAS:     '📦 Aguardar Peças',
+  EM_EXECUCAO:          '🔧 Iniciar Execução',
+  PRONTO_ENTREGA:       '🏁 Marcar Pronto p/ Entrega',
+  FATURADO:             '💰 Registrar Pagamento',
+  ENTREGUE:             '🚗 Confirmar Entrega',
+  CANCELADO:            '⛔ Cancelar O.S.',
 };
 
 const FLOW_PHASES = [
-  { key: 'ABERTURA', label: 'Abertura', statuses: ['ABERTA', 'ORCAMENTO'] },
+  { key: 'ABERTURA',    label: 'Abertura',    statuses: ['ABERTA', 'ORCAMENTO'] },
   { key: 'DIAGNOSTICO', label: 'Diagnóstico', statuses: ['EM_DIAGNOSTICO'] },
-  { key: 'ORCAMENTO', label: 'Orçamento', statuses: ['ORCAMENTO_PRONTO', 'AGUARDANDO_APROVACAO'] },
-  { key: 'APROVACAO', label: 'Aprovação', statuses: ['APROVADO', 'REPROVADO'] },
-  { key: 'EXECUCAO', label: 'Execução', statuses: ['AGUARDANDO_PECAS', 'EM_EXECUCAO'] },
-  { key: 'FINALIZACAO', label: 'Finalização', statuses: ['PRONTO_ENTREGA', 'FATURADO'] },
-  { key: 'ENTREGA', label: 'Entrega', statuses: ['ENTREGUE'] },
+  { key: 'ORCAMENTO',   label: 'Orçamento',   statuses: ['ORCAMENTO_PRONTO', 'AGUARDANDO_APROVACAO'] },
+  { key: 'APROVACAO',   label: 'Aprovação',   statuses: ['APROVADO', 'REPROVADO'] },
+  { key: 'EXECUCAO',    label: 'Execução',    statuses: ['AGUARDANDO_PECAS', 'EM_EXECUCAO'] },
+  { key: 'FINALIZACAO', label: 'Faturamento', statuses: ['PRONTO_ENTREGA', 'FATURADO'] },
+  { key: 'ENTREGA',     label: 'Entrega',      statuses: ['ENTREGUE'] },
 ];
 
 const PRINT_STYLE = `
@@ -942,19 +960,32 @@ export function ServiceOrdersPage() {
                 {/* Avançar status */}
                 <div className="space-y-3">
                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Avançar Status</h4>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-col gap-1.5">
                     {nextStatuses.length === 0 && (
                       <p className="text-[10px] font-bold text-slate-400">Fluxo encerrado para este status.</p>
                     )}
-                    {nextStatuses.map((status) => (
-                      <button
-                        key={status}
-                        onClick={() => changeStatus(status)}
-                        className={cn('px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all', statusConfig[status]?.color || 'bg-slate-100 text-slate-700')}
-                      >
-                        {statusConfig[status]?.label || status}
-                      </button>
-                    ))}
+                    {nextStatuses.map((status) => {
+                      const isCancel = status === 'CANCELADO';
+                      const isReprovado = status === 'REPROVADO';
+                      const isNegative = isCancel || isReprovado;
+                      return (
+                        <button
+                          key={status}
+                          onClick={() => {
+                            if (isNegative && !confirm(`Confirmar: ${STATUS_ACTION_LABEL[status] || status}?`)) return;
+                            changeStatus(status);
+                          }}
+                          className={cn(
+                            'w-full px-3 py-2 rounded-xl text-[10px] font-black tracking-wide transition-all text-left',
+                            isNegative
+                              ? 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100'
+                              : 'bg-slate-900 text-white hover:bg-slate-700 shadow-sm'
+                          )}
+                        >
+                          {STATUS_ACTION_LABEL[status] || statusConfig[status]?.label || status}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 

@@ -9,22 +9,22 @@ import { v4 as uuidv4 } from 'uuid';
 export class ServiceOrdersService {
   constructor(private prisma: PrismaService) {}
 
+  // Fluxo de status da O.S.: ABERTA → diagnóstico → orçamento → aprovação → execução → entrega
   private readonly STATUS_FLOW: Record<string, string[]> = {
-    ABERTA: ['EM_DIAGNOSTICO', 'CANCELADO'],
-    EM_DIAGNOSTICO: ['ORCAMENTO_PRONTO', 'CANCELADO'],
-    ORCAMENTO_PRONTO: ['AGUARDANDO_APROVACAO', 'CANCELADO'],
+    ABERTA:               ['EM_DIAGNOSTICO', 'CANCELADO'],
+    EM_DIAGNOSTICO:       ['ORCAMENTO_PRONTO', 'CANCELADO'],
+    ORCAMENTO_PRONTO:     ['AGUARDANDO_APROVACAO', 'CANCELADO'],
     AGUARDANDO_APROVACAO: ['APROVADO', 'REPROVADO', 'CANCELADO'],
-    APROVADO: ['AGUARDANDO_PECAS', 'EM_EXECUCAO', 'CANCELADO'],
-    REPROVADO: ['FATURADO', 'CANCELADO'], // Fatura o diagnóstico se houver
-    AGUARDANDO_PECAS: ['EM_EXECUCAO', 'CANCELADO'],
-    EM_EXECUCAO: ['PRONTO_ENTREGA', 'CANCELADO'],
-    PRONTO_ENTREGA: ['FATURADO', 'CANCELADO'],
-    FATURADO: ['ENTREGUE'],
-    ENTREGUE: [],
-    CANCELADO: [],
-    
-    // Fallbacks for old statuses if they still exist
-    ORCAMENTO: ['AGUARDANDO_APROVACAO'],
+    APROVADO:             ['AGUARDANDO_PECAS', 'EM_EXECUCAO', 'CANCELADO'],
+    REPROVADO:            ['FATURADO', 'CANCELADO'],
+    AGUARDANDO_PECAS:     ['EM_EXECUCAO', 'CANCELADO'],
+    EM_EXECUCAO:          ['PRONTO_ENTREGA', 'CANCELADO'],
+    PRONTO_ENTREGA:       ['FATURADO', 'CANCELADO'],
+    FATURADO:             ['ENTREGUE'],
+    ENTREGUE:             [],
+    CANCELADO:            [],
+    // Compatibilidade retroativa: registros antigos com status ORCAMENTO
+    ORCAMENTO:            ['EM_DIAGNOSTICO', 'ORCAMENTO_PRONTO', 'AGUARDANDO_APROVACAO', 'CANCELADO'],
   };
 
 
@@ -105,7 +105,7 @@ export class ServiceOrdersService {
         customerId: dto.customerId,
         vehicleId: dto.vehicleId,
         orderType: 'ORCAMENTO',
-        status: 'ORCAMENTO',
+        status: 'ABERTA',
         notes: dto.notes,
         complaint: dto.complaint,
         equipmentBrand: dto.equipmentBrand,
@@ -126,7 +126,7 @@ export class ServiceOrdersService {
       },
     });
 
-    await this.createTimeline(order.id, 'ORCAMENTO', 'Orçamento criado', userId);
+    await this.createTimeline(order.id, 'ABERTA', 'O.S. aberta', userId);
 
     return order;
   }
@@ -186,7 +186,7 @@ export class ServiceOrdersService {
   async requestApproval(tenantId: string, id: string) {
     const order = await this.findById(tenantId, id);
 
-    if (!['ORCAMENTO', 'AGUARDANDO_APROVACAO'].includes(order.status)) {
+    if (!['ABERTA', 'EM_DIAGNOSTICO', 'ORCAMENTO', 'ORCAMENTO_PRONTO', 'AGUARDANDO_APROVACAO'].includes(order.status)) {
       throw new BadRequestException('Não é possível solicitar aprovação neste status');
     }
 

@@ -7,9 +7,10 @@ const prisma = new PrismaClient();
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function daysAgo(n) { const d = new Date(); d.setDate(d.getDate() - n); return d; }
 function calcTotals(items) {
-  const tp = items.filter(i => i.type === 'PART').reduce((s, i) => s + i.totalPrice, 0);
-  const ts = items.filter(i => i.type === 'SERVICE').reduce((s, i) => s + i.totalPrice, 0);
-  const tl = items.filter(i => i.type === 'LABOR').reduce((s, i) => s + i.totalPrice, 0);
+  const price = (i) => (i.quantity || 0) * (i.unitPrice || 0);
+  const tp = items.filter(i => i.type === 'PART').reduce((s, i) => s + price(i), 0);
+  const ts = items.filter(i => i.type === 'SERVICE').reduce((s, i) => s + price(i), 0);
+  const tl = items.filter(i => i.type === 'LABOR').reduce((s, i) => s + price(i), 0);
   return { totalParts: tp, totalServices: ts, totalLabor: tl, totalCost: tp + ts + tl };
 }
 

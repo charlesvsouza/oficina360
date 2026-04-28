@@ -2,9 +2,9 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { PrismaService } from '../prisma/prisma.service';
 import { ChangePlanDto } from './dto/subscription.dto';
 export enum PlanType {
-  BASIC = 'BASIC',
-  PREMIUM = 'PREMIUM',
-  MASTER = 'MASTER',
+  START = 'START',
+  PRO = 'PRO',
+  REDE = 'REDE',
 }
 
 export enum SubscriptionStatus {
@@ -98,9 +98,9 @@ export class SubscriptionsService {
     }
 
     const planHierarchy: Record<string, number> = {
-      BASIC: 1,
-      PREMIUM: 2,
-      MASTER: 3,
+      START: 1,
+      PRO: 2,
+      REDE: 3,
     };
 
     const requiredLevel = planHierarchy[requiredPlan] || 0;

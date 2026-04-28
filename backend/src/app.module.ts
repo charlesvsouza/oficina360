@@ -41,6 +41,7 @@ import { TenantMiddleware } from './common/middleware/tenant.middleware';
     InventoryModule,
     FinancialModule,
     SubscriptionsModule,
+    ManagementModule,
   ],
   providers: [TenantMiddleware],
 })

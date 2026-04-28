@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateServiceOrderDto, CreateOrcamentoDto, UpdateOrcamentoDto, UpdateStatusDto, AprovarOrcamentoDto, FinalizeOrderDto, CreateOrUpdateItemDto } from './dto/service-order.dto';
 import { v4 as uuidv4 } from 'uuid';
-// import { ServiceOrderStatus, OrderType } from '@prisma/client'; // Removed for SQLite
+
 
 
 @Injectable()
@@ -331,27 +331,27 @@ export class ServiceOrdersService {
       updateData.startedAt = new Date();
     }
 
-    if (newStatus === 'FINALIZADO') {
+    if (newStatus === 'PRONTO_ENTREGA') {
       updateData.completedAt = new Date();
-      
-      // KM de saída quando finalizar
+
       if (dto.kmSaida) {
         updateData.kmSaida = dto.kmSaida;
-        
-        // Se houve teste de rodagem, calcula diferença
         if (dto.testeRodagem && order.kmEntrada) {
           updateData.testeRodagem = true;
           updateData.kmDiferenca = dto.kmSaida - order.kmEntrada;
         } else {
-          // Se não houve teste, KM final = KM entrada (sem diferença)
           updateData.testeRodagem = false;
           updateData.kmDiferenca = 0;
         }
       }
     }
 
-    if (newStatus === 'PAGO') {
+    if (newStatus === 'FATURADO') {
       updateData.paidAt = new Date();
+    }
+
+    if (newStatus === 'ENTREGUE') {
+      updateData.deliveredAt = new Date();
     }
 
     const updated = await this.prisma.serviceOrder.update({
@@ -372,8 +372,8 @@ export class ServiceOrdersService {
   async applyStockAndFinancial(tenantId: string, id: string, userId: string) {
     const order = await this.findById(tenantId, id);
 
-    if (!['APROVADO', 'EM_EXECUCAO', 'PRONTO', 'FINALIZADO'].includes(order.status)) {
-      throw new BadRequestException('Não é possível aplica estoque neste status');
+    if (!['APROVADO', 'EM_EXECUCAO', 'PRONTO_ENTREGA', 'FATURADO'].includes(order.status)) {
+      throw new BadRequestException('Não é possível aplicar estoque neste status');
     }
 
     // Aplica baixa de estoque para itens não aplicados
@@ -424,20 +424,17 @@ export class ServiceOrdersService {
   async receivePayment(tenantId: string, id: string, dto: FinalizeOrderDto, userId: string) {
     const order = await this.findById(tenantId, id);
 
-    if (order.status !== 'FINALIZADO' && order.status !== 'PAGO_PENDENTE') {
-      throw new BadRequestException('Order must be FINALIZADO to receive payment');
+    if (order.status !== 'PRONTO_ENTREGA') {
+      throw new BadRequestException('OS deve estar em PRONTO_ENTREGA para registrar pagamento');
     }
 
     const amountPaid = dto.amountPaid || Number(order.totalCost);
 
-    // Atualiza status
-    const newStatus = amountPaid >= Number(order.totalCost) ? 'PAGO' : 'PAGO_PARCIAL';
     await this.prisma.serviceOrder.update({
       where: { id },
-      data: { status: newStatus, paidAt: new Date() },
+      data: { status: 'FATURADO', paidAt: new Date() },
     });
 
-    // Lança receita no financeiro se solicitado
     if (dto.createIncomeTransaction) {
       await this.prisma.financialTransaction.create({
         data: {
@@ -452,9 +449,9 @@ export class ServiceOrdersService {
       });
     }
 
-    await this.createTimeline(id, 'PAYMENT_RECEIVED', `Pagamento de R$ ${amountPaid} recebido`, userId);
+    await this.createTimeline(id, 'FATURADO', `Pagamento de R$ ${amountPaid.toFixed(2)} recebido`, userId);
 
-    return { success: true, amountPaid, status: newStatus };
+    return { success: true, amountPaid, status: 'FATURADO' };
   }
 
   async delete(tenantId: string, id: string) {

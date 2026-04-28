@@ -28,15 +28,15 @@ export class AuthService {
     const userId = uuidv4();
 
     const plan = await this.prisma.subscriptionPlan.findUnique({
-      where: { name: 'BASIC' },
+      where: { name: 'START' },
     });
 
     if (!plan) {
-      throw new Error('BASIC plan not found. Run seed script.');
+      throw new Error('START plan not found. Run seed script.');
     }
 
     const subscriptionId = uuidv4();
-    const trialDays = 7;
+    const trialDays = 14;
     const trialEndsAt = new Date();
     trialEndsAt.setDate(trialEndsAt.getDate() + trialDays);
 

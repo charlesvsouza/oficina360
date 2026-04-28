@@ -25,20 +25,20 @@ export class PlanGuard implements CanActivate {
     }
 
     const planHierarchy: Record<string, number> = {
-      BASIC: 1,
-      PREMIUM: 2,
-      MASTER: 3,
+      START: 1,
+      PRO: 2,
+      REDE: 3,
     };
 
     const requiredLevel = planHierarchy[requiredPlan] || 0;
     const userLevel = planHierarchy[userPlan] || 0;
 
     if (userLevel < requiredLevel) {
-      throw new ForbiddenException(`This feature requires ${requiredPlan} plan. Please upgrade.`);
+      throw new ForbiddenException(`Este recurso requer o plano ${requiredPlan}. Faça upgrade para continuar.`);
     }
 
     return true;
   }
 }
 
-export const RequirePlan = (plan: 'BASIC' | 'PREMIUM' | 'MASTER') => SetMetadata(PLAN_KEY, plan);
+export const RequirePlan = (plan: 'START' | 'PRO' | 'REDE') => SetMetadata(PLAN_KEY, plan);

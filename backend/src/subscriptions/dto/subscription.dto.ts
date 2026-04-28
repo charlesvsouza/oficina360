@@ -2,8 +2,8 @@ import { IsNotEmpty, IsOptional, IsString, IsEnum } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class ChangePlanDto {
-  @ApiProperty({ enum: ['BASIC', 'PREMIUM', 'MASTER'] })
+  @ApiProperty({ enum: ['START', 'PRO', 'REDE'] })
   @IsNotEmpty()
-  @IsEnum(['BASIC', 'PREMIUM', 'MASTER'])
-  plan: 'BASIC' | 'PREMIUM' | 'MASTER';
+  @IsEnum(['START', 'PRO', 'REDE'])
+  plan: 'START' | 'PRO' | 'REDE';
 }

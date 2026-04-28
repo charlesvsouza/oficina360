@@ -95,7 +95,7 @@ export function SettingsPage() {
     );
   }
 
-  const currentPlan = subscription?.plan?.name || 'BASIC';
+  const currentPlan = subscription?.plan?.name || 'START';
 
   return (
     <div className="space-y-8 pb-10">
@@ -240,7 +240,7 @@ export function SettingsPage() {
                       <div>
                         <div className="flex items-center gap-2">
                            <p className="font-black text-lg uppercase tracking-tight">{plan.name}</p>
-                           {plan.name === 'PREMIUM' && <Zap size={14} className="text-primary-400 fill-primary-400" />}
+                           {plan.name === 'PRO' && <Zap size={14} className="text-primary-400 fill-primary-400" />}
                         </div>
                         <p className="text-2xl font-black mt-1">
                           R$ {Number(plan.price).toLocaleString('pt-BR')}

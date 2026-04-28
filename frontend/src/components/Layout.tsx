@@ -32,7 +32,7 @@ export function Layout() {
     navigate('/login');
   };
 
-  const planName = tenant?.subscription?.plan?.name || 'BASIC';
+  const planName = tenant?.subscription?.plan?.name || 'START';
 
   const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Painel' },
@@ -70,8 +70,8 @@ export function Layout() {
             <div>
                <h1 className="font-bold text-white text-lg leading-tight">Oficina360</h1>
               <span className={`text-xs px-2 py-0.5 rounded-full ${
-                planName === 'BASIC' ? 'bg-slate-700 text-slate-300' :
-                planName === 'PREMIUM' ? 'bg-purple-500/20 text-purple-300' :
+                planName === 'START' ? 'bg-slate-700 text-slate-300' :
+                planName === 'PRO' ? 'bg-purple-500/20 text-purple-300' :
                 'bg-amber-500/20 text-amber-300'
               }`}>
                 {planName}
@@ -96,7 +96,7 @@ export function Layout() {
             >
               <item.icon className="w-5 h-5" />
               <span className="text-sm">{item.label}</span>
-              {item.premium && planName === 'BASIC' && (
+              {item.premium && planName === 'START' && (
                 <span className="ml-auto text-xs bg-slate-800 px-1.5 py-0.5 rounded text-slate-400">PRO</span>
               )}
             </NavLink>
@@ -223,7 +223,7 @@ export function Layout() {
             </button>
 
             {/* Plan upgrade CTA */}
-            {planName === 'BASIC' && (
+            {planName === 'START' && (
               <button className="btn btn-primary text-sm">
                 Migrar para o Premium
               </button>

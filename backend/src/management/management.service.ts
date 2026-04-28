@@ -19,25 +19,16 @@ export class ManagementService {
     const tenantId = uuidv4();
     const userId = uuidv4();
 
-    // Get the BASIC plan or create it if it doesn't exist
     let plan = await this.prisma.subscriptionPlan.findUnique({
-      where: { name: 'BASIC' },
+      where: { name: 'START' },
     });
 
     if (!plan) {
-      plan = await this.prisma.subscriptionPlan.create({
-        data: {
-          name: 'BASIC',
-          description: 'Plano básico automático',
-          price: 0,
-          features: '{}',
-          limits: '{}',
-        },
-      });
+      throw new Error('START plan not found. Run seed script.');
     }
 
     const trialEndsAt = new Date();
-    trialEndsAt.setDate(trialEndsAt.getDate() + 7);
+    trialEndsAt.setDate(trialEndsAt.getDate() + 14);
 
     return this.prisma.$transaction(async (tx) => {
       const tenant = await tx.tenant.create({

@@ -16,8 +16,8 @@ export class InventoryController {
   constructor(private inventoryService: InventoryService) {}
 
   @Get('parts')
-  @RequirePlan('PREMIUM')
-  @ApiOperation({ summary: 'List all parts (Premium+)' })
+  @RequirePlan('PRO')
+  @ApiOperation({ summary: 'List all parts (PRO+)' })
   async findAllParts(@Tenant() tenant: { tenantId: string }) {
     return this.inventoryService.findAllParts(tenant.tenantId);
   }
@@ -61,8 +61,8 @@ export class InventoryController {
   }
 
   @Get('stock-report')
-  @RequirePlan('PREMIUM')
-  @ApiOperation({ summary: 'Get stock report (Premium+)' })
+  @RequirePlan('PRO')
+  @ApiOperation({ summary: 'Get stock report (PRO+)' })
   async getStockReport(@Tenant() tenant: { tenantId: string }) {
     return this.inventoryService.getStockReport(tenant.tenantId);
   }

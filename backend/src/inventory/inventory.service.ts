@@ -6,6 +6,11 @@ import { CreatePartDto, UpdatePartDto, CreateMovementDto } from './dto/inventory
 export class InventoryService {
   constructor(private prisma: PrismaService) {}
 
+  private normalizeOptionalString(value?: string) {
+    const trimmed = value?.trim();
+    return trimmed ? trimmed : undefined;
+  }
+
   async findAllParts(tenantId: string) {
     const parts = await this.prisma.part.findMany({
       where: { tenantId, isActive: true },
@@ -30,20 +35,44 @@ export class InventoryService {
   }
 
   async createPart(tenantId: string, dto: CreatePartDto) {
-    if (dto.sku) {
-      const existing = await this.prisma.part.findFirst({ where: { tenantId, sku: dto.sku } });
+    const normalizedDto: CreatePartDto = {
+      ...dto,
+      internalCode: this.normalizeOptionalString(dto.internalCode),
+      sku: this.normalizeOptionalString(dto.sku),
+      category: this.normalizeOptionalString(dto.category),
+      description: this.normalizeOptionalString(dto.description),
+      unit: this.normalizeOptionalString(dto.unit),
+      location: this.normalizeOptionalString(dto.location),
+      supplierId: this.normalizeOptionalString(dto.supplierId),
+    };
+
+    if (normalizedDto.sku) {
+      const existing = await this.prisma.part.findFirst({ where: { tenantId, sku: normalizedDto.sku } });
       if (existing) throw new BadRequestException('SKU já cadastrado');
     }
-    return this.prisma.part.create({ data: { tenantId, ...dto } });
+    return this.prisma.part.create({ data: { tenantId, ...normalizedDto } });
   }
 
   async updatePart(tenantId: string, partId: string, dto: UpdatePartDto) {
     await this.findPartById(tenantId, partId);
-    if (dto.sku) {
-      const existing = await this.prisma.part.findFirst({ where: { tenantId, sku: dto.sku, NOT: { id: partId } } });
+
+    const normalizedDto: UpdatePartDto = {
+      ...dto,
+      internalCode: this.normalizeOptionalString(dto.internalCode),
+      sku: this.normalizeOptionalString(dto.sku),
+      category: this.normalizeOptionalString(dto.category),
+      description: this.normalizeOptionalString(dto.description),
+      unit: this.normalizeOptionalString(dto.unit),
+      location: this.normalizeOptionalString(dto.location),
+      supplierId: this.normalizeOptionalString(dto.supplierId),
+    };
+
+    if (normalizedDto.sku) {
+      const existing = await this.prisma.part.findFirst({ where: { tenantId, sku: normalizedDto.sku, NOT: { id: partId } } });
       if (existing) throw new BadRequestException('SKU já cadastrado');
     }
-    return this.prisma.part.update({ where: { id: partId }, data: dto });
+
+    return this.prisma.part.update({ where: { id: partId }, data: normalizedDto });
   }
 
   async deletePart(tenantId: string, partId: string) {

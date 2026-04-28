@@ -286,7 +286,20 @@ export function InventoryPage() {
       return;
     }
     try {
-      const payload = { ...formData, supplierId: formData.supplierId || undefined };
+      const clean = (value?: string) => {
+        const trimmed = value?.trim();
+        return trimmed ? trimmed : undefined;
+      };
+
+      const payload = {
+        ...formData,
+        internalCode: clean(formData.internalCode),
+        sku: clean(formData.sku),
+        category: clean(formData.category),
+        description: clean(formData.description),
+        location: clean(formData.location),
+        supplierId: clean(formData.supplierId),
+      };
       if (editingPart) {
         await inventoryApi.updatePart(editingPart.id, payload);
       } else {

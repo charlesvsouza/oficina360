@@ -29,6 +29,32 @@ const PAYMENT_METHODS = [
   'Transferência Bancária', 'Boleto', 'Cheque', 'A Prazo / Parcelado',
 ];
 
+const STATUS_FLOW_UI: Record<string, string[]> = {
+  ABERTA: ['EM_DIAGNOSTICO', 'CANCELADO'],
+  ORCAMENTO: ['EM_DIAGNOSTICO', 'CANCELADO'],
+  EM_DIAGNOSTICO: ['ORCAMENTO_PRONTO', 'CANCELADO'],
+  ORCAMENTO_PRONTO: ['AGUARDANDO_APROVACAO', 'CANCELADO'],
+  AGUARDANDO_APROVACAO: ['APROVADO', 'REPROVADO', 'CANCELADO'],
+  APROVADO: ['AGUARDANDO_PECAS', 'EM_EXECUCAO', 'CANCELADO'],
+  REPROVADO: ['FATURADO', 'CANCELADO'],
+  AGUARDANDO_PECAS: ['EM_EXECUCAO', 'CANCELADO'],
+  EM_EXECUCAO: ['PRONTO_ENTREGA', 'CANCELADO'],
+  PRONTO_ENTREGA: ['FATURADO', 'CANCELADO'],
+  FATURADO: ['ENTREGUE'],
+  ENTREGUE: [],
+  CANCELADO: [],
+};
+
+const FLOW_PHASES = [
+  { key: 'ABERTURA', label: 'Abertura', statuses: ['ABERTA', 'ORCAMENTO'] },
+  { key: 'DIAGNOSTICO', label: 'Diagnóstico', statuses: ['EM_DIAGNOSTICO'] },
+  { key: 'ORCAMENTO', label: 'Orçamento', statuses: ['ORCAMENTO_PRONTO', 'AGUARDANDO_APROVACAO'] },
+  { key: 'APROVACAO', label: 'Aprovação', statuses: ['APROVADO', 'REPROVADO'] },
+  { key: 'EXECUCAO', label: 'Execução', statuses: ['AGUARDANDO_PECAS', 'EM_EXECUCAO'] },
+  { key: 'FINALIZACAO', label: 'Finalização', statuses: ['PRONTO_ENTREGA', 'FATURADO'] },
+  { key: 'ENTREGA', label: 'Entrega', statuses: ['ENTREGUE'] },
+];
+
 const PRINT_STYLE = `
 @media screen {
   #os-print-doc { display: none; }
@@ -244,6 +270,11 @@ export function ServiceOrdersPage() {
     frameWindow.print();
   };
 
+  const getCurrentPhaseIndex = (status: string) => {
+    const idx = FLOW_PHASES.findIndex((phase) => phase.statuses.includes(status));
+    return idx >= 0 ? idx : 0;
+  };
+
   const changeStatus = async (status: string) => {
     if (!selectedOrder) return;
     try {
@@ -319,6 +350,7 @@ export function ServiceOrdersPage() {
 
   const serviceItems = [...itemsOf('service'), ...itemsOf('labor')];
   const partItems = itemsOf('part');
+  const nextStatuses = selectedOrder ? (STATUS_FLOW_UI[selectedOrder.status] ?? []) : [];
 
   const filteredOrders = orders.filter(
     (o) =>
@@ -395,48 +427,33 @@ export function ServiceOrdersPage() {
             {/* Vehicle */}
             <table>
               <tbody>
-                <tr className="hdr"><td colSpan={6}>DADOS DO VEÍCULO</td></tr>
+                <tr className="hdr"><td colSpan={7}>DADOS DO VEÍCULO</td></tr>
                 <tr>
                   <td colSpan={2}><strong>Marca / Modelo:</strong> {selectedOrder.vehicle?.brand} {selectedOrder.vehicle?.model}</td>
                   <td><strong>Ano:</strong> {selectedOrder.vehicle?.year || '—'}</td>
                   <td><strong>Cor:</strong> {selectedOrder.vehicle?.color || '—'}</td>
                   <td><strong>Placa:</strong> <span style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>{selectedOrder.vehicle?.plate}</span></td>
+                  <td><strong>KM Atual:</strong> {selectedOrder.vehicle?.km ? Number(selectedOrder.vehicle.km).toLocaleString('pt-BR') : '—'}</td>
                   <td><strong>KM Saída:</strong> {selectedOrder.kmSaida ? Number(selectedOrder.kmSaida).toLocaleString('pt-BR') : '—'}</td>
                 </tr>
                 {selectedOrder.vehicle?.vin && (
-                  <tr><td colSpan={6}><strong>Chassi / VIN:</strong> {selectedOrder.vehicle.vin}</td></tr>
+                  <tr><td colSpan={7}><strong>Chassi / VIN:</strong> {selectedOrder.vehicle.vin}</td></tr>
                 )}
               </tbody>
             </table>
 
-            {/* Complaint / Diagnosis */}
-            {(selectedOrder.complaint || selectedOrder.diagnosis) && (
+            {/* Complaint / Diagnosis / Report */}
+            {(selectedOrder.complaint || selectedOrder.diagnosis || selectedOrder.technicalReport) && (
               <table>
                 <tbody>
-                  <tr>
-                    <td style={{ width: '50%' }}>
-                      <div style={{ fontWeight: 'bold', fontSize: '8pt', textTransform: 'uppercase', color: '#444', marginBottom: '3px' }}>
-                        Reclamação do Cliente
-                      </div>
-                      <div style={{ minHeight: '28px' }}>{selectedOrder.complaint || '—'}</div>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 'bold', fontSize: '8pt', textTransform: 'uppercase', color: '#444', marginBottom: '3px' }}>
-                        Diagnóstico Técnico
-                      </div>
-                      <div style={{ minHeight: '28px' }}>{selectedOrder.diagnosis || '—'}</div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            )}
+                  <tr className="hdr"><td>RECLAMAÇÃO DO CLIENTE</td></tr>
+                  <tr><td style={{ minHeight: '24px' }}>{selectedOrder.complaint || '—'}</td></tr>
 
-            {/* Technical report */}
-            {selectedOrder.technicalReport && (
-              <table>
-                <tbody>
+                  <tr className="hdr"><td>DIAGNÓSTICO TÉCNICO</td></tr>
+                  <tr><td style={{ minHeight: '24px' }}>{selectedOrder.diagnosis || '—'}</td></tr>
+
                   <tr className="hdr"><td>LAUDO / SOLUÇÃO APLICADA</td></tr>
-                  <tr><td style={{ minHeight: '26px' }}>{selectedOrder.technicalReport}</td></tr>
+                  <tr><td style={{ minHeight: '26px' }}>{selectedOrder.technicalReport || '—'}</td></tr>
                 </tbody>
               </table>
             )}
@@ -721,6 +738,33 @@ export function ServiceOrdersPage() {
             {/* Body */}
             <div className="flex-1 overflow-y-auto p-8 space-y-8">
 
+              {/* Andamento da O.S. */}
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Andamento da O.S.</h3>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">
+                    Fase atual: {FLOW_PHASES[getCurrentPhaseIndex(selectedOrder.status)]?.label || 'Abertura'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 md:grid-cols-7">
+                  {FLOW_PHASES.map((phase, index) => {
+                    const currentIdx = getCurrentPhaseIndex(selectedOrder.status);
+                    const isCurrent = index === currentIdx;
+                    const isDone = index < currentIdx;
+                    return (
+                      <div key={phase.key} className={cn(
+                        'rounded-xl border px-3 py-2 text-center transition-all',
+                        isCurrent && 'border-primary-600 bg-primary-50 text-primary-700',
+                        isDone && 'border-emerald-200 bg-emerald-50 text-emerald-700',
+                        !isCurrent && !isDone && 'border-slate-200 bg-white text-slate-400'
+                      )}>
+                        <p className="text-[9px] font-black uppercase tracking-wider">{phase.label}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Cliente + Veículo */}
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
@@ -759,6 +803,10 @@ export function ServiceOrdersPage() {
                     <div>
                       <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Ano / Cor</p>
                       <p className="font-bold text-white text-sm">{selectedOrder.vehicle?.year || '—'} / {selectedOrder.vehicle?.color || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">KM Atual</p>
+                      <p className="font-bold text-white text-sm">{selectedOrder.vehicle?.km ? Number(selectedOrder.vehicle.km).toLocaleString('pt-BR') : '—'}</p>
                     </div>
                     <div>
                       <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">KM Entrada</p>
@@ -895,17 +943,16 @@ export function ServiceOrdersPage() {
                 <div className="space-y-3">
                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Avançar Status</h4>
                   <div className="flex flex-wrap gap-1.5">
-                    {[
-                      { s: 'EM_DIAGNOSTICO', label: 'Em Diagnóstico', cls: 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100' },
-                      { s: 'ORCAMENTO_PRONTO', label: 'Orçamento Pronto', cls: 'bg-blue-50 text-blue-700 hover:bg-blue-100' },
-                      { s: 'APROVADO', label: 'Aprovado', cls: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' },
-                      { s: 'EM_EXECUCAO', label: 'Em Execução', cls: 'bg-cyan-50 text-cyan-700 hover:bg-cyan-100' },
-                      { s: 'PRONTO_ENTREGA', label: 'Pronto p/ Entrega', cls: 'bg-violet-50 text-violet-700 hover:bg-violet-100' },
-                      { s: 'FATURADO', label: 'Faturado', cls: 'bg-green-50 text-green-700 hover:bg-green-100' },
-                      { s: 'ENTREGUE', label: 'Entregue', cls: 'bg-slate-900 text-white hover:bg-slate-700' },
-                    ].map(({ s, label, cls }) => (
-                      <button key={s} onClick={() => changeStatus(s)} className={cn('px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all', cls)}>
-                        {label}
+                    {nextStatuses.length === 0 && (
+                      <p className="text-[10px] font-bold text-slate-400">Fluxo encerrado para este status.</p>
+                    )}
+                    {nextStatuses.map((status) => (
+                      <button
+                        key={status}
+                        onClick={() => changeStatus(status)}
+                        className={cn('px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all', statusConfig[status]?.color || 'bg-slate-100 text-slate-700')}
+                      >
+                        {statusConfig[status]?.label || status}
                       </button>
                     ))}
                   </div>

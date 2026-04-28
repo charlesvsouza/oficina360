@@ -6,6 +6,24 @@ import { CreatePartDto, UpdatePartDto, CreateMovementDto } from './dto/inventory
 export class InventoryService {
   constructor(private prisma: PrismaService) {}
 
+  private readonly partsLimitByPlan: Record<string, number> = {
+    START: 100,
+    PRO: 1000,
+    REDE: 1000000,
+  };
+
+  private async getTenantPlanName(tenantId: string) {
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { tenantId },
+      include: { plan: { select: { name: true } } },
+    });
+    return subscription?.plan?.name || 'START';
+  }
+
+  private getPartsLimit(planName: string) {
+    return this.partsLimitByPlan[planName] ?? 100;
+  }
+
   private normalizeOptionalString(value?: string) {
     const trimmed = value?.trim();
     return trimmed ? trimmed : undefined;
@@ -35,6 +53,13 @@ export class InventoryService {
   }
 
   async createPart(tenantId: string, dto: CreatePartDto) {
+    const planName = await this.getTenantPlanName(tenantId);
+    const maxParts = this.getPartsLimit(planName);
+    const activeParts = await this.prisma.part.count({ where: { tenantId, isActive: true } });
+    if (activeParts >= maxParts) {
+      throw new BadRequestException(`Limite de ${maxParts} pecas atingido para o plano ${planName}.`);
+    }
+
     const normalizedDto: CreatePartDto = {
       ...dto,
       internalCode: this.normalizeOptionalString(dto.internalCode),

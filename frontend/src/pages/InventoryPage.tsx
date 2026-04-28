@@ -218,7 +218,7 @@ function SupplierModal({ onClose, onSaved }: { onClose: () => void; onSaved: () 
 
 // ─── Página Principal ─────────────────────────────────────────────────────────
 export function InventoryPage() {
-  const { user, tenant } = useAuthStore();
+  const { user } = useAuthStore();
   const [parts, setParts] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -233,10 +233,7 @@ export function InventoryPage() {
   const [movQty, setMovQty] = useState(1);
   const [movType, setMovType] = useState<'ENTRY' | 'EXIT'>('ENTRY');
   const [movNote, setMovNote] = useState('');
-  const planName = tenant?.subscription?.plan?.name || 'START';
   const canManageParts = user?.role === 'MASTER' || user?.role === 'ADMIN';
-  const canUseInventory = planName === 'PRO' || planName === 'REDE';
-  const hasInventoryAccess = canUseInventory && canManageParts;
 
   useEffect(() => { loadAll(); }, []);
 
@@ -277,10 +274,6 @@ export function InventoryPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canUseInventory) {
-      alert('Este recurso requer plano PRO ou REDE.');
-      return;
-    }
     if (!canManageParts) {
       alert('Voce nao tem permissao para cadastrar ou editar pecas.');
       return;
@@ -350,7 +343,7 @@ export function InventoryPage() {
             <Truck className="w-4 h-4" /> Fornecedor
           </button>
           <button onClick={openNew}
-            disabled={!canUseInventory || !canManageParts}
+            disabled={!canManageParts}
             className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-slate-900 text-white font-black shadow-lg hover:bg-slate-800 transition-all active:scale-95">
             <Plus className="w-5 h-5" /> Nova Peça
           </button>
@@ -363,11 +356,9 @@ export function InventoryPage() {
         </div>
       )}
 
-      {!hasInventoryAccess && (
+      {!canManageParts && (
         <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sky-900 text-sm font-semibold">
-          {!canUseInventory
-            ? 'Seu plano atual nao permite cadastro de pecas. Faca upgrade para PRO ou REDE.'
-            : 'Seu usuario nao tem permissao para cadastrar ou editar pecas. Use MASTER ou ADMIN.'}
+          Seu usuario nao tem permissao para cadastrar ou editar pecas. Use MASTER ou ADMIN.
         </div>
       )}
 

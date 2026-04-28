@@ -6,7 +6,6 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Tenant } from '../common/decorators/tenant.decorator';
-import { RequirePlan } from '../auth/guards/plan.guard';
 
 @ApiTags('Inventory')
 @Controller('inventory')
@@ -16,8 +15,7 @@ export class InventoryController {
   constructor(private inventoryService: InventoryService) {}
 
   @Get('parts')
-  @RequirePlan('PRO')
-  @ApiOperation({ summary: 'List all parts (PRO+)' })
+  @ApiOperation({ summary: 'List all parts' })
   async findAllParts(@Tenant() tenant: { tenantId: string }) {
     return this.inventoryService.findAllParts(tenant.tenantId);
   }
@@ -30,7 +28,6 @@ export class InventoryController {
 
   @Post('parts')
   @Roles('ADMIN')
-  @RequirePlan('PRO')
   @ApiOperation({ summary: 'Create part' })
   async createPart(@Tenant() tenant: { tenantId: string }, @Body() dto: CreatePartDto) {
     return this.inventoryService.createPart(tenant.tenantId, dto);
@@ -38,7 +35,6 @@ export class InventoryController {
 
   @Patch('parts/:id')
   @Roles('ADMIN')
-  @RequirePlan('PRO')
   @ApiOperation({ summary: 'Update part' })
   async updatePart(
     @Tenant() tenant: { tenantId: string },
@@ -50,7 +46,6 @@ export class InventoryController {
 
   @Delete('parts/:id')
   @Roles('ADMIN')
-  @RequirePlan('PRO')
   @ApiOperation({ summary: 'Delete part (soft delete)' })
   async deletePart(@Tenant() tenant: { tenantId: string }, @Param('id') id: string) {
     return this.inventoryService.deletePart(tenant.tenantId, id);
@@ -58,15 +53,13 @@ export class InventoryController {
 
   @Post('movements')
   @Roles('ADMIN')
-  @RequirePlan('PRO')
   @ApiOperation({ summary: 'Create inventory movement' })
   async createMovement(@Tenant() tenant: { tenantId: string }, @Body() dto: CreateMovementDto) {
     return this.inventoryService.createMovement(tenant.tenantId, dto);
   }
 
   @Get('stock-report')
-  @RequirePlan('PRO')
-  @ApiOperation({ summary: 'Get stock report (PRO+)' })
+  @ApiOperation({ summary: 'Get stock report' })
   async getStockReport(@Tenant() tenant: { tenantId: string }) {
     return this.inventoryService.getStockReport(tenant.tenantId);
   }

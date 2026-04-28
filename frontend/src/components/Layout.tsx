@@ -46,7 +46,6 @@ export function Layout() {
       to: '/inventory',
       icon: Package,
       label: 'Estoque',
-      premium: true,
     },
     {
       to: '/financial',

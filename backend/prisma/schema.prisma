@@ -18,21 +18,23 @@ model Tenant {
 
   phone     String?
   email     String?
-  logo      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  logo            String?
+  laborHourlyRate Float?   @default(120)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  subscription Subscription?
-  users       User[]
-  customers   Customer[]
-  vehicles    Vehicle[]
-  serviceOrders ServiceOrder[]
-  servicesCatalog Service[]
-  parts       Part[]
-  inventoryMovements InventoryMovement[]
+  subscription          Subscription?
+  users                 User[]
+  customers             Customer[]
+  vehicles              Vehicle[]
+  serviceOrders         ServiceOrder[]
+  servicesCatalog       Service[]
+  parts                 Part[]
+  suppliers             Supplier[]
+  inventoryMovements    InventoryMovement[]
   financialTransactions FinancialTransaction[]
-  messages    Message[]
-  auditLogs   AuditLog[]
+  messages              Message[]
+  auditLogs             AuditLog[]
 
   @@map("tenants")
 }
@@ -161,22 +163,47 @@ model Service {
 }
 
 
-model Part {
+model Supplier {
   id          String   @id @default(uuid())
   tenantId    String
   name        String
-  sku         String?
-  description String?
-  unitPrice   Float
-  unit        String?
-  minStock    Int      @default(0)
-  location    String?
+  document    String?
+  phone       String?
+  email       String?
+  contactName String?
+  notes       String?
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  updatedAt   DateTime @updatedAt
 
-  tenant         Tenant             @relation(fields: [tenantId], references: [id])
-  serviceItems ServiceOrderItem[]
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  parts  Part[]
+
+  @@map("suppliers")
+}
+
+model Part {
+  id           String   @id @default(uuid())
+  tenantId     String
+  name         String
+  internalCode String?
+  sku          String?
+  description  String?
+  category     String?
+  unitPrice    Float
+  costPrice    Float?
+  unit         String   @default("un")
+  minStock     Int      @default(0)
+  currentStock Int      @default(0)
+  location     String?
+  supplierId   String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant             Tenant             @relation(fields: [tenantId], references: [id])
+  supplier           Supplier?          @relation(fields: [supplierId], references: [id])
+  serviceItems       ServiceOrderItem[]
   inventoryMovements InventoryMovement[]
 
   @@unique([tenantId, sku])

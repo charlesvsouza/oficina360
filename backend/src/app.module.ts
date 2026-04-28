@@ -14,6 +14,7 @@ import { InventoryModule } from './inventory/inventory.module';
 import { FinancialModule } from './financial/financial.module';
 import { ManagementModule } from './management/management.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { SuppliersModule } from './suppliers/suppliers.module';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
 
 @Module({
@@ -42,6 +43,7 @@ import { TenantMiddleware } from './common/middleware/tenant.middleware';
     FinancialModule,
     SubscriptionsModule,
     ManagementModule,
+    SuppliersModule,
   ],
   providers: [TenantMiddleware],
 })

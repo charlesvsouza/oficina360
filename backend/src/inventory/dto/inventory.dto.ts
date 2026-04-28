@@ -10,7 +10,17 @@ export class CreatePartDto {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
+  internalCode?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
   sku?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  category?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
@@ -24,6 +34,11 @@ export class CreatePartDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
+  @IsNumber()
+  costPrice?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsString()
   unit?: string;
 
@@ -37,6 +52,11 @@ export class CreatePartDto {
   @IsOptional()
   @IsString()
   location?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  supplierId?: string;
 }
 
 export class UpdatePartDto {
@@ -48,7 +68,17 @@ export class UpdatePartDto {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
+  internalCode?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
   sku?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  category?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
@@ -62,6 +92,11 @@ export class UpdatePartDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
+  @IsNumber()
+  costPrice?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsString()
   unit?: string;
 
@@ -75,6 +110,11 @@ export class UpdatePartDto {
   @IsOptional()
   @IsString()
   location?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  supplierId?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()

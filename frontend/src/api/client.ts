@@ -143,3 +143,11 @@ export const managementApi = {
   setup: (data: any) => api.post('/management/setup', data),
   listTenants: () => api.get('/management/tenants'),
 };
+
+export const suppliersApi = {
+  getAll: () => api.get('/suppliers'),
+  getById: (id: string) => api.get(`/suppliers/${id}`),
+  create: (data: any) => api.post('/suppliers', data),
+  update: (id: string, data: any) => api.patch(`/suppliers/${id}`, data),
+  delete: (id: string) => api.delete(`/suppliers/${id}`),
+};

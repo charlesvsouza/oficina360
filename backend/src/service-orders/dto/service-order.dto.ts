@@ -141,6 +141,11 @@ export class UpdateOrcamentoDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  paymentMethod?: string;
 }
 
 export class UpdateStatusDto {

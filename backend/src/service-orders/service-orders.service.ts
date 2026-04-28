@@ -157,8 +157,8 @@ export class ServiceOrdersService {
   async updateOrcamento(tenantId: string, id: string, dto: UpdateOrcamentoDto, userId: string) {
     const order = await this.findById(tenantId, id);
 
-    if (!['ORCAMENTO', 'AGUARDANDO_APROVACAO'].includes(order.status)) {
-      throw new BadRequestException('Não é possível editar neste status');
+    if (['ENTREGUE', 'CANCELADO'].includes(order.status)) {
+      throw new BadRequestException('Não é possível editar uma OS finalizada ou cancelada');
     }
 
     return this.prisma.serviceOrder.update({
@@ -172,6 +172,7 @@ export class ServiceOrdersService {
         equipmentModel: dto.equipmentModel,
         serialNumber: dto.serialNumber,
         notes: dto.notes,
+        paymentMethod: dto.paymentMethod,
       },
 
       include: {

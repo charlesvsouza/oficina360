@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateServiceOrderDto, CreateOrcamentoDto, UpdateOrcamentoDto, UpdateStatusDto, AprovarOrcamentoDto, FinalizeOrderDto, CreateOrUpdateItemDto } from './dto/service-order.dto';
+import { CreateServiceOrderDto, CreateOrcamentoDto, UpdateOrcamentoDto, UpdateStatusDto, AprovarOrcamentoDto, FinalizeOrderDto, CreateOrUpdateItemDto, UpdateServiceOrderItemDto } from './dto/service-order.dto';
 import { v4 as uuidv4 } from 'uuid';
 
 
@@ -587,7 +587,7 @@ export class ServiceOrdersService {
     return { success: true };
   }
 
-  async updateItem(tenantId: string, orderId: string, itemId: string, dto: CreateOrUpdateItemDto, userId: string) {
+  async updateItem(tenantId: string, orderId: string, itemId: string, dto: UpdateServiceOrderItemDto, userId: string) {
     const order = await this.findById(tenantId, orderId);
     
     const oldItem = await this.prisma.serviceOrderItem.findUnique({

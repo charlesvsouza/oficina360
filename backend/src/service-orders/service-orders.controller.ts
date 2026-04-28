@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ServiceOrdersService } from './service-orders.service';
-import { CreateServiceOrderDto, CreateOrcamentoDto, UpdateOrcamentoDto, UpdateStatusDto, AprovarOrcamentoDto, FinalizeOrderDto, CreateOrUpdateItemDto } from './dto/service-order.dto';
+import { CreateServiceOrderDto, CreateOrcamentoDto, UpdateOrcamentoDto, UpdateStatusDto, AprovarOrcamentoDto, FinalizeOrderDto, CreateOrUpdateItemDto, UpdateServiceOrderItemDto } from './dto/service-order.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -172,7 +172,7 @@ export class ServiceOrdersController {
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
     @Param('itemId') itemId: string,
-    @Body() dto: CreateOrUpdateItemDto,
+    @Body() dto: UpdateServiceOrderItemDto,
   ) {
     return this.serviceOrdersService.updateItem(tenant.tenantId, id, itemId, dto, user.userId);
   }

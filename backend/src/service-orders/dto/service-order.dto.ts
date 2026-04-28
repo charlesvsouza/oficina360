@@ -40,6 +40,44 @@ export class CreateOrUpdateItemDto {
   discount?: number;
 }
 
+export class UpdateServiceOrderItemDto {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  serviceId?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  partId?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  quantity?: number;
+
+  @ApiProperty({ required: false, enum: ['service', 'part', 'labor'] })
+  @IsOptional()
+  @IsString()
+  type?: 'service' | 'part' | 'labor';
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  unitPrice?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  discount?: number;
+}
+
 export class CreateOrcamentoDto {
   @ApiProperty()
   @IsNotEmpty()

@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { inventoryApi, suppliersApi } from '../api/client';
+import { useAuthStore } from '../store/authStore';
 import {
   Package, Plus, Search, Edit, Trash2, Loader2,
   ArrowUpRight, ArrowDownLeft, AlertTriangle, Layers,
@@ -217,9 +218,11 @@ function SupplierModal({ onClose, onSaved }: { onClose: () => void; onSaved: () 
 
 // ─── Página Principal ─────────────────────────────────────────────────────────
 export function InventoryPage() {
+  const { user, tenant } = useAuthStore();
   const [parts, setParts] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -230,15 +233,20 @@ export function InventoryPage() {
   const [movQty, setMovQty] = useState(1);
   const [movType, setMovType] = useState<'ENTRY' | 'EXIT'>('ENTRY');
   const [movNote, setMovNote] = useState('');
+  const planName = tenant?.subscription?.plan?.name || 'START';
+  const canManageParts = user?.role === 'MASTER' || user?.role === 'ADMIN';
+  const canUseInventory = planName === 'PRO' || planName === 'REDE';
 
   useEffect(() => { loadAll(); }, []);
 
   const loadAll = async () => {
+    setErrorMessage(null);
     try {
       const [partsRes, suppRes] = await Promise.all([inventoryApi.getAllParts(), suppliersApi.getAll()]);
       setParts(Array.isArray(partsRes.data) ? partsRes.data : []);
       setSuppliers(Array.isArray(suppRes.data) ? suppRes.data : []);
-    } catch (err) {
+    } catch (err: any) {
+      setErrorMessage(err?.response?.data?.message || 'Nao foi possivel carregar o estoque de pecas.');
       console.error(err);
     } finally {
       setLoading(false);
@@ -268,6 +276,14 @@ export function InventoryPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canUseInventory) {
+      alert('Este recurso requer plano PRO ou REDE.');
+      return;
+    }
+    if (!canManageParts) {
+      alert('Voce nao tem permissao para cadastrar ou editar pecas.');
+      return;
+    }
     try {
       const payload = { ...formData, supplierId: formData.supplierId || undefined };
       if (editingPart) {
@@ -277,7 +293,8 @@ export function InventoryPage() {
       }
       setShowModal(false);
       loadAll();
-    } catch (err) {
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'Erro ao salvar peca.');
       console.error(err);
     }
   };
@@ -319,11 +336,18 @@ export function InventoryPage() {
             <Truck className="w-4 h-4" /> Fornecedor
           </button>
           <button onClick={openNew}
+            disabled={!canUseInventory || !canManageParts}
             className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-slate-900 text-white font-black shadow-lg hover:bg-slate-800 transition-all active:scale-95">
             <Plus className="w-5 h-5" /> Nova Peça
           </button>
         </div>
       </div>
+
+      {errorMessage && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-800 text-sm font-semibold">
+          {errorMessage}
+        </div>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

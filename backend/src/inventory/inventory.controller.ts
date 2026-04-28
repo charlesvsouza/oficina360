@@ -30,6 +30,7 @@ export class InventoryController {
 
   @Post('parts')
   @Roles('ADMIN')
+  @RequirePlan('PRO')
   @ApiOperation({ summary: 'Create part' })
   async createPart(@Tenant() tenant: { tenantId: string }, @Body() dto: CreatePartDto) {
     return this.inventoryService.createPart(tenant.tenantId, dto);
@@ -37,6 +38,7 @@ export class InventoryController {
 
   @Patch('parts/:id')
   @Roles('ADMIN')
+  @RequirePlan('PRO')
   @ApiOperation({ summary: 'Update part' })
   async updatePart(
     @Tenant() tenant: { tenantId: string },
@@ -48,6 +50,7 @@ export class InventoryController {
 
   @Delete('parts/:id')
   @Roles('ADMIN')
+  @RequirePlan('PRO')
   @ApiOperation({ summary: 'Delete part (soft delete)' })
   async deletePart(@Tenant() tenant: { tenantId: string }, @Param('id') id: string) {
     return this.inventoryService.deletePart(tenant.tenantId, id);
@@ -55,6 +58,7 @@ export class InventoryController {
 
   @Post('movements')
   @Roles('ADMIN')
+  @RequirePlan('PRO')
   @ApiOperation({ summary: 'Create inventory movement' })
   async createMovement(@Tenant() tenant: { tenantId: string }, @Body() dto: CreateMovementDto) {
     return this.inventoryService.createMovement(tenant.tenantId, dto);

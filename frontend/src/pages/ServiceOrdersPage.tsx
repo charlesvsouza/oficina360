@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
+import { useAuthStore } from '../store/authStore';
 
 const statusConfig: Record<string, { label: string; color: string; icon?: string }> = {
   ABERTA:               { label: 'Aberta',                color: 'bg-slate-100 text-slate-700' },
@@ -142,6 +143,8 @@ function fmtBR(v: number | string | undefined, dec = 2) {
 }
 
 export function ServiceOrdersPage() {
+  const { user } = useAuthStore();
+  const canManageStock = user?.role === 'MASTER' || user?.role === 'ADMIN';
   const printContentRef = useRef<HTMLDivElement>(null);
   const printFrameRef = useRef<HTMLIFrameElement>(null);
   const [orders, setOrders] = useState<any[]>([]);
@@ -153,11 +156,11 @@ export function ServiceOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  const [newOrder, setNewOrder] = useState({ customerId: '', vehicleId: '', complaint: '', kmEntrada: 0 });
+  const [newOrder, setNewOrder] = useState({ customerId: '', vehicleId: '', complaint: '', kmEntrada: 0, reserveStock: false });
 
   const [edit, setEdit] = useState({
     complaint: '', diagnosis: '', technicalReport: '',
-    observations: '', notes: '', paymentMethod: '',
+    observations: '', notes: '', paymentMethod: '', reserveStock: false,
   });
 
   // Catalog state
@@ -210,6 +213,7 @@ export function ServiceOrdersPage() {
         observations: o.observations || '',
         notes: o.notes || '',
         paymentMethod: o.paymentMethod || '',
+        reserveStock: Boolean(o.reserveStock),
       });
       setPendingQtyByItem({});
     } catch (err) {
@@ -243,6 +247,16 @@ export function ServiceOrdersPage() {
 
     if (changedEntries.length === 0) {
       alert('Nenhuma alteracao de quantidade pendente.');
+      return;
+    }
+
+    const hasPartChangeWithoutPermission = changedEntries.some(([itemId]) => {
+      const current = selectedOrder.items?.find((i: any) => i.id === itemId);
+      return current?.type?.toLowerCase() === 'part' && !canManageStock;
+    });
+
+    if (hasPartChangeWithoutPermission) {
+      alert('Somente MASTER e ADMIN podem alterar quantidade de pecas.');
       return;
     }
 
@@ -323,6 +337,10 @@ export function ServiceOrdersPage() {
 
   const addItem = async (itemData: any) => {
     if (!selectedOrder) return;
+    if (itemData?.type === 'part' && !canManageStock) {
+      alert('Somente MASTER e ADMIN podem alterar estoque de pecas.');
+      return;
+    }
     try {
       await serviceOrdersApi.addItem(selectedOrder.id, itemData);
       const res = await serviceOrdersApi.getById(selectedOrder.id);
@@ -344,6 +362,11 @@ export function ServiceOrdersPage() {
 
   const updateItem = async (itemId: string, data: any) => {
     if (!selectedOrder) return;
+    const current = selectedOrder.items?.find((i: any) => i.id === itemId);
+    if (current?.type?.toLowerCase() === 'part' && !canManageStock) {
+      alert('Somente MASTER e ADMIN podem alterar estoque de pecas.');
+      return;
+    }
     try {
       await serviceOrdersApi.updateItem(selectedOrder.id, itemId, data);
       const res = await serviceOrdersApi.getById(selectedOrder.id);
@@ -354,6 +377,11 @@ export function ServiceOrdersPage() {
 
   const removeItem = async (itemId: string) => {
     if (!selectedOrder || !confirm('Remover este item? O estoque será estornado.')) return;
+    const current = selectedOrder.items?.find((i: any) => i.id === itemId);
+    if (current?.type?.toLowerCase() === 'part' && !canManageStock) {
+      alert('Somente MASTER e ADMIN podem alterar estoque de pecas.');
+      return;
+    }
     try {
       await serviceOrdersApi.removeItem(selectedOrder.id, itemId);
       const res = await serviceOrdersApi.getById(selectedOrder.id);
@@ -850,6 +878,24 @@ export function ServiceOrdersPage() {
                 ))}
               </div>
 
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Reserva de Peças no Orçamento</p>
+                  <p className="text-xs text-slate-600 mt-1">
+                    Quando marcado, sinaliza a reserva das peças para esta O.S. Na aprovação do orçamento, todas as peças pendentes serão debitadas do estoque automaticamente.
+                  </p>
+                </div>
+                <label className="inline-flex items-center gap-2 cursor-pointer shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(edit.reserveStock)}
+                    onChange={(e) => setEdit({ ...edit, reserveStock: e.target.checked })}
+                    className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
+                  />
+                  <span className="text-xs font-bold text-slate-700">Reservar</span>
+                </label>
+              </div>
+
               {/* Serviços */}
               <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
                 <div className="px-5 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
@@ -911,7 +957,11 @@ export function ServiceOrdersPage() {
                   </h3>
                   <button
                     onClick={() => openCatalog('part')}
-                    className="text-[9px] font-black uppercase tracking-widest bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-1"
+                    className={cn(
+                      'text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1',
+                      canManageStock ? 'bg-primary-600 text-white hover:bg-primary-700' : 'bg-slate-300 text-slate-500'
+                    )}
+                    title={canManageStock ? 'Lancar peca' : 'Somente MASTER/ADMIN podem alterar estoque'}
                   >
                     <Plus size={12} /> Lançar Peça
                   </button>
@@ -929,11 +979,21 @@ export function ServiceOrdersPage() {
                   <tbody className="divide-y divide-slate-50">
                     {partItems.map((item: any) => (
                       <tr key={item.id} className="hover:bg-slate-50/50">
-                        <td className="px-5 py-3 font-bold text-slate-900">{item.description}</td>
+                        <td className="px-5 py-3 font-bold text-slate-900">
+                          <div>{item.description}</div>
+                          <div className="mt-1 text-[10px] text-slate-500 font-bold">
+                            Estoque atual: <span className={cn('font-black', Number(item.part?.currentStock || 0) > 0 ? 'text-emerald-600' : 'text-red-600')}>{Number(item.part?.currentStock || 0)}</span>
+                            {' · '}Status: {item.applied ? 'Baixada' : 'Pendente'}
+                          </div>
+                        </td>
                         <td className="px-5 py-3">
                           <input
                             type="number" min="1"
-                            className="w-16 bg-slate-50 border border-transparent hover:border-slate-200 rounded-md px-2 py-1 text-center font-bold text-xs"
+                            disabled={!canManageStock}
+                            className={cn(
+                              'w-16 border border-transparent rounded-md px-2 py-1 text-center font-bold text-xs',
+                              canManageStock ? 'bg-slate-50 hover:border-slate-200' : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                            )}
                             value={pendingQtyByItem[item.id] ?? item.quantity}
                             onChange={(e) => setPendingQtyByItem({ ...pendingQtyByItem, [item.id]: Number(e.target.value) })}
                           />
@@ -941,7 +1001,11 @@ export function ServiceOrdersPage() {
                         <td className="px-5 py-3 text-slate-600">R$ {fmtBR(item.unitPrice)}</td>
                         <td className="px-5 py-3 font-black text-slate-900 text-right">R$ {fmtBR(item.totalPrice)}</td>
                         <td className="px-5 py-3 text-right">
-                          <button onClick={() => removeItem(item.id)} className="p-1 text-slate-300 hover:text-red-500 rounded transition-colors">
+                          <button
+                            onClick={() => removeItem(item.id)}
+                            disabled={!canManageStock}
+                            className={cn('p-1 rounded transition-colors', canManageStock ? 'text-slate-300 hover:text-red-500' : 'text-slate-200 cursor-not-allowed')}
+                          >
                             <Trash2 size={14} />
                           </button>
                         </td>
@@ -1205,6 +1269,8 @@ export function ServiceOrdersPage() {
                       )
                       .map((p) => {
                         const qty = partQties[p.id] ?? 1;
+                        const available = Number(p.currentStock || 0);
+                        const notEnoughStock = qty > available;
                         return (
                           <div key={p.id} className="p-4 bg-white border border-slate-100 rounded-2xl hover:border-slate-200 transition-all flex items-center justify-between gap-3">
                             <div className="flex-1 min-w-0">
@@ -1217,6 +1283,7 @@ export function ServiceOrdersPage() {
                               <p className="text-[10px] text-slate-400 font-bold mt-0.5">
                                 {p.internalCode && `${p.internalCode} · `}
                                 Estoque: <span className={cn('font-black', p.currentStock > 0 ? 'text-emerald-600' : 'text-red-600')}>{p.currentStock}</span>
+                                {' · Mínimo: '}<span className="font-black text-slate-600">{p.minStock || 0}</span>
                                 {' · '}R$ {fmtBR(p.unitPrice)}
                               </p>
                             </div>
@@ -1228,7 +1295,14 @@ export function ServiceOrdersPage() {
                               </div>
                               <button
                                 onClick={() => addItem({ type: 'part', partId: p.id, description: p.name, quantity: qty, unitPrice: p.unitPrice })}
-                                className="w-10 h-10 rounded-xl bg-primary-600 text-white hover:bg-primary-700 flex items-center justify-center shadow transition-all"
+                                disabled={!canManageStock || notEnoughStock}
+                                title={!canManageStock ? 'Somente MASTER/ADMIN podem alterar estoque' : notEnoughStock ? 'Quantidade maior que estoque disponível' : 'Adicionar peça'}
+                                className={cn(
+                                  'w-10 h-10 rounded-xl flex items-center justify-center shadow transition-all',
+                                  !canManageStock || notEnoughStock
+                                    ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                                    : 'bg-primary-600 text-white hover:bg-primary-700'
+                                )}
                               >
                                 <Plus size={18} />
                               </button>
@@ -1237,6 +1311,11 @@ export function ServiceOrdersPage() {
                         );
                       })
                     }
+                    {!canManageStock && (
+                      <p className="text-center text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-2 text-[11px] font-bold">
+                        Apenas MASTER e ADMIN podem adicionar/remover pecas (altera estoque).
+                      </p>
+                    )}
                     {catalogItems.parts.filter((p) => p.name.toLowerCase().includes(catalogSearch.toLowerCase())).length === 0 && (
                       <p className="text-center text-slate-400 text-xs py-8">Nenhuma peça encontrada no catálogo</p>
                     )}
@@ -1289,6 +1368,15 @@ export function ServiceOrdersPage() {
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Reclamação Principal</label>
                   <textarea className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white text-sm font-bold focus:ring-4 focus:ring-slate-900/5 transition-all h-24 resize-none" value={newOrder.complaint} onChange={(e) => setNewOrder({ ...newOrder, complaint: e.target.value })} placeholder="O que o cliente relatou?" />
                 </div>
+                <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(newOrder.reserveStock)}
+                    onChange={(e) => setNewOrder({ ...newOrder, reserveStock: e.target.checked })}
+                    className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
+                  />
+                  Reservar peças para debitar automaticamente na aprovação
+                </label>
                 <div className="flex gap-3 pt-4">
                   <button type="button" onClick={() => setShowCreateModal(false)} className="flex-1 px-6 py-3 rounded-2xl text-sm font-bold text-slate-500 hover:bg-slate-100 transition-all">Cancelar</button>
                   <button type="submit" className="flex-1 px-6 py-3 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 shadow-lg active:scale-95 transition-all">Criar Ordem</button>

@@ -27,14 +27,14 @@ export class InventoryController {
   }
 
   @Post('parts')
-  @Roles('ADMIN')
+  @Roles('MASTER', 'ADMIN')
   @ApiOperation({ summary: 'Create part' })
   async createPart(@Tenant() tenant: { tenantId: string }, @Body() dto: CreatePartDto) {
     return this.inventoryService.createPart(tenant.tenantId, dto);
   }
 
   @Patch('parts/:id')
-  @Roles('ADMIN')
+  @Roles('MASTER', 'ADMIN')
   @ApiOperation({ summary: 'Update part' })
   async updatePart(
     @Tenant() tenant: { tenantId: string },
@@ -45,14 +45,14 @@ export class InventoryController {
   }
 
   @Delete('parts/:id')
-  @Roles('ADMIN')
+  @Roles('MASTER', 'ADMIN')
   @ApiOperation({ summary: 'Delete part (soft delete)' })
   async deletePart(@Tenant() tenant: { tenantId: string }, @Param('id') id: string) {
     return this.inventoryService.deletePart(tenant.tenantId, id);
   }
 
   @Post('movements')
-  @Roles('ADMIN')
+  @Roles('MASTER', 'ADMIN')
   @ApiOperation({ summary: 'Create inventory movement' })
   async createMovement(@Tenant() tenant: { tenantId: string }, @Body() dto: CreateMovementDto) {
     return this.inventoryService.createMovement(tenant.tenantId, dto);

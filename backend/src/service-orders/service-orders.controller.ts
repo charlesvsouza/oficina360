@@ -102,7 +102,7 @@ export class ServiceOrdersController {
   }
 
   @Post(':id/apply-stock')
-  @Roles('ADMIN')
+  @Roles('MASTER', 'ADMIN')
   @ApiOperation({ summary: 'Aplicar baixa de estoque e financeiro' })
   async applyStock(
     @Tenant() tenant: { tenantId: string },

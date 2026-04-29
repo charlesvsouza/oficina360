@@ -308,6 +308,10 @@ export function InventoryPage() {
 
   const handleMovement = async () => {
     if (!showMovModal) return;
+    if (!canManageParts) {
+      alert('Voce nao tem permissao para movimentar estoque. Use MASTER ou ADMIN.');
+      return;
+    }
     try {
       await inventoryApi.createMovement({ partId: showMovModal.id, type: movType, quantity: movQty, note: movNote });
       setShowMovModal(null);
@@ -471,15 +475,18 @@ export function InventoryPage() {
                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={() => { setShowMovModal(part); setMovType('ENTRY'); }}
                             title="Entrada"
+                            disabled={!canManageParts}
                             className="p-2 rounded-lg hover:bg-emerald-50 text-emerald-600 transition-colors">
                             <ArrowDownLeft className="w-4 h-4" />
                           </button>
                           <button onClick={() => { setShowMovModal(part); setMovType('EXIT'); }}
                             title="Saída"
+                            disabled={!canManageParts}
                             className="p-2 rounded-lg hover:bg-red-50 text-red-500 transition-colors">
                             <ArrowUpRight className="w-4 h-4" />
                           </button>
                           <button onClick={() => openEdit(part)}
+                            disabled={!canManageParts}
                             className="p-2 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors">
                             <Edit className="w-4 h-4" />
                           </button>

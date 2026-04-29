@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateServiceOrderDto, CreateOrcamentoDto, UpdateOrcamentoDto, UpdateStatusDto, AprovarOrcamentoDto, FinalizeOrderDto, CreateOrUpdateItemDto, UpdateServiceOrderItemDto } from './dto/service-order.dto';
 import { v4 as uuidv4 } from 'uuid';
@@ -26,6 +26,72 @@ export class ServiceOrdersService {
     // Compatibilidade retroativa: registros antigos com status ORCAMENTO
     ORCAMENTO:            ['EM_DIAGNOSTICO', 'ORCAMENTO_PRONTO', 'AGUARDANDO_APROVACAO', 'CANCELADO'],
   };
+
+  private toStockQuantity(value: number) {
+    const parsed = Math.trunc(Number(value));
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      throw new BadRequestException('Quantidade de peça inválida para movimentação de estoque');
+    }
+    return parsed;
+  }
+
+  private async ensureStockPrivilege(tenantId: string, userId: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, tenantId, isActive: true },
+      select: { role: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
+    if (!['MASTER', 'ADMIN'].includes(user.role)) {
+      throw new ForbiddenException('Somente MASTER e ADMIN podem alterar estoque');
+    }
+  }
+
+  private async applyStockMovement(
+    tenantId: string,
+    partId: string,
+    type: 'ENTRY' | 'EXIT',
+    quantity: number,
+    note?: string,
+  ) {
+    const safeQty = this.toStockQuantity(quantity);
+
+    await this.prisma.$transaction(async (tx) => {
+      const part = await tx.part.findFirst({
+        where: { id: partId, tenantId, isActive: true },
+        select: { id: true, currentStock: true },
+      });
+
+      if (!part) {
+        throw new NotFoundException('Peça não encontrada');
+      }
+
+      const delta = type === 'ENTRY' ? safeQty : -safeQty;
+      const nextStock = (part.currentStock ?? 0) + delta;
+
+      if (nextStock < 0) {
+        throw new BadRequestException('Estoque insuficiente para esta operação');
+      }
+
+      await tx.inventoryMovement.create({
+        data: {
+          tenantId,
+          partId,
+          type,
+          quantity: safeQty,
+          note,
+        },
+      });
+
+      await tx.part.update({
+        where: { id: partId },
+        data: { currentStock: nextStock },
+      });
+    });
+  }
 
 
   async findAll(tenantId: string, status?: string, orderType?: string) {
@@ -111,6 +177,7 @@ export class ServiceOrdersService {
         equipmentBrand: dto.equipmentBrand,
         equipmentModel: dto.equipmentModel,
         serialNumber: dto.serialNumber,
+        reserveStock: Boolean(dto.reserveStock),
         scheduledDate: dto.scheduledDate ? new Date(dto.scheduledDate) : null,
 
         totalParts,
@@ -161,19 +228,25 @@ export class ServiceOrdersService {
       throw new BadRequestException('Não é possível editar uma OS finalizada ou cancelada');
     }
 
+    const updateData: any = {
+      complaint: dto.complaint,
+      diagnosis: dto.diagnosis,
+      technicalReport: dto.technicalReport,
+      observations: dto.observations,
+      equipmentBrand: dto.equipmentBrand,
+      equipmentModel: dto.equipmentModel,
+      serialNumber: dto.serialNumber,
+      notes: dto.notes,
+      paymentMethod: dto.paymentMethod,
+    };
+
+    if (typeof dto.reserveStock === 'boolean') {
+      updateData.reserveStock = dto.reserveStock;
+    }
+
     return this.prisma.serviceOrder.update({
       where: { id },
-      data: {
-        complaint: dto.complaint,
-        diagnosis: dto.diagnosis,
-        technicalReport: dto.technicalReport,
-        observations: dto.observations,
-        equipmentBrand: dto.equipmentBrand,
-        equipmentModel: dto.equipmentModel,
-        serialNumber: dto.serialNumber,
-        notes: dto.notes,
-        paymentMethod: dto.paymentMethod,
-      },
+      data: updateData,
 
       include: {
         customer: true,
@@ -284,25 +357,21 @@ export class ServiceOrdersService {
       },
     });
 
-    // Se houver reserva de itens, debita estoque agora
-    if (order.reserveStock) {
-      const parts = order.items.filter((item: any) => item.type === 'part' && !item.applied);
-      for (const item of parts) {
-        if (item.partId) {
-          await this.prisma.inventoryMovement.create({
-            data: {
-              tenantId: order.tenantId,
-              partId: item.partId,
-              type: 'EXIT',
-              quantity: item.quantity,
-              note: `Reserva OS ${order.id.slice(0, 8)} (Aprovada)`,
-            },
-          });
-          await this.prisma.serviceOrderItem.update({
-            where: { id: item.id },
-            data: { applied: true },
-          });
-        }
+    // Na autorização do orçamento, debita todas as peças pendentes do estoque.
+    const parts = order.items.filter((item: any) => item.type === 'part' && !item.applied);
+    for (const item of parts) {
+      if (item.partId) {
+        await this.applyStockMovement(
+          order.tenantId,
+          item.partId,
+          'EXIT',
+          item.quantity,
+          `OS ${order.id.slice(0, 8)} aprovada`,
+        );
+        await this.prisma.serviceOrderItem.update({
+          where: { id: item.id },
+          data: { applied: true },
+        });
       }
     }
 
@@ -382,16 +451,13 @@ export class ServiceOrdersService {
 
     for (const item of items) {
       if (item.partId) {
-        // Baixa no estoque
-        await this.prisma.inventoryMovement.create({
-          data: {
-            tenantId,
-            partId: item.partId,
-            type: 'EXIT',
-            quantity: item.quantity,
-            note: `OS ${order.id.slice(0, 8)}`,
-          },
-        });
+        await this.applyStockMovement(
+          tenantId,
+          item.partId,
+          'EXIT',
+          item.quantity,
+          `OS ${order.id.slice(0, 8)}`,
+        );
 
         // Marca item como aplicado
         await this.prisma.serviceOrderItem.update({
@@ -463,6 +529,10 @@ export class ServiceOrdersService {
   async addItem(tenantId: string, orderId: string, dto: CreateOrUpdateItemDto, userId: string) {
     const order = await this.findById(tenantId, orderId);
 
+    if (dto.type === 'part') {
+      await this.ensureStockPrivilege(tenantId, userId);
+    }
+
     let qty = dto.quantity || 1;
     let unitPrice = dto.unitPrice || 0;
     let description = dto.description;
@@ -498,15 +568,13 @@ export class ServiceOrdersService {
       finalPartId = newPart.id;
 
       // Inicializa o estoque com a quantidade que está sendo lançada (para não ficar negativo)
-      await this.prisma.inventoryMovement.create({
-        data: {
-          tenantId,
-          partId: finalPartId,
-          type: 'ENTRY',
-          quantity: qty,
-          note: `Entrada automática via Quick Add na OS ${order.id.slice(0, 8)}`,
-        },
-      });
+      await this.applyStockMovement(
+        tenantId,
+        finalPartId,
+        'ENTRY',
+        qty,
+        `Entrada automática via Quick Add na OS ${order.id.slice(0, 8)}`,
+      );
     }
 
     const item = await this.prisma.serviceOrderItem.create({
@@ -523,27 +591,23 @@ export class ServiceOrdersService {
       },
     });
 
-    // Se for peça (existente ou nova), registra a saída do estoque IMEDIATAMENTE
-    // mas só se não for orçamento (ou se estiver configurado para reservar no orçamento)
-    // O usuário disse: "decrementa do estoque" ao inserir.
     if (dto.type === 'part' && finalPartId) {
-      // Se for orçamento e NÃO estiver marcado para reservar, não baixamos ainda?
-      // O usuário disse: "decrementa do estoque" ao inserir. Vou seguir isso.
-      await this.prisma.inventoryMovement.create({
-        data: {
+      const shouldDebitNow = order.orderType === 'ORDEM_SERVICO' || (order.orderType === 'ORCAMENTO' && !order.reserveStock);
+
+      if (shouldDebitNow) {
+        await this.applyStockMovement(
           tenantId,
-          partId: finalPartId,
-          type: 'EXIT',
-          quantity: qty,
-          note: `Saída OS ${order.id.slice(0, 8)}`,
-        },
-      });
-      
-      // Marca como aplicado pois já baixamos
-      await this.prisma.serviceOrderItem.update({
-        where: { id: item.id },
-        data: { applied: true },
-      });
+          finalPartId,
+          'EXIT',
+          qty,
+          `Saída OS ${order.id.slice(0, 8)}`,
+        );
+
+        await this.prisma.serviceOrderItem.update({
+          where: { id: item.id },
+          data: { applied: true },
+        });
+      }
     }
 
     await this.recalculateTotals(orderId);
@@ -564,17 +628,19 @@ export class ServiceOrdersService {
       throw new NotFoundException('Item não encontrado na ordem');
     }
 
+    if (item.type === 'part') {
+      await this.ensureStockPrivilege(tenantId, userId);
+    }
+
     // Se for peça, devolve ao estoque
-    if (item.type === 'part' && item.partId) {
-      await this.prisma.inventoryMovement.create({
-        data: {
-          tenantId,
-          partId: item.partId,
-          type: 'ENTRY',
-          quantity: item.quantity,
-          note: `Estorno (Item removido da OS ${order.id.slice(0, 8)})`,
-        },
-      });
+    if (item.type === 'part' && item.partId && item.applied) {
+      await this.applyStockMovement(
+        tenantId,
+        item.partId,
+        'ENTRY',
+        item.quantity,
+        `Estorno (Item removido da OS ${order.id.slice(0, 8)})`,
+      );
     }
 
     await this.prisma.serviceOrderItem.delete({
@@ -598,34 +664,34 @@ export class ServiceOrdersService {
       throw new NotFoundException('Item não encontrado na ordem');
     }
 
+    if (oldItem.type === 'part') {
+      await this.ensureStockPrivilege(tenantId, userId);
+    }
+
     const qty = dto.quantity !== undefined ? dto.quantity : oldItem.quantity;
     const unitPrice = dto.unitPrice !== undefined ? dto.unitPrice : oldItem.unitPrice;
     const discount = dto.discount !== undefined ? dto.discount : oldItem.discount;
     const totalPrice = (unitPrice * qty) - discount;
 
     // Atualiza estoque se a quantidade mudou e for peça
-    if (oldItem.type === 'part' && oldItem.partId) {
+    if (oldItem.type === 'part' && oldItem.partId && oldItem.applied) {
       const diff = qty - oldItem.quantity;
       if (diff > 0) {
-        await this.prisma.inventoryMovement.create({
-          data: {
-            tenantId,
-            partId: oldItem.partId,
-            type: 'EXIT',
-            quantity: diff,
-            note: `Ajuste Qtd OS ${order.id.slice(0, 8)}`,
-          },
-        });
+        await this.applyStockMovement(
+          tenantId,
+          oldItem.partId,
+          'EXIT',
+          diff,
+          `Ajuste Qtd OS ${order.id.slice(0, 8)}`,
+        );
       } else if (diff < 0) {
-        await this.prisma.inventoryMovement.create({
-          data: {
-            tenantId,
-            partId: oldItem.partId,
-            type: 'ENTRY',
-            quantity: Math.abs(diff),
-            note: `Estorno Ajuste Qtd OS ${order.id.slice(0, 8)}`,
-          },
-        });
+        await this.applyStockMovement(
+          tenantId,
+          oldItem.partId,
+          'ENTRY',
+          Math.abs(diff),
+          `Estorno Ajuste Qtd OS ${order.id.slice(0, 8)}`,
+        );
       }
     }
 

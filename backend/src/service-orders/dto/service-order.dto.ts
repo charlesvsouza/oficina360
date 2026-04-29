@@ -130,6 +130,11 @@ export class CreateOrcamentoDto {
   @IsOptional()
   @IsString()
   serialNumber?: string;
+
+  @ApiProperty({ required: false, default: false })
+  @IsOptional()
+  @IsBoolean()
+  reserveStock?: boolean;
 }
 
 export class CreateServiceOrderDto extends CreateOrcamentoDto {
@@ -184,6 +189,11 @@ export class UpdateOrcamentoDto {
   @IsOptional()
   @IsString()
   paymentMethod?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsBoolean()
+  reserveStock?: boolean;
 }
 
 export class UpdateStatusDto {

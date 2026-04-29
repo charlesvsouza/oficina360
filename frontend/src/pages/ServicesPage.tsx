@@ -172,58 +172,65 @@ export function ServicesPage() {
             <p className="text-slate-500 font-medium animate-pulse">Carregando catálogo de serviços...</p>
           </div>
         ) : (
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filteredServices.map((service) => (
-              <motion.div
-                key={service.id}
-                layout
-                whileHover={{ y: -4 }}
-                className="bg-white rounded-3xl border border-slate-200 p-6 flex flex-col justify-between hover:shadow-xl transition-all group relative overflow-hidden"
-              >
-                <div className="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                  <button onClick={() => handleEdit(service)} className="p-2 bg-slate-100 hover:bg-slate-900 hover:text-white rounded-xl transition-all">
-                    <Edit size={16} />
-                  </button>
-                  <button onClick={() => handleDelete(service.id)} className="p-2 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all">
-                    <Trash2 size={16} />
-                  </button>
-                </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[980px]">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50/70">
+                  <th className="px-6 py-3 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest">Serviço</th>
+                  <th className="px-6 py-3 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest">Categoria</th>
+                  <th className="px-6 py-3 text-center text-[10px] font-black text-slate-500 uppercase tracking-widest">Duração</th>
+                  <th className="px-6 py-3 text-right text-[10px] font-black text-slate-500 uppercase tracking-widest">VH</th>
+                  <th className="px-6 py-3 text-center text-[10px] font-black text-slate-500 uppercase tracking-widest">TMO</th>
+                  <th className="px-6 py-3 text-right text-[10px] font-black text-slate-500 uppercase tracking-widest">Preço Final</th>
+                  <th className="px-6 py-3 text-right text-[10px] font-black text-slate-500 uppercase tracking-widest">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredServices.map((service) => {
+                  const vh = Number(service.hourlyRate || 0);
+                  const tmo = Number(service.tmo || 0);
+                  const finalPrice = tmo > 0 && vh > 0 ? tmo * vh : Number(service.basePrice || 0);
 
-                <div className="relative z-10">
-                  <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-900 mb-4 group-hover:bg-slate-900 group-hover:text-white transition-colors">
-                    <Zap size={24} />
-                  </div>
-                  <h3 className="text-lg font-black text-slate-900 tracking-tight leading-tight mb-2 uppercase">{service.name}</h3>
-                  <p className="text-sm text-slate-500 line-clamp-2 mb-4 font-medium h-10">{service.description || 'Sem descrição detalhada'}</p>
-                  
-                  <div className="flex flex-wrap items-center gap-3 mb-6">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider">
-                      <Clock size={12} /> {service.duration} min
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider">
-                      <Tag size={12} /> {service.category || 'Geral'}
-                    </span>
-                    {service.tmo > 0 && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-50 text-primary-600 text-[10px] font-black uppercase tracking-wider">
-                        <Clock size={12} /> {service.tmo}h TMO
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-slate-100 flex items-center justify-between mt-auto">
-                  <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                    {service.tmo > 0 ? 'Total TMO' : 'Preço Base'}
-                  </div>
-                  <div className="text-2xl font-black text-slate-900">
-                    R$ {Number(service.tmo > 0 ? (service.tmo * service.hourlyRate) : service.basePrice).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+                  return (
+                    <motion.tr key={service.id} layout className="group hover:bg-slate-50/60 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center shrink-0">
+                            <Zap size={16} />
+                          </div>
+                          <div>
+                            <p className="font-black text-slate-900 text-sm leading-tight uppercase">{service.name}</p>
+                            <p className="text-xs text-slate-500 mt-1 max-w-[380px] truncate">{service.description || 'Sem descrição detalhada'}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-[10px] font-black uppercase tracking-wider">
+                          <Tag size={11} /> {service.category || 'Geral'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center text-sm font-bold text-slate-700">{service.duration || 0} min</td>
+                      <td className="px-6 py-4 text-right text-sm font-bold text-slate-700">R$ {Number(service.hourlyRate || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                      <td className="px-6 py-4 text-center text-sm font-bold text-slate-700">{tmo > 0 ? `${tmo}h` : '—'}</td>
+                      <td className="px-6 py-4 text-right text-base font-black text-slate-900">R$ {finalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => handleEdit(service)} className="p-2 bg-slate-100 hover:bg-slate-900 hover:text-white rounded-xl transition-all">
+                            <Edit size={16} />
+                          </button>
+                          <button onClick={() => handleDelete(service.id)} className="p-2 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  );
+                })}
+              </tbody>
+            </table>
 
             {filteredServices.length === 0 && (
-              <div className="col-span-full py-20 text-center">
+              <div className="py-20 text-center">
                 <Wrench className="w-16 h-16 mx-auto mb-4 text-slate-200" />
                 <h3 className="text-lg font-bold text-slate-900">Nenhum serviço encontrado</h3>
                 <p className="text-slate-500">Comece cadastrando seus serviços no catálogo.</p>

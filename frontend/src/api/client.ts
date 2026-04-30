@@ -100,6 +100,13 @@ export const serviceOrdersApi = {
   removeItem: (id: string, itemId: string) => api.delete(`/service-orders/${id}/items/${itemId}`),
   updateItem: (id: string, itemId: string, data: any) => api.patch(`/service-orders/${id}/items/${itemId}`, data),
   updateStatus: (id: string, data: { status: string }) => api.patch(`/service-orders/${id}/status`, data),
+  importPdf: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/service-orders/import-pdf', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 };
 
 

@@ -561,6 +561,7 @@ export class ServiceOrdersService {
         data: {
           tenantId,
           name: description,
+          internalCode: dto.internalCode,
           unitPrice: unitPrice,
           isActive: true,
         },

@@ -26,3 +26,7 @@ Thumbs.db
 
 # Claude Code memory
 .claude/
+
+# Temporary
+backend/dist_test/
+*.pdf

@@ -1,6 +1,8 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { ServiceOrdersService } from './service-orders.service';
+import { ImportService } from './import.service';
 import { CreateServiceOrderDto, CreateOrcamentoDto, UpdateOrcamentoDto, UpdateStatusDto, AprovarOrcamentoDto, FinalizeOrderDto, CreateOrUpdateItemDto, UpdateServiceOrderItemDto } from './dto/service-order.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -12,7 +14,30 @@ import { Tenant, CurrentUser } from '../common/decorators/tenant.decorator';
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ServiceOrdersController {
-  constructor(private serviceOrdersService: ServiceOrdersService) {}
+  constructor(
+    private serviceOrdersService: ServiceOrdersService,
+    private importService: ImportService,
+  ) {}
+
+  @Post('import-pdf')
+  @Roles('ADMIN', 'PRODUTIVO')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiOperation({ summary: 'Importar dados de um PDF de orçamento' })
+  async importPdf(@UploadedFile() file: Express.Multer.File) {
+    return this.importService.parseEstimatePdf(file.buffer);
+  }
 
   @Get()
   @ApiOperation({ summary: 'Listar todas ordens de serviço e orçamentos' })

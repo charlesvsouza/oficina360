@@ -3,11 +3,12 @@ import { serviceOrdersApi, customersApi, vehiclesApi, servicesApi, inventoryApi,
 import {
   ClipboardList, Plus, Search, Car, User, Clock, CheckCircle, XCircle,
   Wrench, Package, FileText, DollarSign, Play, Trash2, Layout, X,
-  Printer, Save, Zap, Loader2, RefreshCw,
+  Printer, Save, Zap, Loader2, RefreshCw, FileUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { useAuthStore } from '../store/authStore';
+import { ImportOSModal } from '../components/ImportOSModal';
 
 const statusConfig: Record<string, { label: string; color: string; icon?: string }> = {
   ABERTA:               { label: 'Aberta',                color: 'bg-slate-100 text-slate-700' },
@@ -84,59 +85,35 @@ const PRINT_STYLE = `
   #os-print-doc {
     position: absolute; left: 0; top: 0; width: 100%; background: white;
   }
-  @page { size: A4; margin: 10mm 12mm; }
+  @page { size: A4; margin: 8mm 10mm; }
 }
 .os-doc {
-  font-family: Arial, "Helvetica Neue", sans-serif;
-  font-size: 10pt; color: #111; width: 100%;
+  font-family: 'Inter', Arial, sans-serif;
+  font-size: 9pt; color: #111; width: 100%;
 }
-.os-doc table { width: 100%; border-collapse: collapse; margin-bottom: 5px; }
+.os-doc table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
 .os-doc td, .os-doc th {
-  border: 1px solid #888; padding: 4px 7px; font-size: 9pt; vertical-align: top;
+  border: 0.5pt solid #aaa; padding: 3px 6px; font-size: 8.5pt; vertical-align: top;
 }
-.os-doc th { font-weight: bold; }
+.os-doc th { font-weight: 800; background: #f8fafc; text-align: left; }
 .os-doc .hdr td, .os-doc .hdr th {
-  background: #1e293b !important; color: #fff !important;
-  border-color: #1e293b !important; font-weight: bold;
-  text-transform: uppercase; font-size: 9pt; letter-spacing: 0.04em;
+  background: #0f172a !important; color: #fff !important;
+  border-color: #0f172a !important; font-weight: 900;
+  text-transform: uppercase; font-size: 8pt; letter-spacing: 0.05em;
+  padding: 4px 8px;
 }
 .os-doc .total-final td {
-  font-weight: bold; font-size: 13pt;
-  background: #1e293b !important; color: #fff !important;
-  border-color: #1e293b !important;
+  font-weight: 900; font-size: 12pt;
+  background: #0f172a !important; color: #fff !important;
+  border-color: #0f172a !important;
 }
 .os-doc .nb td, .os-doc .nb th { border-color: transparent; }
 .os-doc .tr { text-align: right; }
 .os-doc .tc { text-align: center; }
-.os-doc hr { border: none; border-top: 1.5px solid #333; margin: 5px 0; }
+.os-doc hr { border: none; border-top: 1px solid #000; margin: 4px 0; }
 `;
 
-const PRINT_PREVIEW_STYLE = `
-body { margin: 0; padding: 10mm 12mm; background: #fff; }
-.os-doc {
-  font-family: Arial, "Helvetica Neue", sans-serif;
-  font-size: 10pt; color: #111; width: 100%;
-}
-.os-doc table { width: 100%; border-collapse: collapse; margin-bottom: 5px; }
-.os-doc td, .os-doc th {
-  border: 1px solid #888; padding: 4px 7px; font-size: 9pt; vertical-align: top;
-}
-.os-doc th { font-weight: bold; }
-.os-doc .hdr td, .os-doc .hdr th {
-  background: #1e293b !important; color: #fff !important;
-  border-color: #1e293b !important; font-weight: bold;
-  text-transform: uppercase; font-size: 9pt; letter-spacing: 0.04em;
-}
-.os-doc .total-final td {
-  font-weight: bold; font-size: 13pt;
-  background: #1e293b !important; color: #fff !important;
-  border-color: #1e293b !important;
-}
-.os-doc .nb td, .os-doc .nb th { border-color: transparent; }
-.os-doc .tr { text-align: right; }
-.os-doc .tc { text-align: center; }
-.os-doc hr { border: none; border-top: 1.5px solid #333; margin: 5px 0; }
-`;
+const PRINT_PREVIEW_STYLE = PRINT_STYLE.replace('@media screen { #os-print-doc { display: none; } }', '').replace('@media print { body * { visibility: hidden; } #os-print-doc, #os-print-doc * { visibility: visible; } #os-print-doc { position: absolute; left: 0; top: 0; width: 100%; background: white; } @page { size: A4; margin: 8mm 10mm; } }', 'body { padding: 10mm; background: #fff; }');
 
 function fmtBR(v: number | string | undefined, dec = 2) {
   return Number(v ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
@@ -172,6 +149,7 @@ export function ServiceOrdersPage() {
   const [pendingQtyByItem, setPendingQtyByItem] = useState<Record<string, number>>({});
   const [syncingTotals, setSyncingTotals] = useState(false);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   useEffect(() => { loadOrders(); loadBasics(); }, []);
 
@@ -655,12 +633,21 @@ export function ServiceOrdersPage() {
             <h2 className="font-black text-slate-900 flex items-center gap-2 uppercase text-xs tracking-tight">
               <ClipboardList size={16} /> Ordens de Serviço
             </h2>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="p-1.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-lg"
-            >
-              <Plus size={18} />
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="p-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-lg"
+                title="Importar de Orçamento PDF"
+              >
+                <FileUp size={18} />
+              </button>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="p-1.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-lg"
+              >
+                <Plus size={18} />
+              </button>
+            </div>
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
@@ -1386,6 +1373,15 @@ export function ServiceOrdersPage() {
           </div>
         )}
       </AnimatePresence>
+      {showImportModal && (
+        <ImportOSModal 
+          onClose={() => setShowImportModal(false)} 
+          onSuccess={() => {
+            loadOrders();
+            alert('OS Importada com sucesso!');
+          }} 
+        />
+      )}
     </div>
   );
 }

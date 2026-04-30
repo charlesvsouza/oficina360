@@ -13,6 +13,11 @@ export class CreateOrUpdateItemDto {
   @IsString()
   partId?: string;
 
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  internalCode?: string;
+
   @ApiProperty()
   @IsNotEmpty()
   @IsString()

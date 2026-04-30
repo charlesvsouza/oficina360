@@ -40,7 +40,7 @@ export function ImportOSModal({ onClose, onSuccess }: ImportOSModalProps) {
   };
 
   const updateItemField = (idx: number, field: string, value: any) => {
-    const newItems = [...data.items];
+    const newItems = [...(data?.items || [])];
     newItems[idx] = { ...newItems[idx], [field]: value };
     setData({ ...data, items: newItems });
   };
@@ -56,45 +56,50 @@ export function ImportOSModal({ onClose, onSuccess }: ImportOSModalProps) {
     try {
       // 1. Garantir Cliente
       let customerId = '';
-      const cRes = await customersApi.getAll();
-      const existingCustomer = cRes.data.find((c: any) => 
-        (data.customer.document && c.document === data.customer.document) || 
-        c.name.toLowerCase() === data.customer.name.toLowerCase()
-      );
+      try {
+        const cRes = await customersApi.getAll();
+        const existingCustomer = cRes.data.find((c: any) => 
+          (data.customer.document && c.document === data.customer.document) || 
+          c.name.toLowerCase() === data.customer.name.toLowerCase()
+        );
 
-      if (existingCustomer) {
-        customerId = existingCustomer.id;
-        // Opcional: Atualizar dados se mudaram
-        await customersApi.update(customerId, {
-          phone: data.customer.phone || existingCustomer.phone,
-          email: data.customer.email || existingCustomer.email,
-          address: data.customer.address || existingCustomer.address,
-        });
-      } else {
-        const newC = await customersApi.create({
-          name: data.customer.name,
-          document: data.customer.document,
-          phone: data.customer.phone,
-          email: data.customer.email,
-          address: data.customer.address,
-        });
-        customerId = newC.data.id;
+        if (existingCustomer) {
+          customerId = existingCustomer.id;
+        } else {
+          const newC = await customersApi.create({
+            name: data.customer.name,
+            document: data.customer.document,
+            phone: data.customer.phone,
+            email: data.customer.email,
+            address: data.customer.address,
+          });
+          customerId = newC.data.id;
+        }
+      } catch (e) {
+        console.error('Erro ao processar cliente', e);
       }
 
       // 2. Garantir Veículo
       let vehicleId = '';
-      const vRes = await vehiclesApi.getAll();
-      const existingVehicle = vRes.data.find((v: any) => 
-        v.plate.toUpperCase() === data.vehicle.plate.toUpperCase()
-      );
-
-      if (existingVehicle) {
-        vehicleId = existingVehicle.id;
-        // Opcional: Atualizar KM
-        if (data.vehicle.km) {
-          await vehiclesApi.update(vehicleId, { km: Number(data.vehicle.km) });
+      try {
+        const vSearch = await vehiclesApi.searchByPlate(data.vehicle.plate);
+        if (vSearch.data) {
+          vehicleId = vSearch.data.id;
+        } else {
+          const newV = await vehiclesApi.create({
+            customerId,
+            brand: data.vehicle.brand || 'Importado',
+            model: data.vehicle.model,
+            plate: data.vehicle.plate.toUpperCase(),
+            year: data.vehicle.year ? parseInt(data.vehicle.year) : null,
+            km: data.vehicle.km ? parseInt(data.vehicle.km) : null,
+            vin: data.vehicle.vin,
+            color: data.vehicle.color,
+          });
+          vehicleId = newV.data.id;
         }
-      } else {
+      } catch (e) {
+        // Se a busca falhar (404), tentamos criar
         const newV = await vehiclesApi.create({
           customerId,
           brand: data.vehicle.brand || 'Importado',
@@ -133,7 +138,7 @@ export function ImportOSModal({ onClose, onSuccess }: ImportOSModalProps) {
     }
   };
 
-  const totalCalculated = data?.items.reduce((acc: number, item: any) => acc + (Number(item.quantity) * Number(item.unitPrice)), 0) || 0;
+  const totalCalculated = (data?.items || []).reduce((acc: number, item: any) => acc + (Number(item.quantity || 0) * Number(item.unitPrice || 0)), 0);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">

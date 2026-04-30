@@ -1,12 +1,67 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ConfigService } from '@nestjs/config';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const pdf = require('pdf-parse');
 
 @Injectable()
 export class ImportService {
   private genAI: GoogleGenerativeAI;
+
+  private isNodeVersionAtLeast(minMajor: number, minMinor: number): boolean {
+    const [majorStr, minorStr] = process.versions.node.split('.');
+    const major = Number(majorStr);
+    const minor = Number(minorStr);
+
+    if (!Number.isFinite(major) || !Number.isFinite(minor)) {
+      return false;
+    }
+
+    if (major > minMajor) {
+      return true;
+    }
+
+    if (major < minMajor) {
+      return false;
+    }
+
+    return minor >= minMinor;
+  }
+
+  private async extractTextFromPdf(fileBuffer: Buffer): Promise<string> {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const pdfModule = require('pdf-parse');
+
+    if (typeof pdfModule === 'function') {
+      const data = await pdfModule(fileBuffer);
+      return data?.text ?? '';
+    }
+
+    if (typeof pdfModule?.default === 'function') {
+      const data = await pdfModule.default(fileBuffer);
+      return data?.text ?? '';
+    }
+
+    if (typeof pdfModule?.PDFParse === 'function') {
+      if (!this.isNodeVersionAtLeast(20, 16)) {
+        throw new Error(
+          `O pdf-parse@2.x requer Node >= 20.16.0 para a API PDFParse. Versão atual: ${process.versions.node}`,
+        );
+      }
+
+      const parser = new pdfModule.PDFParse({ data: fileBuffer });
+      try {
+        const result = await parser.getText();
+        return result?.text ?? '';
+      } finally {
+        if (typeof parser.destroy === 'function') {
+          await parser.destroy();
+        }
+      }
+    }
+
+    throw new Error(
+      `Formato de export do pdf-parse não suportado. Chaves encontradas: ${Object.keys(pdfModule || {}).join(', ') || 'nenhuma'}. Versão do Node: ${process.versions.node}`,
+    );
+  }
 
   constructor(private configService: ConfigService) {
     const apiKey = this.configService.get<string>('GOOGLE_API_KEY');
@@ -17,28 +72,7 @@ export class ImportService {
 
   async parseEstimatePdf(fileBuffer: Buffer) {
     try {
-      // Tenta múltiplas formas de obter a função de parse (CJS, ESM, Bundled)
-      let parseFunc: any = pdf;
-      if (typeof parseFunc !== 'function' && (pdf as any).default) {
-        parseFunc = (pdf as any).default;
-      }
-      
-      if (typeof parseFunc !== 'function') {
-        // Fallback final para require caso o import tenha falhado em resolver a função
-        try {
-          const reqPdf = require('pdf-parse');
-          parseFunc = typeof reqPdf === 'function' ? reqPdf : reqPdf.default;
-        } catch (e) {
-          console.error('Falha ao dar require no pdf-parse:', e);
-        }
-      }
-
-      if (typeof parseFunc !== 'function') {
-        throw new Error(`O módulo pdf-parse não exportou uma função válida. Tipo recebido: ${typeof parseFunc}`);
-      }
-      
-      const data = await parseFunc(fileBuffer);
-      const text = data.text;
+      const text = await this.extractTextFromPdf(fileBuffer);
 
       if (!this.genAI) {
         throw new BadRequestException('Google API Key (GOOGLE_API_KEY) não configurada no .env');

@@ -37,6 +37,31 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   companyType?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  legalNature?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  legalName?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  tradeName?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  stateRegistration?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  municipalRegistration?: string;
 }
 
 export class LoginDto {

@@ -148,27 +148,47 @@ export function RegisterPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider ml-1">Tipo de Empresa</label>
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider ml-1">Natureza</label>
+                <select 
+                  value={(companyType === 'CPF' ? 'PF' : 'PJ')} 
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === 'PF') setCompanyType('CPF');
+                    else setCompanyType('CNPJ');
+                  }}
+                  className="input-dark"
+                >
+                  <option value="PJ">PJ (Empresa)</option>
+                  <option value="PF">PF (Pessoa Física)</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider ml-1">Tipo Doc.</label>
                 <select 
                   value={companyType} 
                   onChange={(e) => setCompanyType(e.target.value)}
                   className="input-dark"
                 >
-                  <option value="CNPJ">CNPJ (Normal)</option>
-                  <option value="MEI">MEI</option>
-                  <option value="CPF">CPF (Autônomo)</option>
+                  {companyType === 'CPF' ? (
+                    <option value="CPF">CPF</option>
+                  ) : (
+                    <>
+                      <option value="CNPJ">CNPJ</option>
+                      <option value="MEI">MEI</option>
+                    </>
+                  )}
                 </select>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider ml-1">Documento (CNPJ/CPF)</label>
+              <div className="space-y-1.5 col-span-1 md:col-span-1">
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider ml-1">Documento</label>
                 <input
                   type="text"
                   value={taxId}
                   onChange={(e) => setTaxId(e.target.value)}
                   className="input-dark"
-                  placeholder="00.000.000/0001-00"
+                  placeholder="000.000.000-00"
                   required
                 />
               </div>

@@ -48,7 +48,11 @@ export class AuthService {
           document: dto.document || dto.taxId || '',
           taxId: dto.taxId || dto.document || '',
           companyType: dto.companyType || 'CNPJ',
-
+          legalNature: dto.legalNature || (dto.companyType === 'CPF' ? 'PF' : 'PJ'),
+          legalName: dto.legalName || dto.tenantName || dto.name,
+          tradeName: dto.tradeName || dto.tenantName || dto.name,
+          stateRegistration: dto.stateRegistration,
+          municipalRegistration: dto.municipalRegistration,
         },
       }),
       this.prisma.subscription.create({

@@ -21,6 +21,11 @@ model Tenant {
   document  String   @unique
   taxId     String?  // CNPJ, MEI or CPF
   companyType String @default("CNPJ") // CNPJ, MEI, CPF
+  legalNature String @default("PJ") // PF or PJ
+  legalName   String?
+  tradeName   String?
+  stateRegistration String?
+  municipalRegistration String?
   address   String?
 
   phone     String?

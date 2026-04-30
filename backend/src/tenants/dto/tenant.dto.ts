@@ -31,4 +31,39 @@ export class UpdateTenantDto {
   @IsOptional()
   @IsNumber()
   laborHourlyRate?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  taxId?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  companyType?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  legalNature?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  legalName?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  tradeName?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  stateRegistration?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  municipalRegistration?: string;
 }

@@ -1,7 +1,8 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import pdf from 'pdf-parse';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ConfigService } from '@nestjs/config';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const pdf = require('pdf-parse');
 
 @Injectable()
 export class ImportService {

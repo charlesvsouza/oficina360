@@ -48,7 +48,13 @@ export function SettingsPage() {
         email: tenantRes.data.email || '',
         phone: tenantRes.data.phone || '',
         address: tenantRes.data.address || '',
-      });
+        legalNature: tenantRes.data.legalNature || 'PJ',
+        taxId: tenantRes.data.taxId || '',
+        legalName: tenantRes.data.legalName || '',
+        tradeName: tenantRes.data.tradeName || '',
+        stateRegistration: tenantRes.data.stateRegistration || '',
+        municipalRegistration: tenantRes.data.municipalRegistration || '',
+      } as any);
       setOpsData({ laborHourlyRate: tenantRes.data.laborHourlyRate ?? 120 });
       setUsers(usersRes.data);
     } catch (error) {
@@ -118,55 +124,115 @@ export function SettingsPage() {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden"
+            className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"
           >
-            <div className="p-8 border-b border-slate-100 bg-slate-50/50">
-              <h2 className="text-xl font-black text-slate-900 flex items-center gap-2 uppercase tracking-tight">
-                <Building className="w-6 h-6" /> Perfil da Oficina
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+              <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                <Building className="w-5 h-5" /> Cadastro da Oficina
               </h2>
             </div>
-            <form onSubmit={handleSaveTenant} className="p-8 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Nome Fantasia / Razão</label>
+            <form onSubmit={handleSaveTenant} className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Nome Fantasia</label>
                   <input
                     type="text"
                     value={tenantData.name}
                     onChange={(e) => setTenantData({ ...tenantData, name: e.target.value })}
-                    className="w-full px-5 py-3 rounded-2xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 transition-all font-bold"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Telefone de Contato</label>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Natureza Jurídica</label>
+                  <select
+                    value={(tenantData as any).legalNature || 'PJ'}
+                    onChange={(e) => setTenantData({ ...tenantData, legalNature: e.target.value } as any)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
+                  >
+                    <option value="PF">Pessoa Física (PF)</option>
+                    <option value="PJ">Pessoa Jurídica (PJ)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">CPF / CNPJ</label>
+                  <input
+                    type="text"
+                    value={(tenantData as any).taxId || ''}
+                    onChange={(e) => setTenantData({ ...tenantData, taxId: e.target.value } as any)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Razão Social / Nome Civil</label>
+                  <input
+                    type="text"
+                    value={(tenantData as any).legalName || ''}
+                    onChange={(e) => setTenantData({ ...tenantData, legalName: e.target.value } as any)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Inscrição Estadual</label>
+                  <input
+                    type="text"
+                    value={(tenantData as any).stateRegistration || ''}
+                    onChange={(e) => setTenantData({ ...tenantData, stateRegistration: e.target.value } as any)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Inscrição Municipal</label>
+                  <input
+                    type="text"
+                    value={(tenantData as any).municipalRegistration || ''}
+                    onChange={(e) => setTenantData({ ...tenantData, municipalRegistration: e.target.value } as any)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Telefone</label>
                   <input
                     type="text"
                     value={tenantData.phone}
                     onChange={(e) => setTenantData({ ...tenantData, phone: e.target.value })}
-                    className="w-full px-5 py-3 rounded-2xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 transition-all font-bold"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
                   />
                 </div>
-                <div className="md:col-span-2 space-y-1.5">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Email Público</label>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">E-mail</label>
                   <input
                     type="email"
                     value={tenantData.email}
                     onChange={(e) => setTenantData({ ...tenantData, email: e.target.value })}
-                    className="w-full px-5 py-3 rounded-2xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 transition-all font-bold"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
                   />
                 </div>
-                <div className="md:col-span-2 space-y-1.5">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Endereço Completo</label>
+
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Endereço</label>
                   <input
                     type="text"
                     value={tenantData.address}
                     onChange={(e) => setTenantData({ ...tenantData, address: e.target.value })}
-                    className="w-full px-5 py-3 rounded-2xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 transition-all font-bold"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
                   />
                 </div>
               </div>
-              <div className="flex justify-end pt-4">
-                <button type="submit" disabled={saving} className="btn btn-primary h-14 px-10 rounded-2xl font-black shadow-xl shadow-primary-500/20 active:scale-95 transition-all">
-                  {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Salvar Perfil'}
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="rounded-lg bg-indigo-600 px-6 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 shadow-md shadow-indigo-100 transition-all active:scale-95"
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar Perfil'}
                 </button>
               </div>
             </form>

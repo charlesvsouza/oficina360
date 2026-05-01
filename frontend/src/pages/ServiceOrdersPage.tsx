@@ -3,7 +3,7 @@ import { serviceOrdersApi, customersApi, vehiclesApi, servicesApi, inventoryApi,
 import {
   ClipboardList, Plus, Search, Car, User, Clock, CheckCircle, XCircle,
   Wrench, Package, FileText, DollarSign, Play, Trash2, Layout, X,
-  Printer, Save, Zap, Loader2, RefreshCw, FileUp
+  Printer, Save, Zap, Loader2, RefreshCw, FileUp, Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
@@ -122,6 +122,7 @@ function fmtBR(v: number | string | undefined, dec = 2) {
 export function ServiceOrdersPage() {
   const { user } = useAuthStore();
   const canManageStock = user?.role === 'MASTER' || user?.role === 'ADMIN';
+  const canDelete = user?.role === 'MASTER';
   const printContentRef = useRef<HTMLDivElement>(null);
   const printFrameRef = useRef<HTMLIFrameElement>(null);
   const [orders, setOrders] = useState<any[]>([]);
@@ -150,6 +151,9 @@ export function ServiceOrdersPage() {
   const [syncingTotals, setSyncingTotals] = useState(false);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => { loadOrders(); loadBasics(); }, []);
 
@@ -264,6 +268,28 @@ export function ServiceOrdersPage() {
     const current = selectedOrder?.items?.find((i: any) => i.id === itemId);
     return current && Number(newQty) > 0 && Number(newQty) !== Number(current.quantity);
   }).length;
+
+  const openDeleteModal = () => {
+    setDeleteConfirmInput('');
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteOrder = async () => {
+    if (!selectedOrder) return;
+    const expectedCode = selectedOrder.id.slice(0, 8).toUpperCase();
+    if (deleteConfirmInput.trim().toUpperCase() !== expectedCode) return;
+    setDeleting(true);
+    try {
+      await serviceOrdersApi.delete(selectedOrder.id);
+      setShowDeleteModal(false);
+      setSelectedOrder(null);
+      loadOrders();
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'Erro ao excluir a O.S.');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const buildPrintPreviewHtml = () => {
     const content = printContentRef.current?.innerHTML || '';
@@ -767,6 +793,15 @@ export function ServiceOrdersPage() {
                 >
                   <Save size={15} /> Salvar
                 </button>
+                {canDelete && (
+                  <button
+                    onClick={openDeleteModal}
+                    className="h-10 px-4 rounded-xl text-xs font-bold flex items-center gap-2 border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-all"
+                    title="Excluir O.S. permanentemente (somente MASTER)"
+                  >
+                    <Trash2 size={15} /> Excluir O.S.
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1383,6 +1418,62 @@ export function ServiceOrdersPage() {
             alert('OS Importada com sucesso!');
           }} 
         />
+      )}
+
+      {/* Modal de confirmação de exclusão */}
+      {showDeleteModal && selectedOrder && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setShowDeleteModal(false)} />
+          <div className="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-8 flex flex-col gap-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-red-100 flex items-center justify-center">
+                <Trash2 size={22} className="text-red-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">Excluir O.S.</h2>
+                <p className="text-xs text-slate-500 font-medium">Esta ação é irreversível</p>
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-red-50 border border-red-200 p-4 text-xs text-red-700 font-medium space-y-1">
+              <p><span className="font-black">OS:</span> #{selectedOrder.id.slice(0, 8).toUpperCase()}</p>
+              <p><span className="font-black">Status atual:</span> {statusConfig[selectedOrder.status]?.label ?? selectedOrder.status}</p>
+              <p><span className="font-black">Total:</span> R$ {fmtBR(selectedOrder.totalCost)}</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-black text-slate-600 uppercase tracking-wider">
+                Digite o número da O.S. para confirmar:
+                <span className="ml-2 font-mono text-slate-900">#{selectedOrder.id.slice(0, 8).toUpperCase()}</span>
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmInput}
+                onChange={(e) => setDeleteConfirmInput(e.target.value.toUpperCase())}
+                placeholder={`Digite ${selectedOrder.id.slice(0, 8).toUpperCase()}`}
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 font-mono font-bold text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
+                autoFocus
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 h-11 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteOrder}
+                disabled={deleteConfirmInput.trim().toUpperCase() !== selectedOrder.id.slice(0, 8).toUpperCase() || deleting}
+                className="flex-1 h-11 rounded-xl bg-red-600 text-white text-sm font-bold flex items-center justify-center gap-2 hover:bg-red-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {deleting ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                Excluir permanentemente
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -156,13 +156,15 @@ export class ServiceOrdersController {
   }
 
   @Delete(':id')
-  @Roles('ADMIN')
-  @ApiOperation({ summary: 'Excluir ordem' })
+  @Roles('MASTER')
+  @ApiOperation({ summary: 'Excluir ordem (somente MASTER)' })
   async delete(
     @Tenant() tenant: { tenantId: string },
+    @CurrentUser() user: { userId: string },
     @Param('id') id: string,
+    @Body('reason') reason?: string,
   ) {
-    return this.serviceOrdersService.delete(tenant.tenantId, id);
+    return this.serviceOrdersService.delete(tenant.tenantId, id, user.userId, reason);
   }
 
   @Post(':id/items')

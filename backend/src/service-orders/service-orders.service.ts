@@ -521,8 +521,30 @@ export class ServiceOrdersService {
     return { success: true, amountPaid, status: 'FATURADO' };
   }
 
-  async delete(tenantId: string, id: string) {
-    await this.findById(tenantId, id);
+  async delete(tenantId: string, id: string, userId?: string, reason?: string) {
+    const order = await this.findById(tenantId, id);
+
+    // Registra auditoria antes de deletar
+    await this.prisma.auditLog.create({
+      data: {
+        tenantId,
+        userId: userId ?? null,
+        entityType: 'ServiceOrder',
+        entityId: id,
+        action: 'DELETE',
+        changes: JSON.stringify({
+          osNumber: id.slice(0, 8).toUpperCase(),
+          status: order.status,
+          orderType: order.orderType,
+          customerId: order.customerId,
+          vehicleId: order.vehicleId,
+          totalCost: order.totalCost,
+          createdAt: order.createdAt,
+          reason: reason || 'Não informado',
+        }),
+      },
+    });
+
     return this.prisma.serviceOrder.delete({ where: { id } });
   }
 

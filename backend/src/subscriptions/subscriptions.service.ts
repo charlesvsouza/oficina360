@@ -120,7 +120,7 @@ export class SubscriptionsService {
       throw new NotFoundException('Tenant not found');
     }
 
-    const frontendUrl = (this.configService.get<string>('FRONTEND_URL') || 'https://sigmaauto.com.br').replace(/\/+$/, '');
+    const frontendUrl = (this.configService.get<string>('FRONTEND_URL') || 'https://sigmaauto.com.br').replace(/\/+$/, ''); // dominio canonico: sigmaauto.com.br
     const defaultSuccessUrl = this.configService.get<string>('CHECKOUT_SUCCESS_URL') || `${frontendUrl}/settings?checkout=success`;
     const defaultCancelUrl = this.configService.get<string>('CHECKOUT_CANCEL_URL') || `${frontendUrl}/settings?checkout=cancel`;
     const allowedOriginsList = [

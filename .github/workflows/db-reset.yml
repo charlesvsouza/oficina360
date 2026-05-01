@@ -1,0 +1,48 @@
+name: Reset & Seed Database (Railway)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Digite RESET para confirmar — TODOS os dados serão apagados'
+        required: true
+
+jobs:
+  reset-db:
+    name: Reset Database & Seed
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.confirm == 'RESET' }}
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Drop and recreate all tables (migrate reset)
+        run: railway run --service sygmaauto-api npx prisma migrate reset --force --skip-seed
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+      - name: Run seed (planos + superadmin + tenants)
+        run: railway run --service sygmaauto-api npx ts-node prisma/seed.ts
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          SEED_SUPERADMIN_PASSWORD: ${{ secrets.SEED_SUPERADMIN_PASSWORD }}
+          SEED_MASTER_PASSWORD: ${{ secrets.SEED_MASTER_PASSWORD }}

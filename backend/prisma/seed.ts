@@ -6,14 +6,14 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting seed...');
 
-  // ─── Planos ────────────────────────────────────────────────────────────────
+  // ─── Planos (preços alinhados com a landing page) ─────────────────────────
   const startPlan = await prisma.subscriptionPlan.upsert({
     where: { name: 'START' },
-    update: { price: 97.00 },
+    update: { price: 149.00 },
     create: {
       name: 'START',
-      description: 'Para oficinas que estão começando a se profissionalizar.',
-      price: 97.00,
+      description: 'Para oficinas iniciando com controle total da operação.',
+      price: 149.00,
       features: JSON.stringify({
         customers: true,
         vehicles: true,
@@ -33,21 +33,17 @@ async function main() {
         aiAssist: false,
         nps: false,
       }),
-      limits: JSON.stringify({
-        serviceOrdersPerMonth: 50,
-        users: 3,
-        storage: '2GB',
-      }),
+      limits: JSON.stringify({ serviceOrdersPerMonth: 50, users: 3, storage: '2GB' }),
     },
   });
 
   const proPlan = await prisma.subscriptionPlan.upsert({
     where: { name: 'PRO' },
-    update: { price: 197.00 },
+    update: { price: 299.00 },
     create: {
       name: 'PRO',
-      description: 'Para oficinas estabelecidas que querem escalar com automação.',
-      price: 197.00,
+      description: 'Aceleração com financeiro, estoque e produtividade em tempo real.',
+      price: 299.00,
       features: JSON.stringify({
         customers: true,
         vehicles: true,
@@ -67,21 +63,17 @@ async function main() {
         aiAssist: false,
         nps: true,
       }),
-      limits: JSON.stringify({
-        serviceOrdersPerMonth: -1,
-        users: 10,
-        storage: '20GB',
-      }),
+      limits: JSON.stringify({ serviceOrdersPerMonth: -1, users: 10, storage: '20GB' }),
     },
   });
 
   const redePlan = await prisma.subscriptionPlan.upsert({
     where: { name: 'REDE' },
-    update: { price: 397.00 },
+    update: { price: 599.00 },
     create: {
       name: 'REDE',
-      description: 'Para redes e franquias com múltiplas unidades e gestão avançada.',
-      price: 397.00,
+      description: 'Para grupos de oficinas com governança, escala e padronização.',
+      price: 599.00,
       features: JSON.stringify({
         customers: true,
         vehicles: true,
@@ -101,17 +93,71 @@ async function main() {
         aiAssist: true,
         nps: true,
       }),
-      limits: JSON.stringify({
-        serviceOrdersPerMonth: -1,
-        users: -1,
-        storage: '100GB',
-      }),
+      limits: JSON.stringify({ serviceOrdersPerMonth: -1, users: -1, storage: '100GB' }),
     },
   });
 
-  console.log('✅ Plans created: START / PRO / REDE');
+  console.log('✅ Planos criados: START R$149 / PRO R$299 / REDE R$599');
 
-  // ─── Tenant Demo ───────────────────────────────────────────────────────────
+  // ─── SuperAdmin ───────────────────────────────────────────────────────────
+  const superAdminPwd = process.env.SEED_SUPERADMIN_PASSWORD || 'SygmaAdmin@2026!';
+  await prisma.superAdmin.upsert({
+    where: { email: 'charlesvsouza@hotmail.com' },
+    update: {},
+    create: {
+      email: 'charlesvsouza@hotmail.com',
+      name: 'Charles Vasconcelos de Souza',
+      passwordHash: await bcrypt.hash(superAdminPwd, 12),
+    },
+  });
+
+  console.log('✅ SuperAdmin criado: charlesvsouza@hotmail.com');
+
+  // ─── Tenant Owner (conta do dono do produto, plano PRO ativo) ─────────────
+  const ownerPwd = process.env.SEED_MASTER_PASSWORD || 'SygmaMaster@2026!';
+  const periodEnd = new Date();
+  periodEnd.setFullYear(periodEnd.getFullYear() + 1); // 1 ano ativo
+
+  const ownerTenant = await prisma.tenant.upsert({
+    where: { document: '00.000.000/0001-00' },
+    update: {},
+    create: {
+      name: 'Sygma Auto',
+      document: '00.000.000/0001-00',
+      email: 'charlesvsouza@hotmail.com',
+    },
+  });
+
+  await prisma.subscription.upsert({
+    where: { tenantId: ownerTenant.id },
+    update: { status: 'ACTIVE', currentPeriodEnd: periodEnd },
+    create: {
+      tenantId: ownerTenant.id,
+      planId: proPlan.id,
+      status: 'ACTIVE',
+      currentPeriodStart: new Date(),
+      currentPeriodEnd: periodEnd,
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { tenantId_email: { tenantId: ownerTenant.id, email: 'charles@sygmaauto.com' } },
+    update: {},
+    create: {
+      tenantId: ownerTenant.id,
+      email: 'charles@sygmaauto.com',
+      passwordHash: await bcrypt.hash(ownerPwd, 10),
+      name: 'Charles Vasconcelos de Souza',
+      role: 'MASTER',
+    },
+  });
+
+  console.log('✅ Tenant owner criado: charles@sygmaauto.com (MASTER / PRO ativo)');
+
+  // ─── Tenant Demo (para testes de fluxo com múltiplos papéis) ─────────────
+  const trialEnds = new Date();
+  trialEnds.setDate(trialEnds.getDate() + 30);
+
   const demoTenant = await prisma.tenant.upsert({
     where: { document: '12.345.678/0001-90' },
     update: {},
@@ -123,9 +169,6 @@ async function main() {
       email: 'contato@oficina-demo.com.br',
     },
   });
-
-  const trialEnds = new Date();
-  trialEnds.setDate(trialEnds.getDate() + 14);
 
   await prisma.subscription.upsert({
     where: { tenantId: demoTenant.id },
@@ -140,9 +183,6 @@ async function main() {
     },
   });
 
-  console.log('✅ Demo tenant + subscription created');
-
-  // ─── Usuários Demo (com 4 roles) ──────────────────────────────────────────
   const [masterPwd, adminPwd, tecPwd, finPwd] = await Promise.all([
     bcrypt.hash('master123', 10),
     bcrypt.hash('admin123', 10),
@@ -151,25 +191,21 @@ async function main() {
   ]);
 
   await Promise.all([
-    // MASTER - Proprietário
     prisma.user.upsert({
       where: { tenantId_email: { tenantId: demoTenant.id, email: 'master@demo.com' } },
       update: {},
       create: { tenantId: demoTenant.id, email: 'master@demo.com', passwordHash: masterPwd, name: 'Master Demo', role: 'MASTER' },
     }),
-    // ADMIN - Gerenciador operacional
     prisma.user.upsert({
       where: { tenantId_email: { tenantId: demoTenant.id, email: 'admin@demo.com' } },
       update: {},
       create: { tenantId: demoTenant.id, email: 'admin@demo.com', passwordHash: adminPwd, name: 'Admin Demo', role: 'ADMIN' },
     }),
-    // PRODUTIVO - Técnico/Executor
     prisma.user.upsert({
       where: { tenantId_email: { tenantId: demoTenant.id, email: 'tecnico@demo.com' } },
       update: {},
       create: { tenantId: demoTenant.id, email: 'tecnico@demo.com', passwordHash: tecPwd, name: 'Técnico Demo', role: 'PRODUTIVO' },
     }),
-    // FINANCEIRO - Administrativo/Cobrança
     prisma.user.upsert({
       where: { tenantId_email: { tenantId: demoTenant.id, email: 'financeiro@demo.com' } },
       update: {},
@@ -177,74 +213,29 @@ async function main() {
     }),
   ]);
 
-  console.log('✅ Demo users (4 roles) created');
-
-  // ─── Clientes Demo ─────────────────────────────────────────────────────────
-  const [c1, c2] = await Promise.all([
-    prisma.customer.upsert({
-      where: { id: 'customer-demo-1' },
-      update: {},
-      create: { id: 'customer-demo-1', tenantId: demoTenant.id, name: 'João Silva', document: '123.456.789-00', email: 'joao@email.com', phone: '(11) 99999-1111' },
-    }),
-    prisma.customer.upsert({
-      where: { id: 'customer-demo-2' },
-      update: {},
-      create: { id: 'customer-demo-2', tenantId: demoTenant.id, name: 'Maria Santos', document: '987.654.321-00', email: 'maria@email.com', phone: '(11) 99999-2222' },
-    }),
-  ]);
-
-  // ─── Veículos Demo ─────────────────────────────────────────────────────────
-  await Promise.all([
-    prisma.vehicle.upsert({
-      where: { tenantId_plate: { tenantId: demoTenant.id, plate: 'ABC-1234' } },
-      update: {},
-      create: { id: 'vehicle-demo-1', tenantId: demoTenant.id, customerId: c1.id, plate: 'ABC-1234', brand: 'Volkswagen', model: 'Gol', year: 2020, color: 'Preto', km: 45000 },
-    }),
-    prisma.vehicle.upsert({
-      where: { tenantId_plate: { tenantId: demoTenant.id, plate: 'DEF-5678' } },
-      update: {},
-      create: { id: 'vehicle-demo-2', tenantId: demoTenant.id, customerId: c2.id, plate: 'DEF-5678', brand: 'Chevrolet', model: 'Onix', year: 2022, color: 'Branco', km: 20000 },
-    }),
-  ]);
-
-  console.log('✅ Demo customers + vehicles created');
-
-  // ─── Serviços Demo ─────────────────────────────────────────────────────────
-  await Promise.all([
-    prisma.service.upsert({ where: { id: 'service-demo-1' }, update: {}, create: { id: 'service-demo-1', tenantId: demoTenant.id, name: 'Troca de Óleo', basePrice: 150.00, category: 'Manutenção', duration: 30, hourlyRate: 120, tmo: 0.5 } }),
-    prisma.service.upsert({ where: { id: 'service-demo-2' }, update: {}, create: { id: 'service-demo-2', tenantId: demoTenant.id, name: 'Alinhamento e Balanceamento', basePrice: 200.00, category: 'Suspensão', duration: 60, hourlyRate: 120, tmo: 1.0 } }),
-    prisma.service.upsert({ where: { id: 'service-demo-3' }, update: {}, create: { id: 'service-demo-3', tenantId: demoTenant.id, name: 'Revisão de Freios', basePrice: 350.00, category: 'Freios', duration: 90, hourlyRate: 120, tmo: 1.5 } }),
-  ]);
-
-  // ─── Peças Demo ────────────────────────────────────────────────────────────
-  await Promise.all([
-    prisma.part.upsert({ where: { id: 'part-demo-1' }, update: {}, create: { id: 'part-demo-1', tenantId: demoTenant.id, name: 'Óleo Lubrax 5W30', sku: 'OLEO-5W30-1L', unitPrice: 45.00, unit: 'L', minStock: 10 } }),
-    prisma.part.upsert({ where: { id: 'part-demo-2' }, update: {}, create: { id: 'part-demo-2', tenantId: demoTenant.id, name: 'Filtro de Óleo Universal', sku: 'FILTRO-OLEO-001', unitPrice: 35.00, unit: 'un', minStock: 5 } }),
-    prisma.part.upsert({ where: { id: 'part-demo-3' }, update: {}, create: { id: 'part-demo-3', tenantId: demoTenant.id, name: 'Pastilha de Freio Dianteira', sku: 'PASTILHA-DT-001', unitPrice: 120.00, unit: 'jg', minStock: 3 } }),
-  ]);
-
-  console.log('✅ Demo services + parts created');
+  console.log('✅ Tenant demo criado com 4 usuários');
 
   console.log(`
-╔══════════════════════════════════════════════════════╗
-║             🚀  OFICINA360 — SEED OK  🚀             ║
-╠══════════════════════════════════════════════════════╣
-║  PLANOS:                                             ║
-║  • START  — R$ 97/mês  (até 3 usuários, 50 OS/mês)  ║
-║  • PRO    — R$ 197/mês (até 10 usuários, ilimitado)  ║
-║  • REDE   — R$ 397/mês (ilimitado, multi-unidades)   ║
-╠══════════════════════════════════════════════════════╣
-║  ACESSO DEMO (plano PRO — trial 14 dias):            ║
-║  • master@demo.com    / master123   (MASTER)        ║
-║  • admin@demo.com     / admin123    (ADMIN)         ║
-║  • tecnico@demo.com   / tecnico123  (PRODUTIVO)     ║
-║  • financeiro@demo.com / financeiro123 (FINANCEIRO) ║
-╠══════════════════════════════════════════════════════╣
-║  QUOTAS DE O.S. (por mês):                           ║
-║  • START:  50 O.S. / mês                             ║
-║  • PRO:    150 O.S. / mês                            ║
-║  • REDE:   250 O.S. / mês                            ║
-╚══════════════════════════════════════════════════════╝
+╔══════════════════════════════════════════════════════════╗
+║            🚀  SYGMA AUTO — SEED OK  🚀                 ║
+╠══════════════════════════════════════════════════════════╣
+║  PLANOS:                                                 ║
+║  • START  — R$ 149/mês                                  ║
+║  • PRO    — R$ 299/mês   ← demo e owner usam este       ║
+║  • REDE   — R$ 599/mês                                  ║
+╠══════════════════════════════════════════════════════════╣
+║  SUPERADMIN (painel /superadmin):                        ║
+║  • charlesvsouza@hotmail.com  /  SygmaAdmin@2026!       ║
+╠══════════════════════════════════════════════════════════╣
+║  OWNER — Tenant "Sygma Auto" (PRO ativo, 1 ano):        ║
+║  • charles@sygmaauto.com      /  SygmaMaster@2026!      ║
+╠══════════════════════════════════════════════════════════╣
+║  DEMO — Oficina Demo (PRO trial 30 dias):                ║
+║  • master@demo.com       /  master123    (MASTER)        ║
+║  • admin@demo.com        /  admin123     (ADMIN)         ║
+║  • tecnico@demo.com      /  tecnico123   (PRODUTIVO)     ║
+║  • financeiro@demo.com   /  financeiro123 (FINANCEIRO)   ║
+╚══════════════════════════════════════════════════════════╝
   `);
 }
 

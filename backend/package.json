@@ -13,6 +13,9 @@
     "prisma:seed": "ts-node prisma/seed.ts",
     "test:mercadopago": "ts-node scripts/test-mercadopago.ts"
   },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@nestjs/common": "^10.3.0",

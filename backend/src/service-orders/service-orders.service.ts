@@ -599,6 +599,11 @@ export class ServiceOrdersService {
   async addItem(tenantId: string, orderId: string, dto: CreateOrUpdateItemDto, userId: string) {
     const order = await this.findById(tenantId, orderId);
 
+    const CLOSED = ['FATURADO', 'ENTREGUE', 'CANCELADO', 'REPROVADO'];
+    if (CLOSED.includes(order.status)) {
+      throw new BadRequestException(`Não é possível adicionar itens a uma OS com status ${order.status}`);
+    }
+
     if (dto.type === 'part') {
       await this.ensureStockPrivilege(tenantId, userId);
     }

@@ -1096,10 +1096,10 @@ export function ServiceOrdersPage() {
                         <td className="px-5 py-3">
                           <input
                             type="number" min="1"
-                            disabled={!canManageStock}
+                            disabled={isClosed || !canManageStock}
                             className={cn(
                               'w-16 border border-transparent rounded-md px-2 py-1 text-center font-bold text-xs',
-                              canManageStock ? 'bg-slate-50 hover:border-slate-200' : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                              isClosed || !canManageStock ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-slate-50 hover:border-slate-200'
                             )}
                             value={pendingQtyByItem[item.id] ?? item.quantity}
                             onChange={(e) => setPendingQtyByItem({ ...pendingQtyByItem, [item.id]: Number(e.target.value) })}
@@ -1110,8 +1110,8 @@ export function ServiceOrdersPage() {
                         <td className="px-5 py-3 text-right">
                           <button
                             onClick={() => removeItem(item.id)}
-                            disabled={!canManageStock}
-                            className={cn('p-1 rounded transition-colors', canManageStock ? 'text-slate-300 hover:text-red-500' : 'text-slate-200 cursor-not-allowed')}
+                            disabled={isClosed || !canManageStock}
+                            className={cn('p-1 rounded transition-colors', isClosed || !canManageStock ? 'text-slate-200 cursor-not-allowed' : 'text-slate-300 hover:text-red-500')}
                           >
                             <Trash2 size={14} />
                           </button>
@@ -1346,7 +1346,8 @@ export function ServiceOrdersPage() {
                             quantity: s.tmo || 1,
                             unitPrice: s.hourlyRate || s.basePrice || 0,
                           })}
-                          className="w-full p-4 bg-white border border-slate-100 rounded-2xl hover:border-slate-900 hover:shadow-md text-left transition-all group flex items-center justify-between"
+                          disabled={isClosed}
+                          className="w-full p-4 bg-white border border-slate-100 rounded-2xl hover:border-slate-900 hover:shadow-md text-left transition-all group flex items-center justify-between disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           <div>
                             <p className="font-bold text-slate-900 text-sm">{s.name}</p>
@@ -1402,8 +1403,8 @@ export function ServiceOrdersPage() {
                               </div>
                               <button
                                 onClick={() => addItem({ type: 'part', partId: p.id, description: p.name, quantity: qty, unitPrice: p.unitPrice })}
-                                disabled={!canManageStock || notEnoughStock}
-                                title={!canManageStock ? 'Somente MASTER/ADMIN podem alterar estoque' : notEnoughStock ? 'Quantidade maior que estoque disponível' : 'Adicionar peça'}
+                                disabled={isClosed || !canManageStock || notEnoughStock}
+                                title={isClosed ? 'OS finalizada não pode ser editada' : !canManageStock ? 'Somente MASTER/ADMIN podem alterar estoque' : notEnoughStock ? 'Quantidade maior que estoque disponível' : 'Adicionar peça'}
                                 className={cn(
                                   'w-10 h-10 rounded-xl flex items-center justify-center shadow transition-all',
                                   !canManageStock || notEnoughStock

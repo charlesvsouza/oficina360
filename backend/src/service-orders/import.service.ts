@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class ImportService {
   private genAI: GoogleGenerativeAI;
+  private configuredApiKeyName: string | null = null;
 
   private readonly basePrompt = `
 Você é um especialista em sistemas de gestão de oficinas mecânicas.
@@ -198,7 +199,22 @@ Regras:
   }
 
   constructor(private configService: ConfigService) {
-    const apiKey = this.configService.get<string>('GOOGLE_API_KEY');
+    const keyCandidates = [
+      'GOOGLE_API_KEY',
+      'GEMINI_API_KEY',
+      'GOOGLE_GENERATIVE_AI_API_KEY',
+    ] as const;
+
+    let apiKey: string | undefined;
+    for (const keyName of keyCandidates) {
+      const value = this.configService.get<string>(keyName);
+      if (value && value.trim().length > 0) {
+        apiKey = value.trim();
+        this.configuredApiKeyName = keyName;
+        break;
+      }
+    }
+
     if (apiKey) {
       this.genAI = new GoogleGenerativeAI(apiKey);
     }
@@ -207,7 +223,13 @@ Regras:
   async parseEstimatePdf(fileBuffer: Buffer) {
     try {
       if (!this.genAI) {
-        throw new BadRequestException('Google API Key (GOOGLE_API_KEY) não configurada no .env');
+        throw new BadRequestException(
+          'Chave da IA não configurada no ambiente. Defina GOOGLE_API_KEY, GEMINI_API_KEY ou GOOGLE_GENERATIVE_AI_API_KEY no Railway.',
+        );
+      }
+
+      if (this.configuredApiKeyName) {
+        console.log(`ImportService: usando chave de IA via ${this.configuredApiKeyName}`);
       }
 
       const model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });

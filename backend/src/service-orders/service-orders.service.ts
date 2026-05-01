@@ -45,8 +45,8 @@ export class ServiceOrdersService {
       throw new NotFoundException('Usuário não encontrado');
     }
 
-    if (!['MASTER', 'ADMIN'].includes(user.role)) {
-      throw new ForbiddenException('Somente MASTER e ADMIN podem alterar estoque');
+    if (!['MASTER', 'ADMIN', 'MECANICO', 'PRODUTIVO'].includes(user.role)) {
+      throw new ForbiddenException('Somente MASTER, ADMIN e MECANICO podem alterar estoque');
     }
   }
 

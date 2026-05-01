@@ -122,9 +122,9 @@ function fmtBR(v: number | string | undefined, dec = 2) {
 
 export function ServiceOrdersPage() {
   const { user } = useAuthStore();
-  const canManageStock = user?.role === 'MASTER' || user?.role === 'ADMIN';
+  const canManageStock = ['MASTER', 'ADMIN', 'MECANICO', 'PRODUTIVO'].includes(user?.role ?? '');
   const canDelete = user?.role === 'MASTER';
-  const canChangeStatus = user?.role === 'MASTER' || user?.role === 'ADMIN';
+  const canChangeStatus = ['MASTER', 'ADMIN', 'GERENTE'].includes(user?.role ?? '');
   const CLOSED_STATUSES = ['FATURADO', 'ENTREGUE', 'CANCELADO', 'REPROVADO'];
   const printContentRef = useRef<HTMLDivElement>(null);
   const printFrameRef = useRef<HTMLIFrameElement>(null);

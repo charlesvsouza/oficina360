@@ -7,12 +7,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Enum para definir os 4 níveis de acesso
+// Enum para definir os níveis de acesso
 enum UserRole {
   MASTER      // Proprietário - 1 por tenant, acesso total
-  ADMIN       // Gerenciador operacional - múltiplos, pode convidar PRODUTIVO/FINANCEIRO
-  PRODUTIVO   // Técnico/Executor - múltiplos, adiciona/remove itens em O.S.
-  FINANCEIRO  // Administrativo/Cobrança - múltiplos, fecha O.S. e registra pagamentos
+  ADMIN       // Gerenciador - cria equipe, configura a oficina
+  GERENTE     // Gerência operacional - aprova OSs, visualiza relatórios
+  FINANCEIRO  // Financeiro/Cobrança - fecha OS e registra pagamentos
+  SECRETARIA  // Recepção - abre OS, cadastra clientes e veículos
+  MECANICO    // Mecânico/Técnico - executa OS, adiciona peças e serviços
+  PRODUTIVO   // Legado — equivalente a MECANICO (mantido para compatibilidade)
 }
 
 model Tenant {

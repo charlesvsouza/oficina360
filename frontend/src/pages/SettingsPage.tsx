@@ -13,6 +13,14 @@ import {
   Lock,
   Search,
   AlertCircle,
+  Plus,
+  X,
+  Eye,
+  EyeOff,
+  Trash2,
+  UserCheck,
+  UserX,
+  ChevronDown,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '../lib/utils';
@@ -65,6 +73,86 @@ export function SettingsPage() {
   const [users, setUsers] = useState<any[]>([]);
 
   const isMaster = user?.role === 'MASTER';
+  const canManageUsers = user?.role === 'MASTER' || user?.role === 'ADMIN';
+
+  const ROLE_CONFIG: Record<string, { label: string; color: string; desc: string }> = {
+    MASTER:     { label: 'Master',     color: 'bg-slate-900 text-white',          desc: 'Proprietário — acesso total' },
+    ADMIN:      { label: 'Admin',      color: 'bg-violet-100 text-violet-700',    desc: 'Gerência administrativa' },
+    GERENTE:    { label: 'Gerente',    color: 'bg-blue-100 text-blue-700',        desc: 'Gerência operacional' },
+    FINANCEIRO: { label: 'Financeiro', color: 'bg-emerald-100 text-emerald-700',  desc: 'Fechamento e pagamentos' },
+    SECRETARIA: { label: 'Secretaria', color: 'bg-cyan-100 text-cyan-700',        desc: 'Recepção e cadastros' },
+    MECANICO:   { label: 'Mecânico',   color: 'bg-amber-100 text-amber-700',      desc: 'Execução de serviços' },
+    PRODUTIVO:  { label: 'Produtivo',  color: 'bg-amber-100 text-amber-800',      desc: 'Técnico (legado)' },
+  };
+
+  const assignableRoles = isMaster
+    ? ['ADMIN', 'GERENTE', 'FINANCEIRO', 'SECRETARIA', 'MECANICO']
+    : ['GERENTE', 'FINANCEIRO', 'SECRETARIA', 'MECANICO'];
+
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [addUserForm, setAddUserForm] = useState({ name: '', email: '', password: '', role: 'MECANICO' });
+  const [addUserError, setAddUserError] = useState<string | null>(null);
+  const [addingUser, setAddingUser] = useState(false);
+  const [showAddPassword, setShowAddPassword] = useState(false);
+  const [editingRole, setEditingRole] = useState<string | null>(null);
+  const [updatingUser, setUpdatingUser] = useState<string | null>(null);
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddingUser(true);
+    setAddUserError(null);
+    try {
+      await usersApi.create(addUserForm);
+      setShowAddUserModal(false);
+      setAddUserForm({ name: '', email: '', password: '', role: 'MECANICO' });
+      const res = await usersApi.getAll();
+      setUsers(res.data);
+    } catch (err: any) {
+      setAddUserError(err.response?.data?.message || 'Erro ao criar usuário');
+    } finally {
+      setAddingUser(false);
+    }
+  };
+
+  const handleUpdateRole = async (userId: string, role: string) => {
+    setUpdatingUser(userId);
+    try {
+      await usersApi.update(userId, { role });
+      const res = await usersApi.getAll();
+      setUsers(res.data);
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Erro ao alterar perfil');
+    } finally {
+      setUpdatingUser(null);
+      setEditingRole(null);
+    }
+  };
+
+  const handleToggleActive = async (userId: string, isActive: boolean) => {
+    setUpdatingUser(userId);
+    try {
+      await usersApi.update(userId, { isActive: !isActive });
+      const res = await usersApi.getAll();
+      setUsers(res.data);
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Erro ao atualizar usuário');
+    } finally {
+      setUpdatingUser(null);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    if (!confirm(`Remover ${userName} da equipe? Esta ação não pode ser desfeita.`)) return;
+    setUpdatingUser(userId);
+    try {
+      await usersApi.delete(userId);
+      setUsers(prev => prev.filter(u => u.id !== userId));
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Erro ao remover usuário');
+    } finally {
+      setUpdatingUser(null);
+    }
+  };
 
   useEffect(() => { loadData(); }, []);
 
@@ -467,33 +555,243 @@ export function SettingsPage() {
             transition={{ delay: 0.1 }}
             className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden"
           >
-            <div className="p-8 border-b border-slate-100 bg-slate-50/50">
-              <h2 className="text-xl font-black text-slate-900 flex items-center gap-2 uppercase tracking-tight">
-                <Users className="w-6 h-6" /> Sua Equipe
-              </h2>
-            </div>
-            <div className="p-8 space-y-3">
-              {users.map((u) => (
-                <div
-                  key={u.id}
-                  className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-slate-300 transition-all"
+            <div className="p-8 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-black text-slate-900 flex items-center gap-2 uppercase tracking-tight">
+                  <Users className="w-6 h-6" /> Sua Equipe
+                </h2>
+                <p className="text-xs text-slate-500 mt-1">{users.length} membro{users.length !== 1 ? 's' : ''}</p>
+              </div>
+              {canManageUsers && (
+                <button
+                  onClick={() => { setShowAddUserModal(true); setAddUserError(null); }}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-2xl text-xs font-black hover:bg-slate-800 transition-all"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-sm">
-                      {u.name[0]}
-                    </div>
-                    <div>
-                      <p className="font-bold text-slate-900 text-sm">{u.name}</p>
-                      <p className="text-xs text-slate-500">{u.email}</p>
-                    </div>
-                  </div>
-                  <span className="inline-flex px-3 py-1 rounded-full bg-slate-200 text-slate-700 text-[10px] font-black uppercase tracking-widest">
-                    {u.role}
-                  </span>
-                </div>
+                  <Plus size={14} /> Adicionar Membro
+                </button>
+              )}
+            </div>
+
+            {/* Legenda de perfis */}
+            <div className="px-8 pt-6 pb-2 flex flex-wrap gap-2">
+              {Object.entries(ROLE_CONFIG).filter(([k]) => k !== 'PRODUTIVO').map(([key, cfg]) => (
+                <span key={key} className={cn('text-[9px] px-2 py-0.5 rounded-md font-black', cfg.color)}>
+                  {cfg.label} — {cfg.desc}
+                </span>
               ))}
             </div>
+
+            <div className="p-8 pt-4 space-y-2">
+              {users.map((u) => {
+                const roleCfg = ROLE_CONFIG[u.role] ?? { label: u.role, color: 'bg-slate-100 text-slate-700', desc: '' };
+                const isMe = u.id === user?.userId;
+                const isMasterUser = u.role === 'MASTER';
+                const canAct = canManageUsers && !isMe && !isMasterUser;
+                const isUpdating = updatingUser === u.id;
+
+                return (
+                  <div
+                    key={u.id}
+                    className={cn(
+                      'flex items-center justify-between p-4 rounded-2xl border transition-all',
+                      u.isActive ? 'bg-slate-50 border-slate-100 hover:border-slate-300' : 'bg-slate-50/50 border-slate-100 opacity-60'
+                    )}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0', roleCfg.color)}>
+                        {u.name[0]?.toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-bold text-slate-900 text-sm">{u.name}</p>
+                          {isMe && <span className="text-[9px] px-1.5 py-0.5 bg-primary-100 text-primary-700 rounded font-black">Você</span>}
+                          {!u.isActive && <span className="text-[9px] px-1.5 py-0.5 bg-red-100 text-red-600 rounded font-black">Inativo</span>}
+                        </div>
+                        <p className="text-xs text-slate-500 truncate">{u.email}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+                      {/* Badge / seletor de role */}
+                      {canAct ? (
+                        <div className="relative">
+                          <button
+                            onClick={() => setEditingRole(editingRole === u.id ? null : u.id)}
+                            className={cn('flex items-center gap-1 text-[9px] px-2.5 py-1 rounded-lg font-black transition-all hover:ring-2 hover:ring-offset-1 hover:ring-slate-300', roleCfg.color)}
+                          >
+                            {roleCfg.label}
+                            <ChevronDown size={9} className={cn('transition-transform', editingRole === u.id && 'rotate-180')} />
+                          </button>
+                          {editingRole === u.id && (
+                            <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-slate-200 rounded-2xl shadow-xl p-1.5 min-w-[170px]">
+                              {assignableRoles.map((role) => (
+                                <button
+                                  key={role}
+                                  onClick={() => handleUpdateRole(u.id, role)}
+                                  disabled={isUpdating}
+                                  className={cn(
+                                    'w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all hover:bg-slate-50 text-left',
+                                    u.role === role ? 'bg-slate-100' : ''
+                                  )}
+                                >
+                                  <span className={cn('w-2 h-2 rounded-full flex-shrink-0', ROLE_CONFIG[role]?.color.split(' ')[0])} />
+                                  <span>{ROLE_CONFIG[role]?.label ?? role}</span>
+                                  <span className="text-slate-400 text-[9px] ml-auto">{ROLE_CONFIG[role]?.desc}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className={cn('text-[9px] px-2.5 py-1 rounded-lg font-black', roleCfg.color)}>
+                          {roleCfg.label}
+                        </span>
+                      )}
+
+                      {/* Ativar/Desativar */}
+                      {canAct && (
+                        <button
+                          onClick={() => handleToggleActive(u.id, u.isActive)}
+                          disabled={isUpdating}
+                          title={u.isActive ? 'Desativar usuário' : 'Reativar usuário'}
+                          className={cn(
+                            'w-8 h-8 rounded-xl flex items-center justify-center transition-all',
+                            u.isActive
+                              ? 'text-emerald-600 hover:bg-emerald-50'
+                              : 'text-slate-400 hover:bg-slate-100'
+                          )}
+                        >
+                          {isUpdating ? <Loader2 size={14} className="animate-spin" /> : u.isActive ? <UserCheck size={14} /> : <UserX size={14} />}
+                        </button>
+                      )}
+
+                      {/* Deletar (apenas MASTER) */}
+                      {isMaster && !isMe && !isMasterUser && (
+                        <button
+                          onClick={() => handleDeleteUser(u.id, u.name)}
+                          disabled={isUpdating}
+                          title="Remover da equipe"
+                          className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {users.length === 0 && (
+                <p className="text-center text-sm text-slate-400 py-8">Nenhum membro cadastrado.</p>
+              )}
+            </div>
           </motion.div>
+
+          {/* Modal: Adicionar Membro */}
+          {showAddUserModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-white rounded-[2.5rem] shadow-2xl p-8 w-full max-w-md mx-4"
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Adicionar Membro</h3>
+                  <button onClick={() => setShowAddUserModal(false)} className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-all">
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <form onSubmit={handleCreateUser} className="space-y-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1 block mb-1.5">Nome</label>
+                    <input
+                      type="text"
+                      required
+                      value={addUserForm.name}
+                      onChange={(e) => setAddUserForm({ ...addUserForm, name: e.target.value })}
+                      className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 transition-all"
+                      placeholder="Nome completo"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1 block mb-1.5">E-mail</label>
+                    <input
+                      type="email"
+                      required
+                      value={addUserForm.email}
+                      onChange={(e) => setAddUserForm({ ...addUserForm, email: e.target.value })}
+                      className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 transition-all"
+                      placeholder="email@exemplo.com"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1 block mb-1.5">Senha Provisória</label>
+                    <div className="relative">
+                      <input
+                        type={showAddPassword ? 'text' : 'password'}
+                        required
+                        minLength={6}
+                        value={addUserForm.password}
+                        onChange={(e) => setAddUserForm({ ...addUserForm, password: e.target.value })}
+                        className="w-full px-4 py-3 pr-12 rounded-2xl border border-slate-200 bg-slate-50 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 transition-all"
+                        placeholder="Mínimo 6 caracteres"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowAddPassword((v) => !v)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        {showAddPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1 block mb-1.5">Perfil de Acesso</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {assignableRoles.map((role) => {
+                        const cfg = ROLE_CONFIG[role];
+                        return (
+                          <button
+                            key={role}
+                            type="button"
+                            onClick={() => setAddUserForm({ ...addUserForm, role })}
+                            className={cn(
+                              'p-3 rounded-2xl border-2 text-left transition-all',
+                              addUserForm.role === role
+                                ? 'border-slate-900 bg-slate-50 shadow-sm'
+                                : 'border-slate-100 hover:border-slate-300'
+                            )}
+                          >
+                            <span className={cn('text-[9px] px-1.5 py-0.5 rounded font-black block mb-1 w-fit', cfg.color)}>{cfg.label}</span>
+                            <p className="text-[10px] text-slate-500 font-medium">{cfg.desc}</p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {addUserError && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-700 font-bold">
+                      {addUserError}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={addingUser}
+                    className="w-full h-12 bg-slate-900 text-white rounded-2xl font-black text-sm hover:bg-slate-800 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                  >
+                    {addingUser ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                    {addingUser ? 'Criando...' : 'Adicionar à Equipe'}
+                  </button>
+                </form>
+              </motion.div>
+            </div>
+          )}
         </div>
 
         {/* Sidebar — Assinatura */}

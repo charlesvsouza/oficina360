@@ -102,7 +102,11 @@ export class SubscriptionsService {
   }
 
   async createCheckoutLink(tenantId: string, dto: CreateCheckoutDto) {
-    const subscription = await this.findByTenant(tenantId);
+    // Busca subscription sem lançar erro — tenants legados podem não ter registro
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { tenantId },
+      include: { plan: true },
+    });
     const selectedPlan = await this.prisma.subscriptionPlan.findUnique({
       where: { name: dto.plan },
     });
@@ -155,7 +159,7 @@ export class SubscriptionsService {
           tenantId: tenant.id,
           tenantName: tenant.name,
           plan: selectedPlan.name,
-          currentPlan: subscription.plan.name,
+          currentPlan: subscription?.plan?.name ?? 'NONE',
         },
         back_urls: {
           success: successUrl,
@@ -210,7 +214,7 @@ export class SubscriptionsService {
     checkoutUrl.searchParams.set('tenantId', tenant.id);
     checkoutUrl.searchParams.set('tenantName', tenant.name);
     checkoutUrl.searchParams.set('plan', dto.plan);
-    checkoutUrl.searchParams.set('currentPlan', subscription.plan.name);
+    checkoutUrl.searchParams.set('currentPlan', subscription?.plan?.name ?? 'NONE');
 
     if (successUrl) checkoutUrl.searchParams.set('success_url', successUrl);
     if (cancelUrl) checkoutUrl.searchParams.set('cancel_url', cancelUrl);

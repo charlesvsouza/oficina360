@@ -10,6 +10,7 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [checkoutError, setCheckoutError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -53,8 +54,12 @@ export function LoginPage() {
             window.location.href = checkoutUrl;
             return;
           }
-        } catch {
-          // Se falhar, segue para dashboard normalmente
+          throw new Error('Checkout indisponível para este plano');
+        } catch (err: any) {
+          const msg = err?.response?.data?.message || err?.message || 'Falha ao iniciar checkout';
+          setCheckoutError(msg);
+          setLoading(false);
+          return;
         }
       }
 
@@ -92,13 +97,25 @@ export function LoginPage() {
           </div>
 
           {error && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               className="bg-red-500/20 border border-red-500/30 text-red-300 p-4 rounded-xl text-sm mb-6 flex items-center gap-3"
             >
               <div className="w-1 h-1 bg-red-400 rounded-full" />
               {error}
+            </motion.div>
+          )}
+
+          {checkoutError && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-orange-500/20 border border-orange-500/30 text-orange-200 p-4 rounded-xl text-sm mb-6"
+            >
+              <p className="font-semibold mb-1">Falha ao iniciar checkout</p>
+              <p className="text-orange-300/80">{checkoutError}</p>
+              <p className="mt-2 text-orange-400/70 text-xs">Tente acessar o checkout pelo menu <strong>Configurações → Assinatura</strong>.</p>
             </motion.div>
           )}
 

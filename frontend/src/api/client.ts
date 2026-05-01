@@ -79,8 +79,12 @@ api.interceptors.response.use(
 export const authApi = {
   login: (email: string, password: string) =>
     api.post('/auth/login', { email, password }),
-  register: (data: { name: string; email: string; password: string; tenantName?: string; document?: string; taxId?: string; companyType?: string }) =>
+  register: (data: { name: string; email: string; password: string; recoveryEmail?: string; tenantName?: string; document?: string; taxId?: string; companyType?: string }) =>
     api.post('/auth/register', data),
+  requestPasswordReset: (email: string, recoveryEmail: string) =>
+    api.post('/auth/forgot-password/request', { email, recoveryEmail }),
+  resetPassword: (token: string, newPassword: string) =>
+    api.post('/auth/forgot-password/reset', { token, newPassword }),
 
   refresh: (refreshToken: string) =>
     api.post('/auth/refresh', { refreshToken }),
@@ -96,6 +100,8 @@ export const usersApi = {
   getById: (id: string) => api.get(`/users/${id}`),
   create: (data: any) => api.post('/users', data),
   update: (id: string, data: any) => api.patch(`/users/${id}`, data),
+  adminResetPassword: (id: string, newPassword: string) =>
+    api.post(`/users/${id}/admin-reset-password`, { newPassword }),
   delete: (id: string) => api.delete(`/users/${id}`),
 };
 

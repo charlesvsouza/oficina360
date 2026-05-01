@@ -9,6 +9,7 @@ import { formatCpfCnpj } from '../lib/masks';
 export function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [recoveryEmail, setRecoveryEmail] = useState('');
   const [password, setPassword] = useState('');
   const [tenantName, setTenantName] = useState('');
   const [taxId, setTaxId] = useState('');
@@ -27,6 +28,7 @@ export function RegisterPage() {
       const response = await authApi.register({
         name,
         email,
+        recoveryEmail: recoveryEmail || undefined,
         password,
         tenantName: tenantName || undefined,
         taxId,
@@ -213,6 +215,20 @@ export function RegisterPage() {
                 />
               </div>
             </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider ml-1">Email de Recuperação</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type="email"
+                    value={recoveryEmail}
+                    onChange={(e) => setRecoveryEmail(e.target.value)}
+                    className="input-dark pl-10"
+                    placeholder="recuperacao@email.com"
+                  />
+                </div>
+              </div>
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider ml-1">Senha</label>

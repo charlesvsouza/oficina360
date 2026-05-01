@@ -3,7 +3,12 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
-import { RegisterDto, LoginDto } from './dto/auth.dto';
+import {
+  RegisterDto,
+  LoginDto,
+  RequestPasswordResetDto,
+  ResetPasswordDto,
+} from './dto/auth.dto';
 import { AuthTokens, JwtPayload } from './interfaces/auth.interface';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -70,6 +75,7 @@ export class AuthService {
           id: userId,
           tenantId,
           email: dto.email,
+          recoveryEmail: dto.recoveryEmail?.toLowerCase().trim(),
           passwordHash: await bcrypt.hash(dto.password, 10),
           name: dto.name,
           role: 'MASTER',
@@ -142,6 +148,77 @@ export class AuthService {
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }
+  }
+
+  async requestPasswordReset(dto: RequestPasswordResetDto) {
+    const user = await this.prisma.user.findFirst({
+      where: { email: dto.email.toLowerCase().trim() },
+    });
+
+    if (!user || !user.isActive) {
+      return {
+        message:
+          'Se os dados forem válidos, você receberá instruções para redefinir a senha.',
+      };
+    }
+
+    if (!user.recoveryEmail) {
+      throw new UnauthorizedException('Usuário sem e-mail de recuperação cadastrado');
+    }
+
+    const informedRecovery = dto.recoveryEmail.toLowerCase().trim();
+    const savedRecovery = user.recoveryEmail.toLowerCase().trim();
+    if (informedRecovery !== savedRecovery) {
+      throw new UnauthorizedException('Falha na revalidação de segurança');
+    }
+
+    const token = uuidv4();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordResetToken: token,
+        passwordResetExpiresAt: expiresAt,
+      },
+    });
+
+    const response: Record<string, string> = {
+      message:
+        'Revalidação concluída. Use o token para redefinir sua senha nos próximos 15 minutos.',
+    };
+
+    if ((this.configService.get('NODE_ENV') || '').trim() !== 'production') {
+      response.token = token;
+    }
+
+    return response;
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        passwordResetToken: dto.token,
+        passwordResetExpiresAt: { gt: new Date() },
+        isActive: true,
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Token de recuperação inválido ou expirado');
+    }
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash: await bcrypt.hash(dto.newPassword, 10),
+        passwordUpdatedAt: new Date(),
+        passwordResetToken: null,
+        passwordResetExpiresAt: null,
+      },
+    });
+
+    return { message: 'Senha redefinida com sucesso' };
   }
 
   private generateTokens(payload: JwtPayload): AuthTokens {

@@ -20,6 +20,12 @@ export class RegisterDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
+  @IsEmail()
+  @IsString()
+  recoveryEmail?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsString()
   tenantName?: string;
 
@@ -81,4 +87,29 @@ export class RefreshTokenDto {
   @IsNotEmpty()
   @IsString()
   refreshToken: string;
+}
+
+export class RequestPasswordResetDto {
+  @ApiProperty()
+  @IsEmail()
+  @IsString()
+  email: string;
+
+  @ApiProperty()
+  @IsEmail()
+  @IsString()
+  recoveryEmail: string;
+}
+
+export class ResetPasswordDto {
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  token: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  @MinLength(6)
+  newPassword: string;
 }

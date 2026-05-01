@@ -98,7 +98,11 @@ model User {
   id           String   @id @default(uuid())
   tenantId     String
   email        String
+  recoveryEmail String?
   passwordHash String
+  passwordResetToken String?
+  passwordResetExpiresAt DateTime?
+  passwordUpdatedAt DateTime?
   name         String
   role         UserRole @default(PRODUTIVO)
   invitedBy    String?  // Email de quem convidou (auditoria)

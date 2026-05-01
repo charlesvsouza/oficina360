@@ -1,7 +1,12 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from './users.service';
-import { CreateUserDto, UpdateUserDto, ChangePasswordDto } from './dto/user.dto';
+import {
+  CreateUserDto,
+  UpdateUserDto,
+  ChangePasswordDto,
+  AdminResetPasswordDto,
+} from './dto/user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -22,6 +27,7 @@ export class UsersController {
   }
 
   @Get(':id')
+  @Roles('ADMIN')
   @ApiOperation({ summary: 'Get user by ID' })
   async findOne(@Tenant() tenant: { tenantId: string }, @Param('id') id: string) {
     return this.usersService.findById(tenant.tenantId, id);
@@ -56,6 +62,7 @@ export class UsersController {
   }
 
   @Post(':id/change-password')
+  @Roles('ADMIN')
   @ApiOperation({ summary: 'Change user password' })
   async changePassword(
     @Tenant() tenant: { tenantId: string },
@@ -63,5 +70,16 @@ export class UsersController {
     @Body() dto: ChangePasswordDto,
   ) {
     return this.usersService.changePassword(tenant.tenantId, id, dto);
+  }
+
+  @Post(':id/admin-reset-password')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Admin reset user password' })
+  async adminResetPassword(
+    @Tenant() tenant: { tenantId: string },
+    @Param('id') id: string,
+    @Body() dto: AdminResetPasswordDto,
+  ) {
+    return this.usersService.adminResetPassword(tenant.tenantId, id, dto);
   }
 }

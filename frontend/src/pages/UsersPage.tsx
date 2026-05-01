@@ -17,7 +17,8 @@ import {
   UserCircle,
   Eye,
   EyeOff,
-  Star
+  Star,
+  KeyRound
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -30,10 +31,15 @@ export function UsersPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetTargetUser, setResetTargetUser] = useState<any>(null);
+  const [resetPassword, setResetPassword] = useState('');
+  const [showResetPassword, setShowResetPassword] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    recoveryEmail: '',
     password: '',
     role: 'MECANICO',
     isActive: true
@@ -86,6 +92,7 @@ export function UsersPage() {
     setFormData({
       name: user.name,
       email: user.email,
+      recoveryEmail: user.recoveryEmail || '',
       password: '',
       role: user.role,
       isActive: user.isActive
@@ -109,10 +116,39 @@ export function UsersPage() {
     setFormData({
       name: '',
       email: '',
+      recoveryEmail: '',
       password: '',
       role: 'MECANICO',
       isActive: true
     });
+  };
+
+  const openResetPasswordModal = (target: any) => {
+    setResetTargetUser(target);
+    setResetPassword('');
+    setShowResetPassword(false);
+    setShowResetModal(true);
+  };
+
+  const handleAdminResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetTargetUser) return;
+    if (!resetPassword || resetPassword.length < 6) {
+      alert('A nova senha precisa ter no minimo 6 caracteres.');
+      return;
+    }
+
+    try {
+      await usersApi.adminResetPassword(resetTargetUser.id, resetPassword);
+      alert(`Senha redefinida para ${resetTargetUser.email} com sucesso.`);
+      setShowResetModal(false);
+      setResetTargetUser(null);
+      setResetPassword('');
+      loadUsers();
+    } catch (error) {
+      alert('Falha ao redefinir senha.');
+      console.error('Failed to reset password:', error);
+    }
   };
 
   const getRoleBadge = (role: string) => {
@@ -220,6 +256,11 @@ export function UsersPage() {
                               <Mail size={14} className="text-slate-300" />
                               {user.email}
                             </div>
+                            {user.recoveryEmail && (
+                              <div className="text-xs text-slate-400 mt-1">
+                                Recuperacao: {user.recoveryEmail}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -247,6 +288,13 @@ export function UsersPage() {
                             title="Editar"
                           >
                             <Edit size={18} />
+                          </button>
+                          <button
+                            onClick={() => openResetPasswordModal(user)}
+                            className="p-3 hover:bg-amber-50 text-slate-300 hover:text-amber-600 rounded-2xl transition-all"
+                            title="Redefinir senha"
+                          >
+                            <KeyRound size={18} />
                           </button>
                           <button
                             onClick={() => handleDelete(user.id)}
@@ -319,6 +367,16 @@ export function UsersPage() {
                     disabled={!!editingUser}
                   />
                 </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Recuperacao</label>
+                  <input
+                    type="email"
+                    value={formData.recoveryEmail}
+                    onChange={(e) => setFormData({ ...formData, recoveryEmail: e.target.value })}
+                    className="input h-14 bg-slate-50 border-slate-200 font-bold"
+                    placeholder="recuperacao@dominio.com"
+                  />
+                </div>
                 {!editingUser && (
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Senha Inicial</label>
@@ -382,6 +440,67 @@ export function UsersPage() {
                   className="btn btn-primary h-14 px-10 rounded-[1.5rem] shadow-xl shadow-primary-100 font-black text-sm"
                 >
                   {editingUser ? 'SALVAR ALTERAÇÕES' : 'CONFIRMAR CADASTRO'}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
+
+      {showResetModal && resetTargetUser && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-[2.5rem] p-8 w-full max-w-xl shadow-2xl"
+          >
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center">
+                <KeyRound size={24} />
+              </div>
+              <div>
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Redefinir Senha</h3>
+                <p className="text-sm text-slate-500 font-medium">{resetTargetUser.name} ({resetTargetUser.email})</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleAdminResetPassword} className="space-y-5">
+              <p className="text-sm text-slate-500">
+                Por seguranca, a senha atual nao pode ser exibida. Defina uma nova senha para este usuario.
+              </p>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nova Senha</label>
+                <div className="relative">
+                  <input
+                    type={showResetPassword ? 'text' : 'password'}
+                    value={resetPassword}
+                    onChange={(e) => setResetPassword(e.target.value)}
+                    className="input h-14 bg-slate-50 border-slate-200 font-bold"
+                    placeholder="Minimo 6 caracteres"
+                    minLength={6}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowResetPassword(!showResetPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary-600 transition-colors"
+                  >
+                    {showResetPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowResetModal(false)}
+                  className="px-6 py-3 text-slate-400 font-black text-xs uppercase tracking-widest hover:text-slate-800 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn-primary h-12 px-8 rounded-2xl font-black text-xs uppercase tracking-widest">
+                  Salvar Nova Senha
                 </button>
               </div>
             </form>

@@ -2,7 +2,12 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import * as bcrypt from 'bcrypt';
 import { UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateUserDto, UpdateUserDto, ChangePasswordDto } from './dto/user.dto';
+import {
+  CreateUserDto,
+  UpdateUserDto,
+  ChangePasswordDto,
+  AdminResetPasswordDto,
+} from './dto/user.dto';
 
 
 @Injectable()
@@ -16,9 +21,11 @@ export class UsersService {
         id: true,
         name: true,
         email: true,
+        recoveryEmail: true,
         role: true,
         isActive: true,
         lastLoginAt: true,
+        passwordUpdatedAt: true,
         createdAt: true,
       },
     });
@@ -31,9 +38,11 @@ export class UsersService {
         id: true,
         name: true,
         email: true,
+        recoveryEmail: true,
         role: true,
         isActive: true,
         lastLoginAt: true,
+        passwordUpdatedAt: true,
         createdAt: true,
       },
     });
@@ -58,15 +67,18 @@ export class UsersService {
       data: {
         tenantId,
         name: dto.name,
-        email: dto.email,
+        email: dto.email.toLowerCase().trim(),
+        recoveryEmail: dto.recoveryEmail?.toLowerCase().trim(),
         passwordHash: await bcrypt.hash(dto.password, 10),
         role: dto.role || UserRole.PRODUTIVO,
         isActive: dto.isActive !== undefined ? dto.isActive : true,
+        passwordUpdatedAt: new Date(),
       },
       select: {
         id: true,
         name: true,
         email: true,
+        recoveryEmail: true,
         role: true,
         isActive: true,
       },
@@ -80,6 +92,7 @@ export class UsersService {
       where: { id: userId },
       data: {
         name: dto.name,
+        recoveryEmail: dto.recoveryEmail?.toLowerCase().trim(),
         role: dto.role,
         isActive: dto.isActive,
       },
@@ -87,6 +100,7 @@ export class UsersService {
         id: true,
         name: true,
         email: true,
+        recoveryEmail: true,
         role: true,
         isActive: true,
       },
@@ -95,8 +109,8 @@ export class UsersService {
   }
 
   async changePassword(tenantId: string, userId: string, dto: ChangePasswordDto) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, tenantId },
     });
 
     if (!user) {
@@ -110,7 +124,30 @@ export class UsersService {
 
     return this.prisma.user.update({
       where: { id: userId },
-      data: { passwordHash: await bcrypt.hash(dto.newPassword, 10) },
+      data: {
+        passwordHash: await bcrypt.hash(dto.newPassword, 10),
+        passwordUpdatedAt: new Date(),
+      },
+    });
+  }
+
+  async adminResetPassword(tenantId: string, userId: string, dto: AdminResetPasswordDto) {
+    await this.findById(tenantId, userId);
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        passwordHash: await bcrypt.hash(dto.newPassword, 10),
+        passwordUpdatedAt: new Date(),
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        passwordUpdatedAt: true,
+      },
     });
   }
 

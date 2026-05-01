@@ -5,6 +5,7 @@ import { Layout } from './components/Layout';
 import { InitialSplash } from './pages/InitialSplash';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import WelcomePage from './pages/WelcomePage';
 import { DashboardPage } from './pages/DashboardPage';
 import { CustomersPage } from './pages/CustomersPage';
@@ -31,6 +32,7 @@ export default function App() {
         <Route element={<PublicOnlyRoute />}>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         </Route>
         
         {/* Splash Pós-Login com resumo de funcionalidades (30s) */}

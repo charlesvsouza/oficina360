@@ -19,6 +19,12 @@ export class CreateUserDto {
   @MinLength(6)
   password: string;
 
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsEmail()
+  @IsString()
+  recoveryEmail?: string;
+
   @ApiProperty({ enum: UserRole, required: false, default: 'PRODUTIVO' })
   @IsOptional()
   @IsEnum(UserRole)
@@ -34,6 +40,12 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   name?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsEmail()
+  @IsString()
+  recoveryEmail?: string;
 
   @ApiProperty({ enum: UserRole, required: false })
   @IsOptional()
@@ -52,6 +64,14 @@ export class ChangePasswordDto {
   @IsString()
   currentPassword: string;
 
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  @MinLength(6)
+  newPassword: string;
+}
+
+export class AdminResetPasswordDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()

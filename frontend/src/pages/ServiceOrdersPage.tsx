@@ -223,11 +223,6 @@ export function ServiceOrdersPage() {
       return current && Number(newQty) > 0 && Number(newQty) !== Number(current.quantity);
     });
 
-    if (changedEntries.length === 0) {
-      alert('Nenhuma alteracao de quantidade pendente.');
-      return;
-    }
-
     const hasPartChangeWithoutPermission = changedEntries.some(([itemId]) => {
       const current = selectedOrder.items?.find((i: any) => i.id === itemId);
       return current?.type?.toLowerCase() === 'part' && !canManageStock;
@@ -240,19 +235,26 @@ export function ServiceOrdersPage() {
 
     setSyncingTotals(true);
     try {
-      await Promise.all(
-        changedEntries.map(([itemId, newQty]) =>
-          serviceOrdersApi.updateItem(selectedOrder.id, itemId, { quantity: Number(newQty) })
-        )
-      );
+      // Aplica alterações de quantidade pendentes (se houver)
+      if (changedEntries.length > 0) {
+        await Promise.all(
+          changedEntries.map(([itemId, newQty]) =>
+            serviceOrdersApi.updateItem(selectedOrder.id, itemId, { quantity: Number(newQty) })
+          )
+        );
+        setPendingQtyByItem({});
+      }
 
-      const res = await serviceOrdersApi.getById(selectedOrder.id);
+      // Sempre recarrega OS atual, lista de OSs e dados da empresa
+      const [res, tRes] = await Promise.all([
+        serviceOrdersApi.getById(selectedOrder.id),
+        tenantsApi.getMe(),
+      ]);
       setSelectedOrder(res.data);
-      setPendingQtyByItem({});
+      setTenantFullData(tRes.data);
       loadOrders();
-      alert('Calculos atualizados com sucesso.');
     } catch (err: any) {
-      alert(err?.response?.data?.message || 'Erro ao atualizar calculos da O.S.');
+      alert(err?.response?.data?.message || 'Erro ao atualizar a O.S.');
     } finally {
       setSyncingTotals(false);
     }

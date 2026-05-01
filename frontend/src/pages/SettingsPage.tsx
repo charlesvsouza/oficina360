@@ -205,7 +205,8 @@ export function SettingsPage() {
         throw new Error('Checkout indisponível para este plano');
       }
 
-      window.open(checkoutUrl, '_blank', 'noopener,noreferrer');
+      // Navega na aba atual para evitar bloqueio de popup do navegador
+      window.location.href = checkoutUrl;
     } catch (error: any) {
       const message = error.response?.data?.message || error.message || 'Falha ao iniciar checkout online';
       alert(message);

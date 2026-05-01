@@ -1,13 +1,15 @@
-import { useMemo } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, CheckCircle2, Gauge, ShieldCheck, Sparkles, Wrench } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Gauge, Loader2, ShieldCheck, Zap } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import { subscriptionsApi } from '../api/client';
 
 type Plan = {
   name: 'START' | 'PRO' | 'REDE';
   label: string;
   price: string;
+  period: string;
   description: string;
   highlights: string[];
   featured?: boolean;
@@ -18,204 +20,296 @@ const plans: Plan[] = [
     name: 'START',
     label: 'Start',
     price: 'R$ 149',
+    period: '/mes',
     description: 'Para oficinas iniciando com controle total da operacao.',
-    highlights: ['Ordens de servico', 'Cadastro de clientes', 'Gestao de veiculos'],
+    highlights: ['Ordens de servico ilimitadas', 'Cadastro de clientes e veiculos', 'Relatorios basicos'],
   },
   {
     name: 'PRO',
     label: 'Pro',
     price: 'R$ 299',
+    period: '/mes',
     description: 'Aceleracao com financeiro, estoque e produtividade em tempo real.',
-    highlights: ['Financeiro completo', 'Controle de estoque', 'Indicadores operacionais'],
+    highlights: ['Financeiro completo', 'Controle de estoque', 'Indicadores operacionais', 'Multi-usuario'],
     featured: true,
   },
   {
     name: 'REDE',
     label: 'Rede',
     price: 'R$ 599',
+    period: '/mes',
     description: 'Para grupos de oficinas com governanca, escala e padronizacao.',
-    highlights: ['Multiplas unidades', 'Permissoes avancadas', 'Suporte prioritario'],
+    highlights: ['Multiplas unidades', 'Dashboard consolidado', 'Permissoes avancadas', 'Suporte prioritario'],
   },
+];
+
+const features = [
+  { icon: Gauge, title: 'Dashboard em tempo real', desc: 'Metas, indicadores e performance da equipe num unico painel.' },
+  { icon: ShieldCheck, title: 'Permissoes por papel', desc: 'Controle total de acesso: admin, produtor e financeiro.' },
+  { icon: CheckCircle2, title: 'O.S. digital completa', desc: 'Abertura, execucao, aprovacao e fechamento sem papel.' },
+  { icon: Zap, title: 'Estoque inteligente', desc: 'Alertas de reposicao e rastreio de pecas por ordem.' },
 ];
 
 export function LandingPage() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
-  const stats = useMemo(
-    () => [
-      { label: 'Disponibilidade', value: '99.95%' },
-      { label: 'Tempo medio de O.S.', value: '-34%' },
-      { label: 'Produtividade da equipe', value: '+52%' },
-    ],
-    []
-  );
-
-  const startPlanCheckout = (planName: Plan['name']) => {
-    if (isAuthenticated) {
-      navigate(`/settings?autocheckout=${planName}`);
+  const startPlanCheckout = async (planName: Plan['name']) => {
+    // Usuário não logado: redireciona para login com next para retornar aqui
+    if (!isAuthenticated) {
+      const nextPath = encodeURIComponent(`/settings?autocheckout=${planName}`);
+      navigate(`/login?next=${nextPath}`);
       return;
     }
 
-    const nextPath = encodeURIComponent(`/settings?autocheckout=${planName}`);
-    navigate(`/login?next=${nextPath}`);
+    // Usuário logado: chama a API diretamente e redireciona para o MP
+    setCheckoutLoading(planName);
+    setCheckoutError(null);
+    try {
+      const origin = window.location.origin;
+      const successUrl = `${origin}/settings?checkout=success&plan=${planName}`;
+      const cancelUrl = `${origin}/settings?checkout=cancel`;
+      const response = await subscriptionsApi.createCheckout(planName, successUrl, cancelUrl);
+      const checkoutUrl = response.data?.checkoutUrl;
+      if (!checkoutUrl) throw new Error('Checkout indisponível para este plano');
+      window.location.href = checkoutUrl;
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Falha ao iniciar checkout';
+      setCheckoutError(msg);
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
+
+  const handleAccess = () => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    } else {
+      navigate('/login');
+    }
   };
 
   return (
     <div
-      className="min-h-screen bg-[#f7f3ea] text-[#1c232e]"
+      className="min-h-screen bg-[#090e17] text-white overflow-x-hidden"
       style={{ fontFamily: '"Space Grotesk", "Manrope", sans-serif' }}
     >
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute -top-36 -left-24 w-[28rem] h-[28rem] rounded-full bg-[#ff7b2f]/20 blur-3xl" />
-          <div className="absolute top-0 right-0 w-[26rem] h-[26rem] rounded-full bg-[#2ea89a]/20 blur-3xl" />
-          <div className="absolute bottom-0 left-1/3 w-[22rem] h-[22rem] rounded-full bg-[#2855d6]/15 blur-3xl" />
-        </div>
-
-        <header className="relative max-w-6xl mx-auto px-6 pt-8">
-          <nav className="flex items-center justify-between rounded-2xl border border-[#1c232e]/10 bg-white/70 backdrop-blur-sm px-5 py-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#1c232e] text-white flex items-center justify-center">
-                <Wrench size={20} />
-              </div>
-              <div>
-                <p className="font-black tracking-tight text-lg">SygmaAuto</p>
-                <p className="text-xs text-[#1c232e]/60">Operating System para oficinas</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => navigate('/login')}
-                className="h-10 px-4 rounded-xl border border-[#1c232e]/20 text-sm font-bold hover:bg-[#1c232e]/5 transition-colors"
-              >
-                Entrar
-              </button>
-              <button
-                onClick={() => navigate('/register')}
-                className="h-10 px-4 rounded-xl bg-[#1c232e] text-white text-sm font-bold hover:bg-[#111722] transition-colors"
-              >
-                Criar conta
-              </button>
-            </div>
-          </nav>
-        </header>
-
-        <section className="relative max-w-6xl mx-auto px-6 pt-14 pb-14 grid lg:grid-cols-2 gap-12 items-center">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <p className="inline-flex items-center gap-2 rounded-full border border-[#1c232e]/15 bg-white/80 px-3 py-1 text-xs font-bold uppercase tracking-widest">
-              <Sparkles size={14} /> Plataforma premium
-            </p>
-            <h1 className="mt-5 text-5xl md:text-6xl font-black leading-[0.95] tracking-tight">
-              Gestao de oficina
-              <span className="block text-[#2855d6]">com DNA de produto global</span>
-            </h1>
-            <p className="mt-5 text-lg text-[#1c232e]/75 max-w-xl">
-              Controle ordens de servico, equipe, estoque e financeiro em uma experiencia unica. Sem planilhas, sem friccao, com performance real.
-            </p>
-
-            <div className="mt-8 flex flex-wrap gap-3">
-              <button
-                onClick={() => startPlanCheckout('PRO')}
-                className="h-12 px-6 rounded-2xl bg-[#ff7b2f] text-white font-black tracking-wide hover:bg-[#ea6820] transition-colors inline-flex items-center gap-2"
-              >
-                Assinar plano Pro
-                <ArrowRight size={18} />
-              </button>
-              <button
-                onClick={() => navigate('/login')}
-                className="h-12 px-6 rounded-2xl border border-[#1c232e]/20 font-bold hover:bg-white/70 transition-colors"
-              >
-                Ver painel
-              </button>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.15 }}
-            className="rounded-3xl border border-[#1c232e]/10 bg-white/80 backdrop-blur-sm p-6 shadow-[0_30px_80px_-40px_rgba(28,35,46,0.5)]"
-          >
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {stats.map((item) => (
-                <div key={item.label} className="rounded-2xl bg-[#f2f5ff] border border-[#2855d6]/10 p-4">
-                  <p className="text-xs uppercase tracking-wide text-[#1c232e]/60">{item.label}</p>
-                  <p className="text-2xl font-black mt-1">{item.value}</p>
-                </div>
-              ))}
-            </div>
-            <div className="mt-6 grid sm:grid-cols-3 gap-3">
-              <div className="rounded-2xl bg-[#1c232e] text-white p-4">
-                <Gauge className="mb-3" size={20} />
-                <p className="font-bold">Tempo de atendimento</p>
-                <p className="text-sm text-white/70">Dashboards e metas operacionais.</p>
-              </div>
-              <div className="rounded-2xl bg-[#fdf3e8] p-4">
-                <ShieldCheck className="mb-3 text-[#ff7b2f]" size={20} />
-                <p className="font-bold">Seguranca por papel</p>
-                <p className="text-sm text-[#1c232e]/70">Permissoes e auditoria por usuario.</p>
-              </div>
-              <div className="rounded-2xl bg-[#e9fbf8] p-4">
-                <CheckCircle2 className="mb-3 text-[#2ea89a]" size={20} />
-                <p className="font-bold">Assinatura online</p>
-                <p className="text-sm text-[#1c232e]/70">Checkout em producao com webhook.</p>
-              </div>
-            </div>
-          </motion.div>
-        </section>
+      {/* ── Glow ambiente ── */}
+      <div className="pointer-events-none fixed inset-0 z-0">
+        <div className="absolute top-[-10rem] left-1/2 -translate-x-1/2 w-[60rem] h-[30rem] rounded-full bg-[#ff7b2f]/10 blur-[120px]" />
+        <div className="absolute top-[30%] left-[-8rem] w-[30rem] h-[30rem] rounded-full bg-[#ff7b2f]/6 blur-[100px]" />
+        <div className="absolute top-[60%] right-[-6rem] w-[26rem] h-[26rem] rounded-full bg-[#2855d6]/8 blur-[100px]" />
       </div>
 
-      <section id="planos" className="max-w-6xl mx-auto px-6 pb-20">
-        <div className="flex items-end justify-between gap-4 mb-7">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-[#1c232e]/50 font-bold">Planos</p>
-            <h2 className="text-3xl md:text-4xl font-black tracking-tight">Clique e va direto para o checkout</h2>
-          </div>
-          <p className="text-sm text-[#1c232e]/60 max-w-xs">Ao clicar no plano, o sistema ja abre o fluxo de assinatura.</p>
+      {/* ── Nav ── */}
+      <header className="relative z-10 max-w-5xl mx-auto px-6 pt-7 flex items-center justify-between">
+        <span className="text-sm font-bold tracking-[0.18em] text-white/40 uppercase">sigmaauto.com.br</span>
+        <button
+          onClick={handleAccess}
+          className="h-9 px-5 rounded-xl border border-white/15 text-sm font-bold text-white/80 hover:border-[#ff7b2f]/60 hover:text-white transition-all"
+        >
+          Acessar sistema
+        </button>
+      </header>
+
+      {/* ── Hero ── */}
+      <section className="relative z-10 flex flex-col items-center text-center px-6 pt-24 pb-20">
+        {/* Badge */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="inline-flex items-center gap-2 rounded-full border border-[#ff7b2f]/30 bg-[#ff7b2f]/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-[#ff7b2f] mb-10"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-[#ff7b2f] animate-pulse" />
+          Plataforma para oficinas mecânicas
+        </motion.div>
+
+        {/* Marca com glow */}
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="text-[clamp(3.5rem,10vw,7rem)] font-black leading-none tracking-[0.12em] uppercase"
+          style={{
+            textShadow:
+              '0 0 40px rgba(255,123,47,0.55), 0 0 80px rgba(255,123,47,0.25), 0 0 160px rgba(255,123,47,0.12)',
+            letterSpacing: '0.14em',
+          }}
+        >
+          <span className="text-white">Sygma</span>
+          <span className="text-[#ff7b2f]"> Auto</span>
+        </motion.h1>
+
+        {/* Slogan */}
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.22 }}
+          className="mt-7 text-[clamp(1.1rem,2.5vw,1.5rem)] font-bold text-white/80 max-w-2xl leading-snug"
+        >
+          Do primeiro parafuso ao lucro no bolso —{' '}
+          <span className="text-white">gestao completa da sua oficina.</span>
+        </motion.p>
+
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.35 }}
+          className="mt-3 text-base text-white/45 max-w-xl"
+        >
+          Ordens de servico, financeiro, estoque e equipe em uma unica plataforma. Sem planilhas. Sem friccao.
+        </motion.p>
+
+        {/* CTAs */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.45 }}
+          className="mt-10 flex flex-wrap gap-3 justify-center"
+        >
+          <button
+            onClick={handleAccess}
+            className="h-13 px-8 rounded-2xl bg-[#ff7b2f] text-white font-black text-base tracking-wide hover:bg-[#f06820] transition-all shadow-[0_0_30px_rgba(255,123,47,0.4)] hover:shadow-[0_0_50px_rgba(255,123,47,0.6)] inline-flex items-center gap-2"
+            style={{ height: '52px' }}
+          >
+            Entrar no sistema
+            <ArrowRight size={18} />
+          </button>
+          <button
+            onClick={() => document.getElementById('planos')?.scrollIntoView({ behavior: 'smooth' })}
+            className="h-13 px-8 rounded-2xl border border-white/15 text-white font-bold text-base hover:border-white/40 hover:bg-white/5 transition-all"
+            style={{ height: '52px' }}
+          >
+            Ver planos
+          </button>
+        </motion.div>
+
+        {/* Stats */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+          className="mt-16 flex flex-wrap justify-center gap-8 text-center"
+        >
+          {[
+            { value: '99.95%', label: 'Disponibilidade' },
+            { value: '-34%', label: 'Tempo medio de O.S.' },
+            { value: '+52%', label: 'Produtividade da equipe' },
+          ].map((s) => (
+            <div key={s.label}>
+              <p className="text-3xl font-black text-white">{s.value}</p>
+              <p className="text-xs text-white/45 mt-1 uppercase tracking-widest">{s.label}</p>
+            </div>
+          ))}
+        </motion.div>
+      </section>
+
+      {/* ── Divisor ── */}
+      <div className="relative z-10 max-w-5xl mx-auto px-6">
+        <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      </div>
+
+      {/* ── Features ── */}
+      <section className="relative z-10 max-w-5xl mx-auto px-6 py-20">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {features.map(({ icon: Icon, title, desc }, i) => (
+            <motion.div
+              key={title}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.08 }}
+              className="rounded-2xl border border-white/8 bg-white/4 backdrop-blur-sm p-5 hover:border-[#ff7b2f]/30 transition-colors"
+            >
+              <div className="w-10 h-10 rounded-xl bg-[#ff7b2f]/15 flex items-center justify-center mb-4">
+                <Icon size={20} className="text-[#ff7b2f]" />
+              </div>
+              <p className="font-bold text-sm text-white">{title}</p>
+              <p className="mt-1 text-xs text-white/50 leading-relaxed">{desc}</p>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Planos ── */}
+      <section id="planos" className="relative z-10 max-w-5xl mx-auto px-6 pb-24">
+        <div className="text-center mb-12">
+          <p className="text-xs uppercase tracking-[0.25em] text-[#ff7b2f]/70 font-bold mb-3">Planos</p>
+          <h2 className="text-3xl md:text-4xl font-black">Escolha e va direto para o checkout</h2>
+          <p className="mt-3 text-white/45 text-sm">Ao clicar, o sistema ja abre o fluxo de assinatura.</p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-4">
-          {plans.map((plan) => (
+        {checkoutError && (
+          <p className="text-center text-sm text-red-400 mb-4 bg-red-400/10 border border-red-400/20 rounded-xl px-4 py-3">
+            {checkoutError}
+          </p>
+        )}
+
+        <div className="grid md:grid-cols-3 gap-5">
+          {plans.map((plan, i) => (
             <motion.article
               key={plan.name}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1 }}
               whileHover={{ y: -6 }}
-              className={`rounded-3xl border p-5 ${
+              className={`relative rounded-3xl border p-6 flex flex-col ${
                 plan.featured
-                  ? 'bg-[#1c232e] text-white border-[#1c232e]'
-                  : 'bg-white border-[#1c232e]/15'
+                  ? 'bg-[#ff7b2f]/10 border-[#ff7b2f]/40 shadow-[0_0_60px_rgba(255,123,47,0.15)]'
+                  : 'bg-white/4 border-white/10'
               }`}
             >
-              <p className={`text-xs uppercase tracking-widest ${plan.featured ? 'text-white/60' : 'text-[#1c232e]/55'}`}>
-                {plan.label}
-              </p>
-              <p className="mt-2 text-4xl font-black leading-none">{plan.price}</p>
-              <p className={`mt-3 text-sm ${plan.featured ? 'text-white/80' : 'text-[#1c232e]/75'}`}>{plan.description}</p>
+              {plan.featured && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-black uppercase tracking-widest bg-[#ff7b2f] text-white px-3 py-1 rounded-full">
+                  Mais popular
+                </span>
+              )}
+              <p className="text-xs uppercase tracking-widest text-white/40">{plan.label}</p>
+              <div className="mt-2 flex items-end gap-1">
+                <p className="text-4xl font-black text-white">{plan.price}</p>
+                <p className="text-sm text-white/40 mb-1">{plan.period}</p>
+              </div>
+              <p className="mt-3 text-sm text-white/60 leading-relaxed">{plan.description}</p>
 
-              <ul className="mt-5 space-y-2 text-sm">
+              <ul className="mt-5 space-y-2.5 text-sm flex-1">
                 {plan.highlights.map((feature) => (
-                  <li key={feature} className="flex items-center gap-2">
-                    <CheckCircle2 size={16} className={plan.featured ? 'text-[#2ea89a]' : 'text-[#2855d6]'} />
-                    <span>{feature}</span>
+                  <li key={feature} className="flex items-center gap-2.5">
+                    <CheckCircle2 size={15} className="text-[#ff7b2f] flex-shrink-0" />
+                    <span className="text-white/80">{feature}</span>
                   </li>
                 ))}
               </ul>
 
               <button
                 onClick={() => startPlanCheckout(plan.name)}
-                className={`mt-6 h-11 w-full rounded-xl text-sm font-black transition-colors ${
+                disabled={checkoutLoading !== null}
+                className={`mt-6 h-11 w-full rounded-xl text-sm font-black transition-all inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait ${
                   plan.featured
-                    ? 'bg-[#ff7b2f] text-white hover:bg-[#ea6820]'
-                    : 'bg-[#1c232e] text-white hover:bg-[#111722]'
+                    ? 'bg-[#ff7b2f] text-white hover:bg-[#f06820] shadow-[0_0_20px_rgba(255,123,47,0.4)]'
+                    : 'bg-white/8 text-white border border-white/15 hover:bg-white/14'
                 }`}
               >
-                Assinar {plan.label}
+                {checkoutLoading === plan.name ? (
+                  <><Loader2 size={15} className="animate-spin" /> Aguarde...</>
+                ) : (
+                  `Assinar ${plan.label}`
+                )}
               </button>
             </motion.article>
           ))}
         </div>
       </section>
+
+      {/* ── Footer ── */}
+      <footer className="relative z-10 border-t border-white/8 py-8 text-center">
+        <p className="text-xs text-white/25">
+          © {new Date().getFullYear()} SygmaAuto · sigmaauto.com.br · Todos os direitos reservados
+        </p>
+      </footer>
     </div>
   );
 }

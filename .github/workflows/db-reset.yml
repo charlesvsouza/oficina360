@@ -32,30 +32,30 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
 
-      - name: Validate DATABASE_PUBLIC_URL
+      - name: Validate DATABASE__PUBLIC_URL
         run: |
           if [ -z "$DATABASE_URL" ]; then
-            echo "::error::DATABASE_PUBLIC_URL está vazio."
+            echo "::error::DATABASE__PUBLIC_URL está vazio."
             echo ""
             echo "Para obter a URL pública do Railway PostgreSQL:"
             echo "1. Railway dashboard → projeto → serviço PostgreSQL → Settings"
             echo "2. Em 'Networking', clique em 'Generate Domain' para ativar o proxy público"
-            echo "3. Copie a DATABASE_PUBLIC_URL gerada"
-            echo "4. Adicione/atualize a secret DATABASE_PUBLIC_URL no GitHub"
+            echo "3. Copie a DATABASE__PUBLIC_URL gerada"
+            echo "4. Adicione/atualize a secret DATABASE__PUBLIC_URL no GitHub"
             exit 1
           fi
           echo "DATABASE_URL configurada corretamente."
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_PUBLIC_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE__PUBLIC_URL }}
 
       - name: Drop and recreate all tables
         run: npx prisma migrate reset --force --skip-seed
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_PUBLIC_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE__PUBLIC_URL }}
 
       - name: Run seed (planos + superadmin + tenants)
         run: npx ts-node prisma/seed.ts
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_PUBLIC_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE__PUBLIC_URL }}
           SEED_SUPERADMIN_PASSWORD: ${{ secrets.SEED_SUPERADMIN_PASSWORD }}
           SEED_MASTER_PASSWORD: ${{ secrets.SEED_MASTER_PASSWORD }}

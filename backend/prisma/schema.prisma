@@ -94,6 +94,18 @@ model Subscription {
   @@map("subscriptions")
 }
 
+model SuperAdmin {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("super_admins")
+}
+
 model User {
   id           String   @id @default(uuid())
   tenantId     String

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { PublicOnlyRoute } from './components/PublicOnlyRoute';
+import { SuperAdminRoute } from './components/SuperAdminRoute';
 import { Layout } from './components/Layout';
 import { InitialSplash } from './pages/InitialSplash';
 import { LoginPage } from './pages/LoginPage';
@@ -17,6 +18,7 @@ import { FinancialPage } from './pages/FinancialPage';
 import { UsersPage } from './pages/UsersPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SuperAdminPage } from './pages/SuperAdminPage';
+import { SuperAdminLoginPage } from './pages/SuperAdminLoginPage';
 
 export default function App() {
   return (
@@ -25,8 +27,11 @@ export default function App() {
         {/* Splash Inicial que leva ao Login */}
         <Route path="/" element={<InitialSplash />} />
         
-        {/* Área de Gestão Global (Sem proteção para facilitar desenvolvimento) */}
-        <Route path="/admin" element={<SuperAdminPage />} />
+        {/* Área de Gestão Global — protegida por token de super admin */}
+        <Route path="/admin/login" element={<SuperAdminLoginPage />} />
+        <Route element={<SuperAdminRoute />}>
+          <Route path="/admin" element={<SuperAdminPage />} />
+        </Route>
 
         
         <Route element={<PublicOnlyRoute />}>

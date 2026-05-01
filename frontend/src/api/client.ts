@@ -195,6 +195,26 @@ export const managementApi = {
   listTenants: () => api.get('/management/tenants'),
 };
 
+// ─── Super Admin API (token separado, sem tenant) ────────────────────────────
+const PROD_API_FALLBACK_SA = 'https://oficina360-api.railway.app';
+const SA_BASE = (import.meta.env.VITE_API_URL || (import.meta.env.PROD ? PROD_API_FALLBACK_SA : 'http://localhost:3000')).replace(/\/+$/, '');
+
+export const superAdminApi = {
+  login: (email: string, password: string) =>
+    axios.post(`${SA_BASE}/superadmin/auth/login`, { email, password }),
+  create: (data: { email: string; name: string; password: string; bootstrapSecret: string }) =>
+    axios.post(`${SA_BASE}/superadmin/auth/create`, data),
+  getStats: () =>
+    axios.get(`${SA_BASE}/superadmin/stats`, { headers: { Authorization: `Bearer ${localStorage.getItem('superAdminToken')}` } }),
+  listTenants: () =>
+    axios.get(`${SA_BASE}/superadmin/tenants`, { headers: { Authorization: `Bearer ${localStorage.getItem('superAdminToken')}` } }),
+  getTenantDetails: (id: string) =>
+    axios.get(`${SA_BASE}/superadmin/tenants/${id}`, { headers: { Authorization: `Bearer ${localStorage.getItem('superAdminToken')}` } }),
+  deleteTenant: (id: string) =>
+    axios.delete(`${SA_BASE}/superadmin/tenants/${id}`, { headers: { Authorization: `Bearer ${localStorage.getItem('superAdminToken')}` } }),
+};
+
+
 export const suppliersApi = {
   getAll: () => api.get('/suppliers'),
   getById: (id: string) => api.get(`/suppliers/${id}`),

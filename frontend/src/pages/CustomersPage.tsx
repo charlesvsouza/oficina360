@@ -21,33 +21,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-
-// --- Utils & Formatters ---
-function onlyDigits(value: string) {
-  return value.replace(/\D/g, '');
-}
-
-function formatCpf(value: string) {
-  const digits = onlyDigits(value).slice(0, 11);
-  if (digits.length <= 3) return digits;
-  if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
-  if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
-  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
-}
-
-function formatCep(value: string) {
-  const digits = onlyDigits(value).slice(0, 8);
-  if (digits.length <= 5) return digits;
-  return `${digits.slice(0, 5)}-${digits.slice(5)}`;
-}
-
-function formatPhone(value: string) {
-  const digits = onlyDigits(value).slice(0, 11);
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-  if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
-  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
-}
+import { formatCpfCnpj, formatCep, formatPhone, onlyDigits } from '../lib/masks';
 
 export function CustomersPage() {
   const [customers, setCustomers] = useState<any[]>([]);
@@ -390,8 +364,8 @@ export function CustomersPage() {
                         <input
                           type="text"
                           value={formData.document}
-                          onChange={(e) => setFormData({ ...formData, document: formatCpf(e.target.value) })}
-                          placeholder="000.000.000-00"
+                          onChange={(e) => setFormData({ ...formData, document: formatCpfCnpj(e.target.value) })}
+                          placeholder="000.000.000-00 ou 00.000.000/0000-00"
                           className="w-full px-4 py-3 rounded-2xl border border-zinc-200 bg-white focus:outline-none focus:ring-4 focus:ring-zinc-900/5 focus:border-zinc-900 transition-all text-sm"
                         />
                       </div>

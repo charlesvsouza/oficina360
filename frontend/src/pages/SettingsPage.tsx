@@ -2,28 +2,63 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { tenantsApi, subscriptionsApi, usersApi } from '../api/client';
 import {
-  Settings,
   Building,
-  Phone,
   Users,
   Shield,
-  CreditCard,
   Loader2,
   CheckCircle,
   Zap,
   ArrowRight,
   Wrench,
   Lock,
+  Search,
+  AlertCircle,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '../lib/utils';
+import {
+  formatCpfCnpj,
+  formatPhone,
+  formatCep,
+  lookupCnpj,
+  onlyDigits,
+} from '../lib/masks';
+
+type TenantForm = {
+  taxId: string;
+  legalNature: string;
+  name: string;
+  legalName: string;
+  tradeName: string;
+  stateRegistration: string;
+  municipalRegistration: string;
+  phone: string;
+  email: string;
+  address: string;
+};
 
 export function SettingsPage() {
-  const { tenant, user } = useAuthStore();
+  const { user } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingOps, setSavingOps] = useState(false);
-  const [tenantData, setTenantData] = useState({ name: '', email: '', phone: '', address: '' });
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [lookingUpDoc, setLookingUpDoc] = useState(false);
+  const [lookupError, setLookupError] = useState<string | null>(null);
+
+  const [tenantData, setTenantData] = useState<TenantForm>({
+    taxId: '',
+    legalNature: 'PJ',
+    name: '',
+    legalName: '',
+    tradeName: '',
+    stateRegistration: '',
+    municipalRegistration: '',
+    phone: '',
+    email: '',
+    address: '',
+  });
   const [opsData, setOpsData] = useState({ laborHourlyRate: 120 });
   const [subscription, setSubscription] = useState<any>(null);
   const [plans, setPlans] = useState<any[]>([]);
@@ -43,19 +78,20 @@ export function SettingsPage() {
       ]);
       setSubscription(subRes.data);
       setPlans(plansRes.data);
+      const t = tenantRes.data;
       setTenantData({
-        name: tenantRes.data.name,
-        email: tenantRes.data.email || '',
-        phone: tenantRes.data.phone || '',
-        address: tenantRes.data.address || '',
-        legalNature: tenantRes.data.legalNature || 'PJ',
-        taxId: tenantRes.data.taxId || '',
-        legalName: tenantRes.data.legalName || '',
-        tradeName: tenantRes.data.tradeName || '',
-        stateRegistration: tenantRes.data.stateRegistration || '',
-        municipalRegistration: tenantRes.data.municipalRegistration || '',
-      } as any);
-      setOpsData({ laborHourlyRate: tenantRes.data.laborHourlyRate ?? 120 });
+        taxId: t.taxId || '',
+        legalNature: t.legalNature || 'PJ',
+        name: t.name || '',
+        legalName: t.legalName || '',
+        tradeName: t.tradeName || '',
+        stateRegistration: t.stateRegistration || '',
+        municipalRegistration: t.municipalRegistration || '',
+        phone: t.phone || '',
+        email: t.email || '',
+        address: t.address || '',
+      });
+      setOpsData({ laborHourlyRate: t.laborHourlyRate ?? 120 });
       setUsers(usersRes.data);
     } catch (error) {
       console.error('Falha ao carregar configurações:', error);
@@ -64,13 +100,45 @@ export function SettingsPage() {
     }
   };
 
+  const handleDocChange = async (raw: string) => {
+    const formatted = formatCpfCnpj(raw);
+    const digits = onlyDigits(formatted);
+    setTenantData(prev => ({ ...prev, taxId: formatted }));
+    setLookupError(null);
+
+    if (digits.length === 14) {
+      setLookingUpDoc(true);
+      const result = await lookupCnpj(digits);
+      setLookingUpDoc(false);
+      if (result) {
+        setTenantData(prev => ({
+          ...prev,
+          taxId: formatted,
+          legalName: result.razaoSocial || prev.legalName,
+          name: result.nomeFantasia || prev.name,
+          tradeName: result.nomeFantasia || prev.tradeName,
+          phone: result.telefone || prev.phone,
+          email: result.email || prev.email,
+          address: result.logradouro || prev.address,
+        }));
+      } else {
+        setLookupError('CNPJ não encontrado na Receita Federal. Preencha manualmente.');
+      }
+    }
+  };
+
   const handleSaveTenant = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    setSaveSuccess(false);
+    setSaveError(null);
     try {
       await tenantsApi.update(tenantData);
-    } catch (error) {
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (error: any) {
       console.error('Falha ao salvar oficina:', error);
+      setSaveError(error?.response?.data?.message || 'Erro ao salvar. Tente novamente.');
     } finally {
       setSaving(false);
     }
@@ -133,7 +201,48 @@ export function SettingsPage() {
             </div>
             <form onSubmit={handleSaveTenant} className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                {/* 1º campo: CPF / CNPJ com lookup automático */}
                 <div className="col-span-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    CPF / CNPJ
+                    <span className="ml-2 text-xs text-slate-400 font-normal">(preencha primeiro — CNPJ busca dados automaticamente)</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder={tenantData.legalNature === 'PF' ? '000.000.000-00' : '00.000.000/0000-00'}
+                      value={tenantData.taxId}
+                      onChange={(e) => handleDocChange(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 pr-10 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      {lookingUpDoc
+                        ? <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
+                        : <Search className="w-4 h-4 text-slate-400" />}
+                    </div>
+                  </div>
+                  {lookupError && (
+                    <p className="mt-1 flex items-center gap-1 text-xs text-amber-600">
+                      <AlertCircle className="w-3.5 h-3.5" /> {lookupError}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Natureza Jurídica</label>
+                  <select
+                    value={tenantData.legalNature}
+                    onChange={(e) => setTenantData({ ...tenantData, legalNature: e.target.value })}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
+                  >
+                    <option value="PF">Pessoa Física (PF)</option>
+                    <option value="PJ">Pessoa Jurídica (PJ)</option>
+                  </select>
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Nome Fantasia</label>
                   <input
                     type="text"
@@ -143,34 +252,12 @@ export function SettingsPage() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Natureza Jurídica</label>
-                  <select
-                    value={(tenantData as any).legalNature || 'PJ'}
-                    onChange={(e) => setTenantData({ ...tenantData, legalNature: e.target.value } as any)}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
-                  >
-                    <option value="PF">Pessoa Física (PF)</option>
-                    <option value="PJ">Pessoa Jurídica (PJ)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">CPF / CNPJ</label>
-                  <input
-                    type="text"
-                    value={(tenantData as any).taxId || ''}
-                    onChange={(e) => setTenantData({ ...tenantData, taxId: e.target.value } as any)}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
-                  />
-                </div>
-
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-slate-700 mb-1">Razão Social / Nome Civil</label>
                   <input
                     type="text"
-                    value={(tenantData as any).legalName || ''}
-                    onChange={(e) => setTenantData({ ...tenantData, legalName: e.target.value } as any)}
+                    value={tenantData.legalName}
+                    onChange={(e) => setTenantData({ ...tenantData, legalName: e.target.value })}
                     className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
                   />
                 </div>
@@ -179,8 +266,8 @@ export function SettingsPage() {
                   <label className="block text-sm font-medium text-slate-700 mb-1">Inscrição Estadual</label>
                   <input
                     type="text"
-                    value={(tenantData as any).stateRegistration || ''}
-                    onChange={(e) => setTenantData({ ...tenantData, stateRegistration: e.target.value } as any)}
+                    value={tenantData.stateRegistration}
+                    onChange={(e) => setTenantData({ ...tenantData, stateRegistration: e.target.value })}
                     className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
                   />
                 </div>
@@ -189,8 +276,8 @@ export function SettingsPage() {
                   <label className="block text-sm font-medium text-slate-700 mb-1">Inscrição Municipal</label>
                   <input
                     type="text"
-                    value={(tenantData as any).municipalRegistration || ''}
-                    onChange={(e) => setTenantData({ ...tenantData, municipalRegistration: e.target.value } as any)}
+                    value={tenantData.municipalRegistration}
+                    onChange={(e) => setTenantData({ ...tenantData, municipalRegistration: e.target.value })}
                     className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
                   />
                 </div>
@@ -199,8 +286,10 @@ export function SettingsPage() {
                   <label className="block text-sm font-medium text-slate-700 mb-1">Telefone</label>
                   <input
                     type="text"
+                    inputMode="numeric"
+                    placeholder="(00) 00000-0000"
                     value={tenantData.phone}
-                    onChange={(e) => setTenantData({ ...tenantData, phone: e.target.value })}
+                    onChange={(e) => setTenantData({ ...tenantData, phone: formatPhone(e.target.value) })}
                     className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
                   />
                 </div>
@@ -209,6 +298,8 @@ export function SettingsPage() {
                   <label className="block text-sm font-medium text-slate-700 mb-1">E-mail</label>
                   <input
                     type="email"
+                    inputMode="email"
+                    placeholder="contato@suaoficina.com.br"
                     value={tenantData.email}
                     onChange={(e) => setTenantData({ ...tenantData, email: e.target.value })}
                     className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 transition-all"
@@ -226,13 +317,24 @@ export function SettingsPage() {
                 </div>
               </div>
 
-              <div className="mt-6 flex justify-end">
+              {saveError && (
+                <p className="mt-4 flex items-center gap-1.5 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" /> {saveError}
+                </p>
+              )}
+
+              <div className="mt-6 flex items-center justify-end gap-3">
+                {saveSuccess && (
+                  <span className="flex items-center gap-1.5 text-sm text-green-600 font-medium">
+                    <CheckCircle className="w-4 h-4" /> Perfil salvo com sucesso!
+                  </span>
+                )}
                 <button
                   type="submit"
                   disabled={saving}
-                  className="rounded-lg bg-indigo-600 px-6 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 shadow-md shadow-indigo-100 transition-all active:scale-95"
+                  className="rounded-lg bg-indigo-600 px-6 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 shadow-md shadow-indigo-100 transition-all active:scale-95 flex items-center gap-2"
                 >
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar Perfil'}
+                  {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Salvando...</> : 'Salvar Perfil'}
                 </button>
               </div>
             </form>

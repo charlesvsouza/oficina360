@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
 import { authApi } from '../api/client';
 import { Wrench, Mail, Lock, User, Building, Loader2, ArrowRight } from 'lucide-react';
+import { formatCpfCnpj } from '../lib/masks';
 
 export function RegisterPage() {
   const [name, setName] = useState('');
@@ -185,10 +186,14 @@ export function RegisterPage() {
                 <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider ml-1">Documento</label>
                 <input
                   type="text"
+                  inputMode="numeric"
                   value={taxId}
-                  onChange={(e) => setTaxId(e.target.value)}
+                  onChange={(e) => {
+                    const formatted = formatCpfCnpj(e.target.value);
+                    setTaxId(formatted);
+                  }}
                   className="input-dark"
-                  placeholder="000.000.000-00"
+                  placeholder={companyType === 'CPF' ? '000.000.000-00' : '00.000.000/0000-00'}
                   required
                 />
               </div>

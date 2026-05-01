@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { vehiclesApi, customersApi } from '../api/client';
+import { formatPlate } from '../lib/masks';
 import {
   Car,
   Plus,
@@ -284,7 +285,7 @@ export function VehiclesPage() {
                       type="text"
                       value={formData.plate}
                       onChange={(e) =>
-                        setFormData({ ...formData, plate: e.target.value.toUpperCase() })
+                        setFormData({ ...formData, plate: formatPlate(e.target.value) })
                       }
                       placeholder="ABC-1234"
                       className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white focus:outline-none focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 transition-all text-sm font-mono font-bold"

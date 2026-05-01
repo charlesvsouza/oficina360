@@ -126,8 +126,6 @@ export function ServiceOrdersPage() {
   const canDelete = user?.role === 'MASTER';
   const canChangeStatus = user?.role === 'MASTER' || user?.role === 'ADMIN';
   const CLOSED_STATUSES = ['FATURADO', 'ENTREGUE', 'CANCELADO', 'REPROVADO'];
-  const isReprovado = selectedOrder?.status === 'REPROVADO';
-  const isClosed = CLOSED_STATUSES.includes(selectedOrder?.status ?? '');
   const printContentRef = useRef<HTMLDivElement>(null);
   const printFrameRef = useRef<HTMLIFrameElement>(null);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
@@ -164,6 +162,8 @@ export function ServiceOrdersPage() {
   const [showDiagBanner, setShowDiagBanner] = useState(false);
   const [creatingDiagOrder, setCreatingDiagOrder] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const isReprovado = selectedOrder?.status === 'REPROVADO';
+  const isClosed = CLOSED_STATUSES.includes(selectedOrder?.status ?? '');
 
   useEffect(() => {
     if (!showStatusDropdown) return;

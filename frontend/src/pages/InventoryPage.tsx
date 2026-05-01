@@ -6,9 +6,10 @@ import {
   Package, Plus, Search, Edit, Trash2, Loader2,
   ArrowUpRight, ArrowDownLeft, AlertTriangle, Layers,
   X, ChevronDown, Building2, Tag, Hash, RefreshCw,
-  Truck, CheckCircle,
+  Truck, CheckCircle, FileSpreadsheet,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { ImportNFModal } from '../components/ImportNFModal';
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
 
@@ -227,6 +228,7 @@ export function InventoryPage() {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showSupplierModal, setShowSupplierModal] = useState(false);
+  const [showImportNFModal, setShowImportNFModal] = useState(false);
   const [showMovModal, setShowMovModal] = useState<any>(null);
   const [editingPart, setEditingPart] = useState<any>(null);
   const [formData, setFormData] = useState({ ...EMPTY_FORM });
@@ -342,6 +344,11 @@ export function InventoryPage() {
           <p className="text-slate-500 font-medium">{parts.length} itens • {suppliers.length} fornecedores</p>
         </div>
         <div className="flex gap-3">
+          <button onClick={() => setShowImportNFModal(true)}
+            disabled={!canManageParts}
+            className="flex items-center gap-2 px-5 py-3 rounded-2xl border-2 border-indigo-200 text-indigo-700 font-bold hover:border-indigo-300 hover:bg-indigo-50 transition-all text-sm disabled:opacity-50">
+            <FileSpreadsheet className="w-4 h-4" /> Importar NF
+          </button>
           <button onClick={() => setShowSupplierModal(true)}
             className="flex items-center gap-2 px-5 py-3 rounded-2xl border-2 border-slate-200 text-slate-700 font-bold hover:border-slate-400 hover:bg-slate-50 transition-all text-sm">
             <Truck className="w-4 h-4" /> Fornecedor
@@ -707,6 +714,15 @@ export function InventoryPage() {
       <AnimatePresence>
         {showSupplierModal && (
           <SupplierModal onClose={() => setShowSupplierModal(false)} onSaved={loadAll} />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showImportNFModal && (
+          <ImportNFModal
+            onClose={() => setShowImportNFModal(false)}
+            onSuccess={loadAll}
+          />
         )}
       </AnimatePresence>
     </motion.div>

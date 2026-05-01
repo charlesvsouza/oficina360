@@ -1,18 +1,23 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { InventoryService } from './inventory.service';
-import { CreatePartDto, UpdatePartDto, CreateMovementDto } from './dto/inventory.dto';
+import { CreatePartDto, UpdatePartDto, CreateMovementDto, ConfirmNFImportDto } from './dto/inventory.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Tenant } from '../common/decorators/tenant.decorator';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ImportNfService } from './import-nf.service';
 
 @ApiTags('Inventory')
 @Controller('inventory')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class InventoryController {
-  constructor(private inventoryService: InventoryService) {}
+  constructor(
+    private inventoryService: InventoryService,
+    private importNfService: ImportNfService,
+  ) {}
 
   @Get('parts')
   @ApiOperation({ summary: 'List all parts' })
@@ -62,5 +67,35 @@ export class InventoryController {
   @ApiOperation({ summary: 'Get stock report' })
   async getStockReport(@Tenant() tenant: { tenantId: string }) {
     return this.inventoryService.getStockReport(tenant.tenantId);
+  }
+
+  @Post('import-nf/preview')
+  @Roles('MASTER', 'ADMIN')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiOperation({ summary: 'Ler NF por XML/PDF e retornar preview dos itens' })
+  async previewImportNF(@UploadedFile() file: Express.Multer.File) {
+    return this.importNfService.previewImport(file);
+  }
+
+  @Post('import-nf/confirm')
+  @Roles('MASTER', 'ADMIN')
+  @ApiOperation({ summary: 'Confirmar entrada de estoque a partir do preview de NF' })
+  async confirmImportNF(
+    @Tenant() tenant: { tenantId: string },
+    @Body() dto: ConfirmNFImportDto,
+  ) {
+    return this.importNfService.confirmImport(tenant.tenantId, dto);
   }
 }

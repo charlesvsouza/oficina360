@@ -164,6 +164,14 @@ export const inventoryApi = {
   deletePart: (id: string) => api.delete(`/inventory/parts/${id}`),
   createMovement: (data: any) => api.post('/inventory/movements', data),
   getStockReport: () => api.get('/inventory/stock-report'),
+  previewImportNF: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/inventory/import-nf/preview', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  confirmImportNF: (data: any) => api.post('/inventory/import-nf/confirm', data),
 };
 
 export const financialApi = {

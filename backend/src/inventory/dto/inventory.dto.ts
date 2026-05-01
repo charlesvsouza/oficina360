@@ -156,3 +156,97 @@ export class CreateMovementDto {
   @IsString()
   note?: string;
 }
+
+export class NFImportSupplierDto {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  document?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  email?: string;
+}
+
+export class NFImportInvoiceDto {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  number?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  issueDate?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  accessKey?: string;
+}
+
+export class NFImportItemDto {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  originalCode?: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  description: string;
+
+  @ApiProperty()
+  @IsNumber()
+  @Min(0)
+  quantity: number;
+
+  @ApiProperty()
+  @IsNumber()
+  @Min(0)
+  unitPrice: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  unit?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  type?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  ncm?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  origin?: string;
+}
+
+export class ConfirmNFImportDto {
+  @ApiProperty({ required: false, type: NFImportSupplierDto })
+  @IsOptional()
+  supplier?: NFImportSupplierDto;
+
+  @ApiProperty({ required: false, type: NFImportInvoiceDto })
+  @IsOptional()
+  invoice?: NFImportInvoiceDto;
+
+  @ApiProperty({ type: [NFImportItemDto] })
+  items: NFImportItemDto[];
+}

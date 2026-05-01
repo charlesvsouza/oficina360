@@ -134,7 +134,7 @@ export function ServiceOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  const [newOrder, setNewOrder] = useState({ customerId: '', vehicleId: '', complaint: '', kmEntrada: 0, reserveStock: false });
+  const [newOrder, setNewOrder] = useState({ customerId: '', vehicleId: '', complaint: '', kmEntrada: 0, reserveStock: false, orderType: 'ORCAMENTO' });
 
   const [edit, setEdit] = useState({
     complaint: '', diagnosis: '', technicalReport: '',
@@ -1366,10 +1366,33 @@ export function ServiceOrdersPage() {
                 try {
                   const res = await serviceOrdersApi.create(newOrder);
                   setShowCreateModal(false);
+                  setNewOrder({ customerId: '', vehicleId: '', complaint: '', kmEntrada: 0, reserveStock: false, orderType: 'ORCAMENTO' });
                   loadOrders();
                   selectOrder(res.data);
                 } catch { alert('Erro ao criar OS. Verifique os dados.'); }
               }}>
+                {/* Tipo de documento */}
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { value: 'ORCAMENTO', label: '📋 Orçamento', desc: 'Aguarda aprovação do cliente' },
+                    { value: 'ORDEM_SERVICO', label: '🔧 Ordem de Serviço', desc: 'Serviço já autorizado' },
+                  ].map(({ value, label, desc }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setNewOrder({ ...newOrder, orderType: value })}
+                      className={cn(
+                        'flex flex-col items-start p-3 rounded-2xl border-2 text-left transition-all',
+                        newOrder.orderType === value
+                          ? 'border-slate-900 bg-slate-900 text-white'
+                          : 'border-slate-200 bg-white text-slate-700 hover:border-slate-400'
+                      )}
+                    >
+                      <span className="text-xs font-black">{label}</span>
+                      <span className={cn('text-[10px] mt-0.5', newOrder.orderType === value ? 'text-slate-300' : 'text-slate-400')}>{desc}</span>
+                    </button>
+                  ))}
+                </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Cliente *</label>
                   <select className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white text-sm font-bold focus:ring-4 focus:ring-slate-900/5 transition-all" value={newOrder.customerId} onChange={(e) => setNewOrder({ ...newOrder, customerId: e.target.value, vehicleId: '' })} required>
@@ -1383,6 +1406,22 @@ export function ServiceOrdersPage() {
                     <option value="">Selecione um veículo...</option>
                     {vehicles.filter((v) => v.customerId === newOrder.customerId).map((v) => <option key={v.id} value={v.id}>{v.plate} — {v.brand} {v.model}</option>)}
                   </select>
+                  {/* Aviso de OSs abertas para o veículo selecionado */}
+                  {newOrder.vehicleId && (() => {
+                    const CLOSED = ['FATURADO', 'ENTREGUE', 'CANCELADO', 'REPROVADO'];
+                    const openForVehicle = orders.filter(
+                      (o) => o.vehicleId === newOrder.vehicleId && !CLOSED.includes(o.status)
+                    );
+                    if (openForVehicle.length === 0) return null;
+                    return (
+                      <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700 font-medium">
+                        ⚠️ Este veículo já possui <strong>{openForVehicle.length}</strong> O.S/orçamento{openForVehicle.length > 1 ? 's' : ''} em aberto:
+                        {openForVehicle.map((o: any) => (
+                          <span key={o.id} className="ml-1 font-mono font-black">#{o.id.slice(0, 8).toUpperCase()}</span>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">KM Entrada</label>

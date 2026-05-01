@@ -199,7 +199,8 @@ export class ServiceOrdersService {
   }
 
   async createServiceOrder(tenantId: string, dto: CreateServiceOrderDto, userId: string) {
-    // Se vier com orderType ORDEM_SERVICO, cria diretamente como OS
+    // Sempre cria como ABERTA — o tipo (ORCAMENTO/ORDEM_SERVICO) define a natureza do documento,
+    // mas o fluxo de status começa sempre em ABERTA para seguir as etapas normalmente.
     const baseOrder = await this.createOrcamento(tenantId, dto, userId);
 
     if (dto.orderType === 'ORDEM_SERVICO') {
@@ -207,8 +208,7 @@ export class ServiceOrdersService {
         where: { id: baseOrder.id },
         data: {
           orderType: 'ORDEM_SERVICO',
-          status: 'EM_EXECUCAO',
-          startedAt: new Date(),
+          // status permanece ABERTA — segue o fluxo normal de aprovação e execução
         },
         include: {
           customer: true,

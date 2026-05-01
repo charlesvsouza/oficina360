@@ -48,8 +48,8 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE__PUBLIC_URL }}
 
-      - name: Drop and recreate all tables
-        run: npx prisma migrate reset --force --skip-seed
+      - name: Drop and recreate all tables (db push --force-reset)
+        run: npx prisma db push --force-reset --accept-data-loss
         env:
           DATABASE_URL: ${{ secrets.DATABASE__PUBLIC_URL }}
 

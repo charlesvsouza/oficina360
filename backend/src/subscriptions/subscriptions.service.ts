@@ -223,6 +223,16 @@ export class SubscriptionsService {
   }
 
   async processMercadoPagoWebhook(payload: any, query?: Record<string, any>, headers?: Record<string, any>) {
+    const isSimulation = payload?.live_mode === false || String(query?.live_mode || '').toLowerCase() === 'false';
+    if (isSimulation) {
+      return {
+        received: true,
+        simulated: true,
+        ignored: true,
+        reason: 'simulation payload',
+      };
+    }
+
     const webhookSecret = this.configService.get<string>('MP_WEBHOOK_SECRET');
     const webhookToken = this.configService.get<string>('MP_WEBHOOK_TOKEN');
     const isProduction = (this.configService.get<string>('NODE_ENV') || '').toLowerCase() === 'production';

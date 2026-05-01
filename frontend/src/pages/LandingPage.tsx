@@ -52,11 +52,13 @@ const features = [
 
 export function LandingPage() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuthStore();
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   const startPlanCheckout = async (planName: Plan['name']) => {
+    // Lê o estado no momento do clique — evita problema de hidratação do Zustand
+    const isAuthenticated = useAuthStore.getState().isAuthenticated;
+
     // Usuário não logado: redireciona para login com next para retornar aqui
     if (!isAuthenticated) {
       const nextPath = encodeURIComponent(`/settings?autocheckout=${planName}`);
@@ -84,7 +86,7 @@ export function LandingPage() {
   };
 
   const handleAccess = () => {
-    if (isAuthenticated) {
+    if (useAuthStore.getState().isAuthenticated) {
       navigate('/dashboard');
     } else {
       navigate('/login');

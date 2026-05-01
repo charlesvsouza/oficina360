@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   InternalServerErrorException,
 } from '@nestjs/common';
+import { createHmac, timingSafeEqual } from 'crypto';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChangePlanDto, CreateCheckoutDto } from './dto/subscription.dto';
@@ -205,6 +206,14 @@ export class SubscriptionsService {
   }
 
   async processMercadoPagoWebhook(payload: any, query?: Record<string, any>, headers?: Record<string, any>) {
+    const webhookSecret = this.configService.get<string>('MP_WEBHOOK_SECRET');
+    if (webhookSecret) {
+      const signatureOk = this.validateMercadoPagoSignature(headers || {}, query || {}, payload || {}, webhookSecret);
+      if (!signatureOk) {
+        throw new ForbiddenException('Invalid Mercado Pago signature');
+      }
+    }
+
     const webhookToken = this.configService.get<string>('MP_WEBHOOK_TOKEN');
     if (webhookToken) {
       const receivedToken = headers?.['x-webhook-token'] || headers?.['X-Webhook-Token'];
@@ -328,5 +337,48 @@ export class SubscriptionsService {
     }
 
     return true;
+  }
+
+  private validateMercadoPagoSignature(
+    headers: Record<string, any>,
+    query: Record<string, any>,
+    payload: Record<string, any>,
+    secret: string,
+  ) {
+    const rawSignature = String(headers?.['x-signature'] || headers?.['X-Signature'] || '');
+    const requestId = String(headers?.['x-request-id'] || headers?.['X-Request-Id'] || '');
+
+    if (!rawSignature || !requestId) {
+      return false;
+    }
+
+    const signatureParts = rawSignature.split(',').map((p) => p.trim());
+    const ts = signatureParts.find((p) => p.startsWith('ts='))?.split('=')[1] || '';
+    const v1 = signatureParts.find((p) => p.startsWith('v1='))?.split('=')[1] || '';
+
+    if (!ts || !v1) {
+      return false;
+    }
+
+    const rawDataId = query?.['data.id'] || payload?.data?.id || query?.id || '';
+    const dataId = String(rawDataId || '').toLowerCase();
+
+    const manifestParts = [] as string[];
+    if (dataId) manifestParts.push(`id:${dataId}`);
+    if (requestId) manifestParts.push(`request-id:${requestId}`);
+    if (ts) manifestParts.push(`ts:${ts}`);
+    const manifest = `${manifestParts.join(';')};`;
+
+    if (!manifestParts.length) {
+      return false;
+    }
+
+    const expected = createHmac('sha256', secret).update(manifest).digest('hex');
+
+    try {
+      return timingSafeEqual(Buffer.from(expected, 'utf8'), Buffer.from(v1, 'utf8'));
+    } catch {
+      return false;
+    }
   }
 }

@@ -9,7 +9,7 @@ type DecodedToken = {
   tenantId?: string;
 };
 
-const PROD_API_FALLBACK = 'https://oficina360-production.up.railway.app';
+const PROD_API_FALLBACK = 'https://api.sigmaauto.com.br';
 const API_URL = (import.meta.env.VITE_API_URL || (import.meta.env.PROD ? PROD_API_FALLBACK : 'http://localhost:3000')).replace(/\/+$/, '');
 
 export const api = axios.create({
@@ -203,7 +203,7 @@ export const managementApi = {
 };
 
 // ─── Super Admin API (token separado, sem tenant) ────────────────────────────
-const PROD_API_FALLBACK_SA = 'https://oficina360-production.up.railway.app';
+const PROD_API_FALLBACK_SA = 'https://api.sigmaauto.com.br';
 const SA_BASE = (import.meta.env.VITE_SUPERADMIN_API_URL || (import.meta.env.PROD ? PROD_API_FALLBACK_SA : 'http://localhost:3000')).replace(/\/+$/, '');
 
 export const superAdminApi = {

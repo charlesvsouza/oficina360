@@ -305,6 +305,9 @@ export class ServiceOrdersService {
         data: { status: 'REPROVADO' },
       });
 
+      // Reverte estoque caso peças já tenham sido debitadas
+      await this.reverseStockIfApplied(order);
+
       // Se não autorizado, cobra custo de diagnóstico se existir
       if (order.diagnosticCost > 0) {
         await this.prisma.financialTransaction.create({
@@ -395,6 +398,15 @@ export class ServiceOrdersService {
     }
 
     const updateData: any = { status: newStatus };
+
+    // Reverte estoque ao reprovar via atualização manual de status
+    if (newStatus === 'REPROVADO') {
+      const orderWithItems = await this.prisma.serviceOrder.findUnique({
+        where: { id },
+        include: { items: true },
+      });
+      if (orderWithItems) await this.reverseStockIfApplied(orderWithItems);
+    }
 
     // Eventos de transição
     if (newStatus === 'EM_EXECUCAO' && !order.startedAt) {
@@ -546,6 +558,42 @@ export class ServiceOrdersService {
     });
 
     return this.prisma.serviceOrder.delete({ where: { id } });
+  }
+
+  async createDiagnosticOrder(tenantId: string, sourceOrderId: string, userId: string) {
+    const source = await this.prisma.serviceOrder.findFirst({
+      where: { id: sourceOrderId, tenantId },
+    });
+    if (!source) throw new NotFoundException('OS de origem não encontrada');
+    if (source.status !== 'REPROVADO') {
+      throw new BadRequestException('Apenas OSs reprovadas podem gerar OS de diagnóstico');
+    }
+
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
+    const hours = tenant?.diagnosticHours ?? 0.5;
+    const hourlyRate = tenant?.laborHourlyRate ?? 120;
+
+    return this.createOrcamento(
+      tenantId,
+      {
+        customerId: source.customerId,
+        vehicleId: source.vehicleId,
+        orderType: 'ORDEM_SERVICO',
+        complaint: `Taxa de Diagnóstico — referente ao orçamento #${source.id.slice(0, 8).toUpperCase()} reprovado`,
+        observations: `Gerado automaticamente a partir da OS ${source.id.slice(0, 8).toUpperCase()}`,
+        kmEntrada: source.kmEntrada ?? 0,
+        reserveStock: false,
+        items: [
+          {
+            type: 'service',
+            description: `Diagnóstico (${hours}h × R$ ${hourlyRate.toLocaleString('pt-BR')}/h)`,
+            quantity: hours,
+            unitPrice: hourlyRate,
+          } as any,
+        ],
+      } as any,
+      userId,
+    );
   }
 
   async addItem(tenantId: string, orderId: string, dto: CreateOrUpdateItemDto, userId: string) {
@@ -854,4 +902,22 @@ export class ServiceOrdersService {
       },
     });
   }
-}
+
+  private async reverseStockIfApplied(order: any): Promise<void> {
+    const appliedParts = (order.items ?? []).filter(
+      (item: any) => item.type === 'part' && item.partId && item.applied,
+    );
+    for (const item of appliedParts) {
+      await this.applyStockMovement(
+        order.tenantId,
+        item.partId,
+        'ENTRY',
+        item.quantity,
+        `Estorno OS ${order.id.slice(0, 8)} — orçamento reprovado`,
+      );
+      await this.prisma.serviceOrderItem.update({
+        where: { id: item.id },
+        data: { applied: false },
+      });
+    }
+  }

@@ -32,6 +32,7 @@ model Tenant {
   email     String?
   logo            String?
   laborHourlyRate Float?   @default(120)
+  diagnosticHours Float?   @default(0.5)  // horas padrão para serviço de diagnóstico
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

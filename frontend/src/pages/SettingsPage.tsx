@@ -59,7 +59,7 @@ export function SettingsPage() {
     email: '',
     address: '',
   });
-  const [opsData, setOpsData] = useState({ laborHourlyRate: 120 });
+  const [opsData, setOpsData] = useState({ laborHourlyRate: 120, diagnosticHours: 0.5 });
   const [subscription, setSubscription] = useState<any>(null);
   const [plans, setPlans] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -91,7 +91,7 @@ export function SettingsPage() {
           email: t.email || '',
           address: t.address || '',
         });
-        setOpsData({ laborHourlyRate: t.laborHourlyRate ?? 120 });
+        setOpsData({ laborHourlyRate: t.laborHourlyRate ?? 120, diagnosticHours: t.diagnosticHours ?? 0.5 });
       } else {
         console.error('Falha ao carregar dados da oficina:', tenantResult.reason);
       }
@@ -167,7 +167,7 @@ export function SettingsPage() {
     e.preventDefault();
     setSavingOps(true);
     try {
-      await tenantsApi.update({ laborHourlyRate: Number(opsData.laborHourlyRate) });
+      await tenantsApi.update({ laborHourlyRate: Number(opsData.laborHourlyRate), diagnosticHours: Number(opsData.diagnosticHours) });
     } catch (error) {
       console.error('Falha ao salvar configurações operacionais:', error);
     } finally {
@@ -418,6 +418,35 @@ export function SettingsPage() {
                     ))}
                   </div>
                   <p className="text-[10px] text-slate-400 text-center">Tempo mínimo: 30 min • Incremento: 30 em 30 min</p>
+                </div>
+
+                {/* Campo: Horas de Diagnóstico */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Tempo Padrão de Diagnóstico (horas)</label>
+                  <p className="text-xs text-slate-400 ml-1 mb-2">
+                    Usado para gerar automaticamente a taxa de diagnóstico em orçamentos reprovados.
+                  </p>
+                  <div className="relative">
+                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">h</span>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      value={opsData.diagnosticHours}
+                      onChange={(e) => isMaster && setOpsData({ ...opsData, diagnosticHours: Number(e.target.value) })}
+                      disabled={!isMaster}
+                      className={cn(
+                        "w-full pl-12 pr-5 py-4 rounded-2xl border text-xl font-black transition-all",
+                        isMaster
+                          ? "border-slate-200 bg-slate-50/50 focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900"
+                          : "border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed"
+                      )}
+                    />
+                  </div>
+                  <p className="text-xs text-slate-400 ml-1 mt-1">
+                    ≈ R$ {(opsData.laborHourlyRate * opsData.diagnosticHours).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} por diagnóstico
+                    ({opsData.diagnosticHours}h × R$ {opsData.laborHourlyRate}/h)
+                  </p>
                 </div>
               </div>
 

@@ -103,6 +103,7 @@ export const serviceOrdersApi = {
   removeItem: (id: string, itemId: string) => api.delete(`/service-orders/${id}/items/${itemId}`),
   updateItem: (id: string, itemId: string, data: any) => api.patch(`/service-orders/${id}/items/${itemId}`, data),
   updateStatus: (id: string, data: { status: string }) => api.patch(`/service-orders/${id}/status`, data),
+  createDiagnosticOrder: (sourceOrderId: string) => api.post(`/service-orders/${sourceOrderId}/diagnostic-order`),
   importPdf: (file: File) => {
     const formData = new FormData();
     formData.append('file', file);

@@ -177,6 +177,17 @@ export class ServiceOrdersController {
     return this.serviceOrdersService.syncPrices(tenant.tenantId, id);
   }
 
+  @Post(':id/diagnostic-order')
+  @Roles('MASTER', 'ADMIN', 'PRODUTIVO')
+  @ApiOperation({ summary: 'Cria nova OS de diagnóstico a partir de OS reprovada' })
+  async createDiagnosticOrder(
+    @Tenant() tenant: { tenantId: string },
+    @CurrentUser() user: { userId: string },
+    @Param('id') sourceOrderId: string,
+  ) {
+    return this.serviceOrdersService.createDiagnosticOrder(tenant.tenantId, sourceOrderId, user.userId);
+  }
+
   @Post(':id/items')
   @Roles('ADMIN', 'PRODUTIVO')
   @ApiOperation({ summary: 'Adicionar item à ordem' })

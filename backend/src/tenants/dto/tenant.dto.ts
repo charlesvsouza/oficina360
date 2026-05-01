@@ -66,4 +66,9 @@ export class UpdateTenantDto {
   @IsOptional()
   @IsString()
   municipalRegistration?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  diagnosticHours?: number;
 }

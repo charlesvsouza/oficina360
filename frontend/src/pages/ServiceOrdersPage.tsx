@@ -124,6 +124,9 @@ export function ServiceOrdersPage() {
   const { user } = useAuthStore();
   const canManageStock = user?.role === 'MASTER' || user?.role === 'ADMIN';
   const canDelete = user?.role === 'MASTER';
+  const CLOSED_STATUSES = ['FATURADO', 'ENTREGUE', 'CANCELADO', 'REPROVADO'];
+  const isReprovado = selectedOrder?.status === 'REPROVADO';
+  const isClosed = CLOSED_STATUSES.includes(selectedOrder?.status ?? '');
   const printContentRef = useRef<HTMLDivElement>(null);
   const printFrameRef = useRef<HTMLIFrameElement>(null);
   const [orders, setOrders] = useState<any[]>([]);
@@ -156,6 +159,8 @@ export function ServiceOrdersPage() {
   const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
   const [deleteReason, setDeleteReason] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [showDiagBanner, setShowDiagBanner] = useState(false);
+  const [creatingDiagOrder, setCreatingDiagOrder] = useState(false);
 
   useEffect(() => { loadOrders(); loadBasics(); }, []);
 
@@ -190,6 +195,7 @@ export function ServiceOrdersPage() {
       const res = await serviceOrdersApi.getById(order.id);
       const o = res.data;
       setSelectedOrder(o);
+      setShowDiagBanner(o.status === 'REPROVADO');
       setEdit({
         complaint: o.complaint || '',
         diagnosis: o.diagnosis || '',
@@ -202,6 +208,21 @@ export function ServiceOrdersPage() {
       setPendingQtyByItem({});
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const createDiagnosticOrder = async () => {
+    if (!selectedOrder) return;
+    setCreatingDiagOrder(true);
+    try {
+      const res = await serviceOrdersApi.createDiagnosticOrder(selectedOrder.id);
+      setShowDiagBanner(false);
+      await loadOrders();
+      await selectOrder(res.data);
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Erro ao criar OS de diagnóstico');
+    } finally {
+      setCreatingDiagOrder(false);
     }
   };
 
@@ -809,13 +830,17 @@ export function ServiceOrdersPage() {
                 </button>
                 <button
                   onClick={() => saveDetails(true)}
-                  className="h-10 px-4 rounded-xl text-xs font-bold flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50 transition-all"
+                  disabled={isClosed}
+                  className="h-10 px-4 rounded-xl text-xs font-bold flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  title={isClosed ? 'OS finalizada não pode ser editada' : undefined}
                 >
                   <X size={15} /> Salvar e sair
                 </button>
                 <button
                   onClick={() => saveDetails(false)}
-                  className="h-10 px-5 rounded-xl text-xs font-bold flex items-center gap-2 bg-slate-900 text-white hover:bg-slate-800 transition-all shadow-lg"
+                  disabled={isClosed}
+                  className="h-10 px-5 rounded-xl text-xs font-bold flex items-center gap-2 bg-slate-900 text-white hover:bg-slate-800 transition-all shadow-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                  title={isClosed ? 'OS finalizada não pode ser editada' : undefined}
                 >
                   <Save size={15} /> Salvar
                 </button>
@@ -830,6 +855,37 @@ export function ServiceOrdersPage() {
                 )}
               </div>
             </div>
+
+            {/* Banner: OS reprovada + opção de diagnóstico */}
+            {isReprovado && showDiagBanner && (
+              <div className="mx-6 mt-4 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">🔍</span>
+                  <div>
+                    <p className="text-sm font-black text-amber-900">Orçamento reprovado pelo cliente</p>
+                    <p className="text-xs text-amber-700 mt-0.5">
+                      Deseja abrir uma nova O.S. para cobrança da <strong>Taxa de Diagnóstico</strong>?
+                      O valor e o tempo serão preenchidos automaticamente conforme as configurações da oficina.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 shrink-0">
+                  <button
+                    onClick={createDiagnosticOrder}
+                    disabled={creatingDiagOrder}
+                    className="px-4 py-2 bg-amber-600 text-white rounded-xl text-xs font-black hover:bg-amber-700 transition-all flex items-center gap-1.5 whitespace-nowrap disabled:opacity-60"
+                  >
+                    {creatingDiagOrder ? <Loader2 size={12} className="animate-spin" /> : '✅'} Sim, criar nova O.S.
+                  </button>
+                  <button
+                    onClick={() => setShowDiagBanner(false)}
+                    className="px-4 py-2 bg-white border border-amber-200 text-amber-700 rounded-xl text-xs font-black hover:bg-amber-50 transition-all whitespace-nowrap"
+                  >
+                    Não, obrigado
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Body */}
             <div className="flex-1 overflow-y-auto p-8 space-y-8">
@@ -922,7 +978,8 @@ export function ServiceOrdersPage() {
                     <textarea
                       value={edit[field]}
                       onChange={(e) => setEdit({ ...edit, [field]: e.target.value })}
-                      className="w-full h-24 bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-bold focus:bg-white focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 transition-all resize-none"
+                      readOnly={isReprovado}
+                      className={`w-full h-24 bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-bold focus:bg-white focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 transition-all resize-none ${isReprovado ? 'opacity-60 cursor-not-allowed bg-slate-100' : ''}`}
                     />
                   </div>
                 ))}

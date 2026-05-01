@@ -252,3 +252,10 @@ export class FinalizeOrderDto {
   @IsBoolean()
   createIncomeTransaction?: boolean;
 }
+
+export class CreateDiagnosticOrderDto {
+  @ApiProperty({ description: 'ID da OS reprovada — para copiar cliente e veículo' })
+  @IsNotEmpty()
+  @IsString()
+  sourceOrderId: string;
+}

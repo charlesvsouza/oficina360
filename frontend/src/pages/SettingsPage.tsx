@@ -38,7 +38,7 @@ type TenantForm = {
 };
 
 export function SettingsPage() {
-  const { user } = useAuthStore();
+  const { user, updateTenant } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingOps, setSavingOps] = useState(false);
@@ -134,6 +134,16 @@ export function SettingsPage() {
     setSaveError(null);
     try {
       await tenantsApi.update(tenantData);
+      // Recarrega dados atualizados e sincroniza o authStore (atualiza nome na sidebar)
+      const freshRes = await tenantsApi.getMe();
+      const fresh = freshRes.data;
+      updateTenant({
+        id: fresh.id,
+        name: fresh.name,
+        subscription: fresh.subscription,
+      });
+      // Atualiza também o estado local para refletir os dados salvos
+      setTenantData(prev => ({ ...prev, ...tenantData }));
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (error: any) {

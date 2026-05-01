@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChangePlanDto, CreateCheckoutDto } from './dto/subscription.dto';
@@ -109,6 +114,69 @@ export class SubscriptionsService {
       throw new NotFoundException('Tenant not found');
     }
 
+    const frontendUrl = (this.configService.get<string>('FRONTEND_URL') || 'https://oficina360-pink.vercel.app').replace(/\/+$/, '');
+    const successUrl = dto.successUrl || this.configService.get<string>('CHECKOUT_SUCCESS_URL') || `${frontendUrl}/settings?checkout=success`;
+    const cancelUrl = dto.cancelUrl || this.configService.get<string>('CHECKOUT_CANCEL_URL') || `${frontendUrl}/settings?checkout=cancel`;
+
+    const mercadoPagoToken = this.configService.get<string>('MP_ACCESS_TOKEN');
+    const mercadoPagoMode = (this.configService.get<string>('MP_MODE') || 'production').toLowerCase();
+
+    // Preferred flow: create Mercado Pago preference dynamically.
+    if (mercadoPagoToken) {
+      const preferencePayload = {
+        items: [
+          {
+            title: `Oficina360 Plano ${selectedPlan.name}`,
+            quantity: 1,
+            unit_price: Number(selectedPlan.price),
+            currency_id: 'BRL',
+            description: `Assinatura mensal do plano ${selectedPlan.name}`,
+          },
+        ],
+        external_reference: `${tenant.id}:${selectedPlan.name}:${Date.now()}`,
+        metadata: {
+          tenantId: tenant.id,
+          tenantName: tenant.name,
+          plan: selectedPlan.name,
+          currentPlan: subscription.plan.name,
+        },
+        back_urls: {
+          success: successUrl,
+          pending: cancelUrl,
+          failure: cancelUrl,
+        },
+        auto_return: 'approved',
+      };
+
+      const mpResponse = await fetch('https://api.mercadopago.com/checkout/preferences', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${mercadoPagoToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(preferencePayload),
+      });
+
+      if (!mpResponse.ok) {
+        const errorText = await mpResponse.text();
+        throw new InternalServerErrorException(`Mercado Pago checkout error: ${errorText}`);
+      }
+
+      const mpData = await mpResponse.json() as { init_point?: string; sandbox_init_point?: string };
+      const checkoutUrl = mercadoPagoMode === 'sandbox' ? (mpData.sandbox_init_point || mpData.init_point) : (mpData.init_point || mpData.sandbox_init_point);
+
+      if (!checkoutUrl) {
+        throw new InternalServerErrorException('Mercado Pago did not return checkout URL');
+      }
+
+      return {
+        provider: 'mercado_pago',
+        mode: mercadoPagoMode,
+        plan: dto.plan,
+        checkoutUrl,
+      };
+    }
+
     const checkoutByPlan: Record<string, string | undefined> = {
       START: this.configService.get<string>('CHECKOUT_URL_START'),
       PRO: this.configService.get<string>('CHECKOUT_URL_PRO'),
@@ -117,11 +185,8 @@ export class SubscriptionsService {
 
     const configuredCheckout = checkoutByPlan[dto.plan];
     if (!configuredCheckout) {
-      throw new NotFoundException('Checkout URL not configured for selected plan');
+      throw new NotFoundException('Configure MP_ACCESS_TOKEN ou CHECKOUT_URL_* para habilitar checkout');
     }
-
-    const successUrl = dto.successUrl || this.configService.get<string>('CHECKOUT_SUCCESS_URL') || '';
-    const cancelUrl = dto.cancelUrl || this.configService.get<string>('CHECKOUT_CANCEL_URL') || '';
 
     const checkoutUrl = new URL(configuredCheckout);
     checkoutUrl.searchParams.set('tenantId', tenant.id);

@@ -38,12 +38,12 @@ export class EmailService {
     }
 
     const fromEmail = this.configService.get<string>('SMTP_FROM_EMAIL') || this.configService.get<string>('SMTP_USER');
-    const fromName = this.configService.get<string>('SMTP_FROM_NAME') || 'Oficina360';
+    const fromName = this.configService.get<string>('SMTP_FROM_NAME') || 'Sigma Auto';
 
     await transporter.sendMail({
       from: `${fromName} <${fromEmail}>`,
       to,
-      subject: 'Ative seu acesso inicial ao Oficina360',
+      subject: 'Ative seu acesso inicial ao Sigma Auto',
       html: `
         <div style="font-family: Arial, sans-serif; line-height:1.6; color:#0f172a;">
           <h2>Seu acesso inicial está pronto</h2>
@@ -68,12 +68,12 @@ export class EmailService {
     }
 
     const fromEmail = this.configService.get<string>('SMTP_FROM_EMAIL') || this.configService.get<string>('SMTP_USER');
-    const fromName = this.configService.get<string>('SMTP_FROM_NAME') || 'Oficina360';
+    const fromName = this.configService.get<string>('SMTP_FROM_NAME') || 'Sigma Auto';
 
     await transporter.sendMail({
       from: `${fromName} <${fromEmail}>`,
       to,
-      subject: 'Recuperação de senha do Oficina360',
+      subject: 'Recuperação de senha do Sigma Auto',
       html: `
         <div style="font-family: Arial, sans-serif; line-height:1.6; color:#0f172a;">
           <h2>Recuperação de senha</h2>

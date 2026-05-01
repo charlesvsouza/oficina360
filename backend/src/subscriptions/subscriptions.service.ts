@@ -115,7 +115,7 @@ export class SubscriptionsService {
       throw new NotFoundException('Tenant not found');
     }
 
-    const frontendUrl = (this.configService.get<string>('FRONTEND_URL') || 'https://oficina360-pink.vercel.app').replace(/\/+$/, '');
+    const frontendUrl = (this.configService.get<string>('FRONTEND_URL') || 'https://sigmaauto.com.br').replace(/\/+$/, '');
     const successUrl = dto.successUrl || this.configService.get<string>('CHECKOUT_SUCCESS_URL') || `${frontendUrl}/settings?checkout=success`;
     const cancelUrl = dto.cancelUrl || this.configService.get<string>('CHECKOUT_CANCEL_URL') || `${frontendUrl}/settings?checkout=cancel`;
 
@@ -127,7 +127,7 @@ export class SubscriptionsService {
       const preferencePayload = {
         items: [
           {
-            title: `Oficina360 Plano ${selectedPlan.name}`,
+            title: `Sigma Auto Plano ${selectedPlan.name}`,
             quantity: 1,
             unit_price: Number(selectedPlan.price),
             currency_id: 'BRL',

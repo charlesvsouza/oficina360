@@ -710,7 +710,7 @@ export function ServiceOrdersPage() {
             </table>
 
             <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #ddd', fontSize: '7pt', color: '#aaa', textAlign: 'center' }}>
-              Documento gerado em {new Date().toLocaleString('pt-BR')} · Oficina360 — Sistema de Gestão para Oficinas Automotivas
+              Documento gerado em {new Date().toLocaleString('pt-BR')} · Sigma Auto — Sistema de Gestão para Oficinas Automotivas
             </div>
           </div>
         )}

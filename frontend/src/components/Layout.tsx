@@ -68,7 +68,7 @@ export function Layout() {
               <Wrench className="w-6 h-6 text-white" />
             </div>
             <div>
-               <h1 className="font-bold text-white text-lg leading-tight">Oficina360</h1>
+               <h1 className="font-bold text-white text-lg leading-tight">Sigma Auto</h1>
               <span className={`text-xs px-2 py-0.5 rounded-full ${
                 planName === 'START' ? 'bg-slate-700 text-slate-300' :
                 planName === 'PRO' ? 'bg-purple-500/20 text-purple-300' :
@@ -143,7 +143,7 @@ export function Layout() {
             <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center">
               <Wrench className="w-6 h-6 text-white" />
             </div>
-            <span className="font-bold text-white text-lg">Oficina360</span>
+            <span className="font-bold text-white text-lg">Sigma Auto</span>
           </div>
           <button onClick={() => setSidebarOpen(false)} className="text-slate-400">
             <X className="w-6 h-6" />
@@ -192,7 +192,7 @@ export function Layout() {
             <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center">
               <Wrench className="w-4 h-4 text-white" />
             </div>
-            <span className="font-bold text-slate-900">Oficina360</span>
+            <span className="font-bold text-slate-900">Sigma Auto</span>
           </div>
           <div className="w-8" /> {/* Spacer */}
         </header>

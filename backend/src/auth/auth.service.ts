@@ -185,7 +185,7 @@ export class AuthService {
       },
     });
 
-    const frontendUrl = (this.configService.get<string>('FRONTEND_URL') || 'https://oficina360-pink.vercel.app').replace(/\/+$/, '');
+    const frontendUrl = (this.configService.get<string>('FRONTEND_URL') || 'https://sigmaauto.com.br').replace(/\/+$/, '');
     const resetLink = `${frontendUrl}/forgot-password?token=${token}`;
     const emailSent = await this.emailService.sendPasswordResetEmail(savedRecovery, {
       resetLink,

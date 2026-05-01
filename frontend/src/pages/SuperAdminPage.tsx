@@ -28,6 +28,7 @@ export function SuperAdminPage() {
   const [resendingId, setResendingId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'active'>('all');
   const [copiedLink, setCopiedLink] = useState(false);
+  const frontendAppUrl = (import.meta.env.VITE_APP_URL || 'https://sigmaauto.com.br').replace(/\/+$/, '');
 
   const superAdminInfo = (() => {
     try { return JSON.parse(localStorage.getItem('superAdminInfo') || 'null'); } catch { return null; }
@@ -138,7 +139,7 @@ export function SuperAdminPage() {
           </div>
           <div>
             <h1 className="font-black text-white text-lg">Super Admin</h1>
-            <p className="text-slate-500 text-xs">{superAdminInfo?.email ?? 'Sistema Oficina360'}</p>
+            <p className="text-slate-500 text-xs">{superAdminInfo?.email ?? 'Sistema Sigma Auto'}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -303,9 +304,9 @@ export function SuperAdminPage() {
                       )}
                       {selectedTenant.setupInviteToken && (
                         <div className="flex gap-2 mt-2">
-                          <input readOnly value={`https://oficina360-pink.vercel.app/activate/${selectedTenant.setupInviteToken}`}
+                          <input readOnly value={`${frontendAppUrl}/activate/${selectedTenant.setupInviteToken}`}
                             className="flex-1 bg-slate-950 border border-white/10 rounded-xl text-xs text-slate-300 px-3 py-2 outline-none min-w-0" />
-                          <button onClick={() => copyToClipboard(`https://oficina360-pink.vercel.app/activate/${selectedTenant.setupInviteToken}`)}
+                          <button onClick={() => copyToClipboard(`${frontendAppUrl}/activate/${selectedTenant.setupInviteToken}`)}
                             className="px-3 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-xs text-white flex items-center gap-1.5 font-bold transition-all whitespace-nowrap">
                             {copiedLink ? <CheckCircle2 size={13} className="text-emerald-400" /> : <Copy size={13} />} {copiedLink ? 'Copiado!' : 'Copiar'}
                           </button>

@@ -145,7 +145,7 @@ export class SuperAdminService {
       return createdTenant;
     });
 
-    const frontendUrl = (this.configService.get<string>('FRONTEND_URL') || 'https://oficina360-pink.vercel.app').replace(/\/+$/, '');
+    const frontendUrl = (this.configService.get<string>('FRONTEND_URL') || 'https://sigmaauto.com.br').replace(/\/+$/, '');
     const activationLink = `${frontendUrl}/activate/${setupInviteToken}`;
     const emailSent = await this.emailService.sendTenantSetupEmail(dto.inviteEmail.toLowerCase().trim(), {
       companyName: dto.tenantName,

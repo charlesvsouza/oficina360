@@ -78,7 +78,7 @@ export function RegisterPage() {
               <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
                 <Wrench className="text-white" size={20} />
               </div>
-              <span className="text-xl font-bold tracking-tight">Oficina360</span>
+              <span className="text-xl font-bold tracking-tight">Sigma Auto</span>
             </div>
 
             <h1 className="text-4xl font-bold leading-tight mb-6">

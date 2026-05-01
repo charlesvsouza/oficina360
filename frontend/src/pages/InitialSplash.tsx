@@ -5,7 +5,7 @@ import { Wrench, Shield, Zap, Database, Cpu } from 'lucide-react';
 
 const steps = [
   { id: 1, text: 'Iniciando Kernel...', icon: Cpu },
-  { id: 2, text: 'Carregando Módulos de Oficina...', icon: Wrench },
+  { id: 2, text: 'Carregando Módulos do Sistema...', icon: Wrench },
   { id: 3, text: 'Estabelecendo Conexão Segura...', icon: Shield },
   { id: 4, text: 'Sincronizando Banco de Dados...', icon: Database },
   { id: 5, text: 'Otimizando Interface Premium...', icon: Zap },
@@ -75,8 +75,8 @@ export function InitialSplash() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center"
         >
-          <h1 className="text-6xl font-black tracking-tighter text-white mb-2 flex items-center gap-1">
-            OFICINA<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">360</span>
+          <h1 className="text-6xl font-black tracking-tighter text-white mb-2 flex items-center gap-2">
+            SIGMA<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">AUTO</span>
           </h1>
           <p className="text-slate-500 text-xs font-black uppercase tracking-[0.4em] ml-1">
             Enterprise Management System

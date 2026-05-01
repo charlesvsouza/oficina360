@@ -92,7 +92,7 @@ const WelcomePage: React.FC = () => {
               <Wrench className="text-white" size={24} />
             </div>
             <div>
-              <span className="text-xl font-bold tracking-tight text-white">Oficina360</span>
+              <span className="text-xl font-bold tracking-tight text-white">Sigma Auto</span>
               <div className="h-1 w-full bg-blue-500/40 rounded-full mt-0.5" />
             </div>
           </motion.div>

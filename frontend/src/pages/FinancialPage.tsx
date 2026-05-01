@@ -249,7 +249,7 @@ export function FinancialPage() {
                 <span style={{ fontSize: '8pt', color: '#666' }}>Data: _____/_____/__________</span>
               </div>
               <div style={{ fontSize: '7pt', color: '#999', textAlign: 'right', alignSelf: 'flex-end' }}>
-                Documento gerado em {new Date().toLocaleString('pt-BR')}<br />Oficina360 — Sistema de Gestão
+                Documento gerado em {new Date().toLocaleString('pt-BR')}<br />Sigma Auto — Sistema de Gestão
               </div>
             </div>
           </div>

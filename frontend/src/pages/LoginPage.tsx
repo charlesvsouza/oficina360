@@ -61,7 +61,7 @@ export function LoginPage() {
             <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20 mb-4">
               <Wrench className="text-white" size={28} />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">Oficina360</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-white">Sigma Auto</h1>
             <p className="text-slate-300 text-sm mt-1">Bem-vindo de volta!</p>
           </div>
 

@@ -10,7 +10,8 @@ async function bootstrap() {
   const allowedOrigins = [
     process.env.FRONTEND_URL,
     ...(process.env.CORS_ORIGINS || '').split(',').map((origin) => origin.trim()),
-    'https://oficina360.vercel.app',
+    'https://sigmaauto.com.br',
+    'https://www.sigmaauto.com.br',
     'http://localhost:5173',
     'http://localhost:5174',
     'http://localhost:5175',
@@ -28,7 +29,7 @@ async function bootstrap() {
   }));
   
   const config = new DocumentBuilder()
-    .setTitle('Oficina360 API')
+    .setTitle('Sigma Auto API')
     .setDescription('Multi-tenant SaaS for automotive workshops')
     .setVersion('1.0')
     .addBearerAuth()

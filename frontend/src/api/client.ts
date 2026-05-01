@@ -192,6 +192,8 @@ export const subscriptionsApi = {
   getCurrent: () => api.get('/subscriptions/current'),
   getPlans: () => api.get('/subscriptions/plans'),
   changePlan: (plan: string) => api.post('/subscriptions/change-plan', { plan }),
+  createCheckout: (plan: string, successUrl?: string, cancelUrl?: string) =>
+    api.post('/subscriptions/checkout', { plan, successUrl, cancelUrl }),
   cancel: () => api.post('/subscriptions/cancel'),
 };
 

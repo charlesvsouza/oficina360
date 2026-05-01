@@ -70,6 +70,7 @@ export function SettingsPage() {
   const [opsData, setOpsData] = useState({ laborHourlyRate: 120, diagnosticHours: 0.5 });
   const [subscription, setSubscription] = useState<any>(null);
   const [plans, setPlans] = useState<any[]>([]);
+  const [checkoutLoadingPlan, setCheckoutLoadingPlan] = useState<string | null>(null);
   const [users, setUsers] = useState<any[]>([]);
 
   const isMaster = user?.role === 'MASTER';
@@ -271,6 +272,28 @@ export function SettingsPage() {
       } catch (error) {
         console.error('Falha ao trocar plano:', error);
       }
+    }
+  };
+
+  const handleCheckoutPlan = async (planName: string) => {
+    setCheckoutLoadingPlan(planName);
+    try {
+      const origin = window.location.origin;
+      const successUrl = `${origin}/settings?checkout=success&plan=${planName}`;
+      const cancelUrl = `${origin}/settings?checkout=cancel`;
+      const response = await subscriptionsApi.createCheckout(planName, successUrl, cancelUrl);
+      const checkoutUrl = response.data?.checkoutUrl;
+
+      if (!checkoutUrl) {
+        throw new Error('Checkout indisponível para este plano');
+      }
+
+      window.open(checkoutUrl, '_blank', 'noopener,noreferrer');
+    } catch (error: any) {
+      const message = error.response?.data?.message || error.message || 'Falha ao iniciar checkout online';
+      alert(message);
+    } finally {
+      setCheckoutLoadingPlan(null);
     }
   };
 
@@ -818,17 +841,16 @@ export function SettingsPage() {
               <div className="space-y-4">
                 <p className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Mudar de Plano</p>
                 {plans.map((plan) => (
-                  <button
+                  <div
                     key={plan.id}
-                    onClick={() => currentPlan !== plan.name && handleChangePlan(plan.name)}
                     className={cn(
-                      "w-full p-6 rounded-3xl border-2 transition-all text-left relative group",
+                      'w-full p-5 rounded-3xl border-2 transition-all text-left relative',
                       currentPlan === plan.name
-                        ? "border-primary-500 bg-primary-500/10"
-                        : "border-white/10 hover:border-white/30 bg-white/5"
+                        ? 'border-primary-500 bg-primary-500/10'
+                        : 'border-white/10 bg-white/5'
                     )}
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-4">
                       <div>
                         <div className="flex items-center gap-2">
                           <p className="font-black text-lg uppercase tracking-tight">{plan.name}</p>
@@ -841,10 +863,28 @@ export function SettingsPage() {
                       </div>
                       {currentPlan === plan.name
                         ? <CheckCircle className="text-primary-400" size={24} />
-                        : <ArrowRight className="text-slate-600 group-hover:text-white transition-colors" size={24} />
+                        : <ArrowRight className="text-slate-600" size={24} />
                       }
                     </div>
-                  </button>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => currentPlan !== plan.name && handleChangePlan(plan.name)}
+                        disabled={currentPlan === plan.name}
+                        className="h-10 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-black uppercase tracking-wide transition-all"
+                      >
+                        Troca interna
+                      </button>
+                      <button
+                        onClick={() => currentPlan !== plan.name && handleCheckoutPlan(plan.name)}
+                        disabled={currentPlan === plan.name || checkoutLoadingPlan === plan.name}
+                        className="h-10 rounded-xl bg-primary-600 hover:bg-primary-500 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-black uppercase tracking-wide transition-all flex items-center justify-center gap-2"
+                      >
+                        {checkoutLoadingPlan === plan.name ? <Loader2 size={14} className="animate-spin" /> : null}
+                        Comprar online
+                      </button>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>

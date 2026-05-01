@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { SubscriptionsService } from './subscriptions.service';
-import { ChangePlanDto } from './dto/subscription.dto';
+import { ChangePlanDto, CreateCheckoutDto } from './dto/subscription.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -38,5 +38,12 @@ export class SubscriptionsController {
   @ApiOperation({ summary: 'Cancel subscription' })
   async cancel(@Tenant() tenant: { tenantId: string }) {
     return this.subscriptionsService.cancel(tenant.tenantId);
+  }
+
+  @Post('checkout')
+  @Roles('MASTER', 'ADMIN')
+  @ApiOperation({ summary: 'Create online checkout link for a plan' })
+  async createCheckout(@Tenant() tenant: { tenantId: string }, @Body() dto: CreateCheckoutDto) {
+    return this.subscriptionsService.createCheckoutLink(tenant.tenantId, dto);
   }
 }

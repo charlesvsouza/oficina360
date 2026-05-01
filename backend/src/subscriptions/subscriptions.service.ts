@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
-import { ChangePlanDto } from './dto/subscription.dto';
+import { ChangePlanDto, CreateCheckoutDto } from './dto/subscription.dto';
 export enum PlanType {
   START = 'START',
   PRO = 'PRO',
@@ -17,7 +18,10 @@ export enum SubscriptionStatus {
 
 @Injectable()
 export class SubscriptionsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private configService: ConfigService,
+  ) {}
 
   async findByTenant(tenantId: string) {
     const subscription = await this.prisma.subscription.findUnique({
@@ -84,6 +88,55 @@ export class SubscriptionsService {
       where: { isActive: true },
       orderBy: { price: 'asc' },
     });
+  }
+
+  async createCheckoutLink(tenantId: string, dto: CreateCheckoutDto) {
+    const subscription = await this.findByTenant(tenantId);
+    const selectedPlan = await this.prisma.subscriptionPlan.findUnique({
+      where: { name: dto.plan },
+    });
+
+    if (!selectedPlan) {
+      throw new NotFoundException('Plan not found');
+    }
+
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { id: true, name: true },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant not found');
+    }
+
+    const checkoutByPlan: Record<string, string | undefined> = {
+      START: this.configService.get<string>('CHECKOUT_URL_START'),
+      PRO: this.configService.get<string>('CHECKOUT_URL_PRO'),
+      REDE: this.configService.get<string>('CHECKOUT_URL_REDE'),
+    };
+
+    const configuredCheckout = checkoutByPlan[dto.plan];
+    if (!configuredCheckout) {
+      throw new NotFoundException('Checkout URL not configured for selected plan');
+    }
+
+    const successUrl = dto.successUrl || this.configService.get<string>('CHECKOUT_SUCCESS_URL') || '';
+    const cancelUrl = dto.cancelUrl || this.configService.get<string>('CHECKOUT_CANCEL_URL') || '';
+
+    const checkoutUrl = new URL(configuredCheckout);
+    checkoutUrl.searchParams.set('tenantId', tenant.id);
+    checkoutUrl.searchParams.set('tenantName', tenant.name);
+    checkoutUrl.searchParams.set('plan', dto.plan);
+    checkoutUrl.searchParams.set('currentPlan', subscription.plan.name);
+
+    if (successUrl) checkoutUrl.searchParams.set('success_url', successUrl);
+    if (cancelUrl) checkoutUrl.searchParams.set('cancel_url', cancelUrl);
+
+    return {
+      provider: 'external_checkout',
+      plan: dto.plan,
+      checkoutUrl: checkoutUrl.toString(),
+    };
   }
 
   async checkAccess(tenantId: string, requiredPlan: string) {

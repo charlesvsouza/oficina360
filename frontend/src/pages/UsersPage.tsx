@@ -31,7 +31,7 @@ export function UsersPage() {
     name: '',
     email: '',
     password: '',
-    role: 'PRODUTIVO',
+    role: 'MECANICO',
     isActive: true
   });
 
@@ -98,7 +98,7 @@ export function UsersPage() {
       name: '',
       email: '',
       password: '',
-      role: 'PRODUTIVO',
+      role: 'MECANICO',
       isActive: true
     });
   };
@@ -106,13 +106,19 @@ export function UsersPage() {
   const getRoleBadge = (role: string) => {
     switch (role) {
       case 'MASTER':
-        return <span className="badge bg-amber-500/10 text-amber-500 border border-amber-500/20 px-3 py-1 flex items-center gap-1.5 font-black text-[10px] uppercase tracking-widest"><Star size={12} fill="currentColor" /> MASTER</span>;
+        return <span className="badge bg-amber-500/10 text-amber-500 border border-amber-500/20 px-3 py-1 flex items-center gap-1.5 font-black text-[10px] uppercase tracking-widest"><Star size={12} fill="currentColor" /> Master</span>;
       case 'ADMIN':
-        return <span className="badge bg-purple-500/10 text-purple-400 border border-purple-500/20 px-3 py-1 flex items-center gap-1.5 font-black text-[10px] uppercase tracking-widest"><Shield size={12} /> ADMIN</span>;
+        return <span className="badge bg-purple-500/10 text-purple-400 border border-purple-500/20 px-3 py-1 flex items-center gap-1.5 font-black text-[10px] uppercase tracking-widest"><Shield size={12} /> Admin</span>;
+      case 'GERENTE':
+        return <span className="badge bg-blue-500/10 text-blue-500 border border-blue-500/20 px-3 py-1 font-black text-[10px] uppercase tracking-widest">Gerente</span>;
       case 'FINANCEIRO':
-        return <span className="badge bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 font-black text-[10px] uppercase tracking-widest">Financeiro</span>;
+        return <span className="badge bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-3 py-1 font-black text-[10px] uppercase tracking-widest">Financeiro</span>;
+      case 'SECRETARIA':
+        return <span className="badge bg-cyan-500/10 text-cyan-600 border border-cyan-500/20 px-3 py-1 font-black text-[10px] uppercase tracking-widest">Secretaria</span>;
+      case 'MECANICO':
+        return <span className="badge bg-orange-500/10 text-orange-500 border border-orange-500/20 px-3 py-1 font-black text-[10px] uppercase tracking-widest">Mecânico</span>;
       default:
-        return <span className="badge bg-blue-500/10 text-blue-400 border border-blue-500/20 px-3 py-1 font-black text-[10px] uppercase tracking-widest">Produtivo</span>;
+        return <span className="badge bg-slate-500/10 text-slate-400 border border-slate-500/20 px-3 py-1 font-black text-[10px] uppercase tracking-widest">{role}</span>;
     }
   };
 
@@ -185,7 +191,15 @@ export function UsersPage() {
                     >
                       <td className="py-6 px-8">
                         <div className="flex items-center gap-4">
-                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg ${user.role === 'MASTER' ? 'bg-amber-100 text-amber-600' : 'bg-slate-900 text-white'}`}>
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg ${
+                            user.role === 'MASTER'     ? 'bg-amber-100 text-amber-600' :
+                            user.role === 'ADMIN'      ? 'bg-purple-100 text-purple-600' :
+                            user.role === 'GERENTE'    ? 'bg-blue-100 text-blue-600' :
+                            user.role === 'FINANCEIRO' ? 'bg-emerald-100 text-emerald-600' :
+                            user.role === 'SECRETARIA' ? 'bg-cyan-100 text-cyan-600' :
+                            user.role === 'MECANICO'   ? 'bg-orange-100 text-orange-600' :
+                            'bg-slate-900 text-white'
+                          }`}>
                             {user.name[0]}
                           </div>
                           <div>
@@ -323,10 +337,11 @@ export function UsersPage() {
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                     className="input h-14 bg-slate-50 border-slate-200 font-bold"
                   >
-                    <option value="MASTER">MASTER (Dono da Oficina)</option>
-                    <option value="ADMIN">ADMIN (Administrador)</option>
-                    <option value="PRODUTIVO">PRODUTIVO (Operacional/Técnico)</option>
-                    <option value="FINANCEIRO">FINANCEIRO (Escritório)</option>
+                    <option value="ADMIN">ADMIN — Administrador</option>
+                    <option value="GERENTE">GERENTE — Gerência operacional</option>
+                    <option value="FINANCEIRO">FINANCEIRO — Fechamento e pagamentos</option>
+                    <option value="SECRETARIA">SECRETARIA — Recepção e cadastros</option>
+                    <option value="MECANICO">MECÂNICO — Execução de serviços</option>
                   </select>
                 </div>
               </div>

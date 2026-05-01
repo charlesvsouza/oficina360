@@ -10,6 +10,13 @@ interface User {
   tenantId: string;
 }
 
+interface DecodedAccessToken {
+  sub?: string;
+  email?: string;
+  role?: string;
+  tenantId?: string;
+}
+
 interface Tenant {
   id: string;
   name: string;
@@ -58,6 +65,29 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'oficina360-auth',
+      onRehydrateStorage: () => (state) => {
+        if (!state?.accessToken || !state.user) return;
+        try {
+          const decoded = jwtDecode<DecodedAccessToken>(state.accessToken);
+          useAuthStore.setState({
+            user: {
+              ...state.user,
+              userId: decoded.sub ?? state.user.userId,
+              email: decoded.email ?? state.user.email,
+              role: decoded.role ?? state.user.role,
+              tenantId: decoded.tenantId ?? state.user.tenantId,
+            },
+          });
+        } catch {
+          useAuthStore.setState({
+            user: null,
+            tenant: null,
+            accessToken: null,
+            refreshToken: null,
+            isAuthenticated: false,
+          });
+        }
+      },
     }
   )
 );

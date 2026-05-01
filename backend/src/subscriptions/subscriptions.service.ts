@@ -123,13 +123,13 @@ export class SubscriptionsService {
     const frontendUrl = (this.configService.get<string>('FRONTEND_URL') || 'https://sigmaauto.com.br').replace(/\/+$/, '');
     const defaultSuccessUrl = this.configService.get<string>('CHECKOUT_SUCCESS_URL') || `${frontendUrl}/settings?checkout=success`;
     const defaultCancelUrl = this.configService.get<string>('CHECKOUT_CANCEL_URL') || `${frontendUrl}/settings?checkout=cancel`;
-    const allowedReturnOrigins = new Set<string>([
+    const allowedOriginsList = [
       this.toUrlOrigin(frontendUrl),
       ...String(this.configService.get<string>('CHECKOUT_ALLOWED_RETURN_ORIGINS') || '')
         .split(',')
-        .map((value) => this.toUrlOrigin(value.trim()))
-        .filter((value): value is string => Boolean(value)),
-    ]);
+        .map((value) => this.toUrlOrigin(value.trim())),
+    ].filter((value): value is string => Boolean(value));
+    const allowedReturnOrigins = new Set<string>(allowedOriginsList);
 
     const successUrl = this.sanitizeCheckoutReturnUrl(dto.successUrl, defaultSuccessUrl, allowedReturnOrigins);
     const cancelUrl = this.sanitizeCheckoutReturnUrl(dto.cancelUrl, defaultCancelUrl, allowedReturnOrigins);
@@ -274,6 +274,18 @@ export class SubscriptionsService {
 
     if (!paymentResponse.ok) {
       const errorText = await paymentResponse.text();
+
+      // Simulacoes do painel podem enviar IDs ficticios; nesse caso respondemos 200
+      // para evitar retrys infinitos do provedor por um evento nao processavel.
+      if (paymentResponse.status === 400 || paymentResponse.status === 404) {
+        return {
+          received: true,
+          ignored: true,
+          reason: `payment lookup returned ${paymentResponse.status}`,
+          paymentId: String(paymentId),
+        };
+      }
+
       throw new InternalServerErrorException(`Mercado Pago payment lookup failed: ${errorText}`);
     }
 

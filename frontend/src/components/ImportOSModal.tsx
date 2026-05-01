@@ -117,8 +117,9 @@ export function ImportOSModal({ onClose, onSuccess }: ImportOSModalProps) {
       await serviceOrdersApi.create({
         customerId,
         vehicleId,
-        orderType: 'ORDEM_SERVICO',
-        complaint: 'Migração de orçamento de terceiros',
+        orderType: 'ORCAMENTO',
+        complaint: data.observations || 'Orçamento importado de terceiros',
+        observations: data.observations || '',
         kmEntrada: data.vehicle.km ? parseInt(data.vehicle.km) : 0,
         items: data.items.map((it: any) => ({
           type: it.type,
@@ -291,6 +292,22 @@ export function ImportOSModal({ onClose, onSuccess }: ImportOSModalProps) {
                   </div>
                 </div>
               </div>
+
+              {/* Observações do PDF */}
+              {(data.observations || data._warnings) && (
+                <div className="p-5 bg-amber-50 rounded-3xl border border-amber-200">
+                  <label className="text-[10px] font-black text-amber-600 uppercase mb-2 block">Observações extraídas do PDF</label>
+                  <textarea
+                    className="w-full bg-white border border-amber-200 rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-amber-400 transition-all resize-none"
+                    rows={3}
+                    value={data.observations || ''}
+                    onChange={(e) => setData({ ...data, observations: e.target.value })}
+                  />
+                  {data._warnings && (
+                    <p className="text-[10px] text-amber-600 font-bold mt-1">{data._warnings.join(' ')}</p>
+                  )}
+                </div>
+              )}
 
               {/* Itens */}
               <div className="border border-slate-200 rounded-3xl overflow-hidden bg-white shadow-sm">

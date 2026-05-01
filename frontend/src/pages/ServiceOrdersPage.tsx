@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { serviceOrdersApi, customersApi, vehiclesApi, servicesApi, inventoryApi, tenantsApi } from '../api/client';
 import {
-  ClipboardList, Plus, Search, Car, User, Clock, CheckCircle, XCircle,
-  Wrench, Package, FileText, DollarSign, Play, Trash2, Layout, X,
-  Printer, Save, Zap, Loader2, RefreshCw, FileUp, Trash2
+  ClipboardList, Plus, Search, Car, User, XCircle,
+  Wrench, Package, FileText, Trash2, Layout, X,
+  Printer, Save, Zap, Loader2, RefreshCw, FileUp,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
@@ -75,45 +75,46 @@ const FLOW_PHASES = [
   { key: 'ENTREGA',     label: 'Entrega',      statuses: ['ENTREGUE'] },
 ];
 
-const PRINT_STYLE = `
-@media screen {
-  #os-print-doc { display: none; }
-}
-@media print {
-  body * { visibility: hidden; }
-  #os-print-doc, #os-print-doc * { visibility: visible; }
-  #os-print-doc {
-    position: absolute; left: 0; top: 0; width: 100%; background: white;
-  }
-  @page { size: A4; margin: 8mm 10mm; }
-}
+const DOC_STYLES = `
 .os-doc {
-  font-family: 'Inter', Arial, sans-serif;
+  font-family: Arial, sans-serif;
   font-size: 9pt; color: #111; width: 100%;
 }
-.os-doc table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+.os-doc table { width: 100%; border-collapse: collapse; margin-bottom: 5px; }
 .os-doc td, .os-doc th {
   border: 0.5pt solid #aaa; padding: 3px 6px; font-size: 8.5pt; vertical-align: top;
 }
-.os-doc th { font-weight: 800; background: #f8fafc; text-align: left; }
+.os-doc th { font-weight: 800; background: #f0f2f5; text-align: left; font-size: 8pt; }
 .os-doc .hdr td, .os-doc .hdr th {
-  background: #0f172a !important; color: #fff !important;
-  border-color: #0f172a !important; font-weight: 900;
-  text-transform: uppercase; font-size: 8pt; letter-spacing: 0.05em;
+  background: #1e293b !important; color: #fff !important;
+  border-color: #1e293b !important; font-weight: 900;
+  text-transform: uppercase; font-size: 7.5pt; letter-spacing: 0.08em;
   padding: 4px 8px;
 }
+.os-doc .subtotal-row td { background: #f8fafc; font-weight: 700; }
 .os-doc .total-final td {
-  font-weight: 900; font-size: 12pt;
-  background: #0f172a !important; color: #fff !important;
-  border-color: #0f172a !important;
+  font-weight: 900; font-size: 11pt;
+  background: #1e293b !important; color: #fff !important;
+  border-color: #1e293b !important;
 }
-.os-doc .nb td, .os-doc .nb th { border-color: transparent; }
+.os-doc .nb td, .os-doc .nb th { border-color: transparent; padding: 0; }
 .os-doc .tr { text-align: right; }
 .os-doc .tc { text-align: center; }
-.os-doc hr { border: none; border-top: 1px solid #000; margin: 4px 0; }
+.os-doc hr { border: none; border-top: 1px solid #bbb; margin: 5px 0; }
 `;
 
-const PRINT_PREVIEW_STYLE = PRINT_STYLE.replace('@media screen { #os-print-doc { display: none; } }', '').replace('@media print { body * { visibility: hidden; } #os-print-doc, #os-print-doc * { visibility: visible; } #os-print-doc { position: absolute; left: 0; top: 0; width: 100%; background: white; } @page { size: A4; margin: 8mm 10mm; } }', 'body { padding: 10mm; background: #fff; }');
+const PRINT_STYLE = `
+@media screen { #os-print-doc { display: none; } }
+@media print {
+  body * { visibility: hidden; }
+  #os-print-doc, #os-print-doc * { visibility: visible; }
+  #os-print-doc { position: absolute; left: 0; top: 0; width: 100%; background: white; }
+  @page { size: A4; margin: 8mm 10mm; }
+}
+${DOC_STYLES}
+`;
+
+const PRINT_PREVIEW_STYLE = `body { padding: 10mm; background: #fff; } ${DOC_STYLES}`;
 
 function fmtBR(v: number | string | undefined, dec = 2) {
   return Number(v ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
@@ -426,41 +427,55 @@ export function ServiceOrdersPage() {
 
       {/* ── PRINT DOCUMENT ─────────────────────────────────────────── */}
       <div id="os-print-doc">
-        {selectedOrder && tenantFullData && (
+        {selectedOrder && (
           <div ref={printContentRef} className="os-doc">
-            {/* Workshop header */}
-            <table style={{ marginBottom: '5px' }}>
+            {/* Cabeçalho: empresa (esq) + tipo/número do documento (dir) */}
+            <table style={{ marginBottom: '6px' }}>
               <tbody>
                 <tr>
-                  <td style={{ border: 'none', paddingLeft: 0, verticalAlign: 'top', width: '60%' }}>
-                    <div style={{ fontSize: '16pt', fontWeight: 900, lineHeight: 1.1 }}>{tenantFullData.name}</div>
-                    {tenantFullData.document && (
-                      <div style={{ fontSize: '9pt', marginTop: '3px' }}>
-                        {tenantFullData.companyType || 'CNPJ'}: {tenantFullData.document}
+                  <td style={{ border: 'none', paddingLeft: 0, verticalAlign: 'top', width: '62%' }}>
+                    <div style={{ fontSize: '15pt', fontWeight: 900, lineHeight: 1.1 }}>
+                      {tenantFullData?.name ?? ''}
+                    </div>
+                    {tenantFullData?.document && (
+                      <div style={{ fontSize: '8.5pt', marginTop: '2px' }}>
+                        {tenantFullData.companyType ?? 'CNPJ'}: {tenantFullData.document}
                       </div>
                     )}
-                    {tenantFullData.address && <div style={{ fontSize: '9pt' }}>{tenantFullData.address}</div>}
-                    <div style={{ fontSize: '9pt' }}>
-                      {tenantFullData.phone && `Tel: ${tenantFullData.phone}`}
-                      {tenantFullData.phone && tenantFullData.email && '  |  '}
-                      {tenantFullData.email}
+                    {tenantFullData?.address && (
+                      <div style={{ fontSize: '8.5pt' }}>{tenantFullData.address}</div>
+                    )}
+                    <div style={{ fontSize: '8.5pt' }}>
+                      {tenantFullData?.phone && `Tel: ${tenantFullData.phone}`}
+                      {tenantFullData?.phone && tenantFullData?.email && '  ·  '}
+                      {tenantFullData?.email}
                     </div>
                   </td>
-                  <td style={{ border: '2px solid #1e293b', padding: '8px 12px', textAlign: 'right', verticalAlign: 'top', minWidth: '145px' }}>
-                    <div style={{ fontSize: '8pt', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1.5px', color: '#555' }}>
-                      Ordem de Serviço
+                  <td style={{ border: '2px solid #1e293b', padding: '8px 14px', textAlign: 'right', verticalAlign: 'top', minWidth: '155px' }}>
+                    <div style={{ fontSize: '7.5pt', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.5px', color: '#666' }}>
+                      {selectedOrder.orderType === 'ORCAMENTO' ? 'Orçamento' : 'Ordem de Serviço'}
                     </div>
-                    <div style={{ fontSize: '20pt', fontWeight: 900, fontFamily: 'monospace', letterSpacing: '2px', lineHeight: 1.1 }}>
+                    <div style={{ fontSize: '19pt', fontWeight: 900, fontFamily: 'monospace', letterSpacing: '2px', lineHeight: 1.1 }}>
                       {selectedOrder.id.slice(0, 8).toUpperCase()}
                     </div>
-                    <div style={{ fontSize: '9pt', color: '#444' }}>
-                      Emitida: {new Date(selectedOrder.createdAt).toLocaleDateString('pt-BR')}
+                    <div style={{ fontSize: '8.5pt', color: '#444', marginTop: '3px' }}>
+                      Abertura: {new Date(selectedOrder.createdAt).toLocaleDateString('pt-BR')}
                     </div>
-                    <div style={{ fontSize: '9pt', color: '#444' }}>
-                      Status: <strong>{statusConfig[selectedOrder.status]?.label ?? selectedOrder.status}</strong>
+                    {selectedOrder.scheduledDate && (
+                      <div style={{ fontSize: '8.5pt', color: '#444' }}>
+                        Agendamento: {new Date(selectedOrder.scheduledDate).toLocaleDateString('pt-BR')}
+                      </div>
+                    )}
+                    <div style={{ fontSize: '8.5pt', color: '#444' }}>
+                      Tipo O.S.: {selectedOrder.orderType === 'ORCAMENTO' ? 'Orçamento' : 'OS'}
                     </div>
-                    {selectedOrder.kmEntrada && (
-                      <div style={{ fontSize: '9pt', color: '#444' }}>
+                    {(selectedOrder.paymentMethod || edit.paymentMethod) && (
+                      <div style={{ fontSize: '8.5pt', color: '#444' }}>
+                        Cond. Pgto: {selectedOrder.paymentMethod || edit.paymentMethod}
+                      </div>
+                    )}
+                    {selectedOrder.kmEntrada != null && (
+                      <div style={{ fontSize: '8.5pt', color: '#444' }}>
                         KM Entrada: {Number(selectedOrder.kmEntrada).toLocaleString('pt-BR')}
                       </div>
                     )}
@@ -470,7 +485,7 @@ export function ServiceOrdersPage() {
             </table>
             <hr />
 
-            {/* Customer */}
+            {/* Dados do Cliente */}
             <table>
               <tbody>
                 <tr className="hdr"><td colSpan={4}>DADOS DO CLIENTE</td></tr>
@@ -479,151 +494,148 @@ export function ServiceOrdersPage() {
                   <td><strong>CPF / CNPJ:</strong> {selectedOrder.customer?.document || '—'}</td>
                   <td><strong>Telefone:</strong> {selectedOrder.customer?.phone || '—'}</td>
                 </tr>
-                {selectedOrder.customer?.address && (
-                  <tr><td colSpan={4}><strong>Endereço:</strong> {selectedOrder.customer.address}</td></tr>
+                {(selectedOrder.customer?.address || selectedOrder.customer?.email) && (
+                  <tr>
+                    <td colSpan={3}><strong>Endereço:</strong> {selectedOrder.customer?.address || '—'}</td>
+                    <td><strong>E-mail:</strong> {selectedOrder.customer?.email || '—'}</td>
+                  </tr>
                 )}
               </tbody>
             </table>
 
-            {/* Vehicle */}
+            {/* Dados do Veículo */}
             <table>
               <tbody>
-                <tr className="hdr"><td colSpan={7}>DADOS DO VEÍCULO</td></tr>
+                <tr className="hdr"><td colSpan={6}>DADOS DO VEÍCULO</td></tr>
                 <tr>
                   <td colSpan={2}><strong>Marca / Modelo:</strong> {selectedOrder.vehicle?.brand} {selectedOrder.vehicle?.model}</td>
                   <td><strong>Ano:</strong> {selectedOrder.vehicle?.year || '—'}</td>
                   <td><strong>Cor:</strong> {selectedOrder.vehicle?.color || '—'}</td>
-                  <td><strong>Placa:</strong> <span style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>{selectedOrder.vehicle?.plate}</span></td>
-                  <td><strong>KM Atual:</strong> {selectedOrder.vehicle?.km ? Number(selectedOrder.vehicle.km).toLocaleString('pt-BR') : '—'}</td>
-                  <td><strong>KM Saída:</strong> {selectedOrder.kmSaida ? Number(selectedOrder.kmSaida).toLocaleString('pt-BR') : '—'}</td>
+                  <td><strong>Placa:</strong> <span style={{ fontFamily: 'monospace', fontWeight: 900 }}>{selectedOrder.vehicle?.plate || '—'}</span></td>
+                  <td><strong>KM:</strong> {selectedOrder.vehicle?.km ? Number(selectedOrder.vehicle.km).toLocaleString('pt-BR') : '—'}</td>
                 </tr>
                 {selectedOrder.vehicle?.vin && (
-                  <tr><td colSpan={7}><strong>Chassi / VIN:</strong> {selectedOrder.vehicle.vin}</td></tr>
+                  <tr><td colSpan={6}><strong>Chassi / VIN:</strong> {selectedOrder.vehicle.vin}</td></tr>
                 )}
               </tbody>
             </table>
 
-            {/* Complaint / Diagnosis / Report */}
+            {/* Queixa / Diagnóstico / Laudo */}
             {(selectedOrder.complaint || selectedOrder.diagnosis || selectedOrder.technicalReport) && (
               <table>
                 <tbody>
-                  <tr className="hdr"><td>RECLAMAÇÃO DO CLIENTE</td></tr>
-                  <tr><td style={{ minHeight: '24px' }}>{selectedOrder.complaint || '—'}</td></tr>
-
-                  <tr className="hdr"><td>DIAGNÓSTICO TÉCNICO</td></tr>
-                  <tr><td style={{ minHeight: '24px' }}>{selectedOrder.diagnosis || '—'}</td></tr>
-
-                  <tr className="hdr"><td>LAUDO / SOLUÇÃO APLICADA</td></tr>
-                  <tr><td style={{ minHeight: '26px' }}>{selectedOrder.technicalReport || '—'}</td></tr>
+                  {selectedOrder.complaint && <>
+                    <tr className="hdr"><td>RECLAMAÇÃO DO CLIENTE</td></tr>
+                    <tr><td style={{ minHeight: '22px' }}>{selectedOrder.complaint}</td></tr>
+                  </>}
+                  {selectedOrder.diagnosis && <>
+                    <tr className="hdr"><td>DIAGNÓSTICO TÉCNICO</td></tr>
+                    <tr><td style={{ minHeight: '22px' }}>{selectedOrder.diagnosis}</td></tr>
+                  </>}
+                  {selectedOrder.technicalReport && <>
+                    <tr className="hdr"><td>LAUDO / SOLUÇÃO APLICADA</td></tr>
+                    <tr><td style={{ minHeight: '22px' }}>{selectedOrder.technicalReport}</td></tr>
+                  </>}
                 </tbody>
               </table>
             )}
 
-            {/* Services */}
+            {/* Serviços */}
             {serviceItems.length > 0 && (
               <table>
                 <thead>
-                  <tr className="hdr"><td colSpan={4}>SERVIÇOS REALIZADOS</td></tr>
+                  <tr className="hdr"><td colSpan={5}>SERVIÇOS / MÃO DE OBRA</td></tr>
                   <tr>
+                    <th className="tc" style={{ width: '28px' }}>#</th>
                     <th>Descrição</th>
-                    <th className="tc" style={{ width: '65px' }}>Qtd/Hrs</th>
-                    <th className="tr" style={{ width: '90px' }}>Unitário</th>
-                    <th className="tr" style={{ width: '90px' }}>Subtotal</th>
+                    <th className="tc" style={{ width: '60px' }}>Qtd/Hrs</th>
+                    <th className="tr" style={{ width: '90px' }}>Vl. Unit.</th>
+                    <th className="tr" style={{ width: '95px' }}>Vl. Total</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {serviceItems.map((item: any) => (
+                  {serviceItems.map((item: any, idx: number) => (
                     <tr key={item.id}>
+                      <td className="tc" style={{ color: '#888', fontSize: '7.5pt' }}>{idx + 1}</td>
                       <td>{item.description}</td>
                       <td className="tc">{Number(item.quantity).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
                       <td className="tr">R$ {fmtBR(item.unitPrice)}</td>
-                      <td className="tr">R$ {fmtBR(item.totalPrice)}</td>
+                      <td className="tr">R$ {fmtBR(item.totalPrice ?? item.unitPrice * item.quantity)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             )}
 
-            {/* Parts */}
+            {/* Peças e Materiais */}
             {partItems.length > 0 && (
               <table>
                 <thead>
-                  <tr className="hdr"><td colSpan={5}>PEÇAS E MATERIAIS</td></tr>
+                  <tr className="hdr"><td colSpan={6}>PEÇAS E MATERIAIS</td></tr>
                   <tr>
-                    <th style={{ width: '75px' }}>Cód. Interno</th>
+                    <th className="tc" style={{ width: '28px' }}>#</th>
+                    <th style={{ width: '80px' }}>Referência</th>
                     <th>Descrição</th>
-                    <th className="tc" style={{ width: '55px' }}>Qtd</th>
-                    <th className="tr" style={{ width: '90px' }}>Unitário</th>
-                    <th className="tr" style={{ width: '90px' }}>Subtotal</th>
+                    <th className="tc" style={{ width: '50px' }}>Qtd</th>
+                    <th className="tr" style={{ width: '90px' }}>Vl. Unit.</th>
+                    <th className="tr" style={{ width: '95px' }}>Vl. Total</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {partItems.map((item: any) => (
+                  {partItems.map((item: any, idx: number) => (
                     <tr key={item.id}>
-                      <td style={{ fontSize: '8pt', color: '#555' }}>{item.part?.internalCode || '—'}</td>
+                      <td className="tc" style={{ color: '#888', fontSize: '7.5pt' }}>{idx + 1}</td>
+                      <td style={{ fontSize: '7.5pt', color: '#555', fontFamily: 'monospace' }}>{item.part?.internalCode || item.internalCode || '—'}</td>
                       <td>{item.description}</td>
                       <td className="tc">{Number(item.quantity).toLocaleString('pt-BR')}</td>
                       <td className="tr">R$ {fmtBR(item.unitPrice)}</td>
-                      <td className="tr">R$ {fmtBR(item.totalPrice)}</td>
+                      <td className="tr">R$ {fmtBR(item.totalPrice ?? item.unitPrice * item.quantity)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             )}
 
-            {/* Totals + Payment side by side */}
+            {/* Observações + Totais lado a lado */}
             <table>
               <tbody>
                 <tr className="nb">
-                  {/* Payment / Observations — left column */}
-                  <td style={{ border: 'none', width: '55%', verticalAlign: 'top', paddingRight: '8px' }}>
-                    <table style={{ marginBottom: '5px' }}>
+                  {/* Esquerda: observações */}
+                  <td style={{ border: 'none', width: '55%', verticalAlign: 'top', paddingRight: '10px' }}>
+                    <table>
                       <tbody>
-                        <tr className="hdr"><td colSpan={2}>FORMA DE PAGAMENTO</td></tr>
+                        <tr className="hdr"><td>OBSERVAÇÕES</td></tr>
                         <tr>
-                          <td style={{ fontSize: '11pt', fontWeight: 'bold' }}>
-                            {selectedOrder.paymentMethod || edit.paymentMethod || '— Não informado —'}
-                          </td>
-                          <td className="tr" style={{ fontSize: '8pt', color: '#666' }}>
-                            {['FATURADO', 'ENTREGUE'].includes(selectedOrder.status)
-                              ? `Pago em ${selectedOrder.paidAt ? new Date(selectedOrder.paidAt).toLocaleDateString('pt-BR') : '—'}`
-                              : 'Pagamento pendente'}
+                          <td style={{ minHeight: '38px', fontSize: '8.5pt', whiteSpace: 'pre-wrap' }}>
+                            {selectedOrder.observations || selectedOrder.notes || ''}
                           </td>
                         </tr>
                       </tbody>
                     </table>
-                    {(selectedOrder.observations || selectedOrder.notes) && (
-                      <table>
-                        <tbody>
-                          <tr className="hdr"><td>OBSERVAÇÕES</td></tr>
-                          <tr><td style={{ minHeight: '28px', fontSize: '9pt' }}>{selectedOrder.observations || selectedOrder.notes}</td></tr>
-                        </tbody>
-                      </table>
-                    )}
                   </td>
 
-                  {/* Totals — right column */}
+                  {/* Direita: totais */}
                   <td style={{ border: 'none', verticalAlign: 'top' }}>
                     <table>
                       <tbody>
-                        <tr>
+                        <tr className="subtotal-row">
                           <td className="tr">Total Serviços</td>
                           <td className="tr" style={{ width: '110px' }}>R$ {fmtBR(selectedOrder.totalServices)}</td>
                         </tr>
-                        <tr>
-                          <td className="tr">Total Peças</td>
+                        <tr className="subtotal-row">
+                          <td className="tr">Total Produtos</td>
                           <td className="tr">R$ {fmtBR(selectedOrder.totalParts)}</td>
                         </tr>
                         {Number(selectedOrder.totalLabor) > 0 && (
-                          <tr>
+                          <tr className="subtotal-row">
                             <td className="tr">Mão de Obra</td>
                             <td className="tr">R$ {fmtBR(selectedOrder.totalLabor)}</td>
                           </tr>
                         )}
                         {Number(selectedOrder.totalDiscount) > 0 && (
                           <tr>
-                            <td className="tr" style={{ color: 'darkred' }}>Desconto</td>
-                            <td className="tr" style={{ color: 'darkred' }}>− R$ {fmtBR(selectedOrder.totalDiscount)}</td>
+                            <td className="tr" style={{ color: '#b91c1c' }}>Desconto</td>
+                            <td className="tr" style={{ color: '#b91c1c' }}>− R$ {fmtBR(selectedOrder.totalDiscount)}</td>
                           </tr>
                         )}
                         <tr className="total-final">
@@ -637,26 +649,31 @@ export function ServiceOrdersPage() {
               </tbody>
             </table>
 
-            {/* Signatures */}
-            <table style={{ marginTop: '20px' }}>
+            {/* Autorização + Assinatura */}
+            <div style={{ marginTop: '14px', fontSize: '8pt', color: '#333', lineHeight: 1.5 }}>
+              Autorizo os serviços e a substituição das peças deste{' '}
+              {selectedOrder.orderType === 'ORCAMENTO' ? 'ORÇAMENTO' : 'documento'}, e o necessário
+              teste de rua com o veículo. Estou ciente que a empresa não se responsabiliza pela perda
+              ou roubo de qualquer objeto que se encontra no interior do veículo.
+            </div>
+            <table style={{ marginTop: '16px' }}>
               <tbody>
                 <tr>
-                  <td style={{ border: 'none', textAlign: 'center', paddingTop: '40px' }}>
-                    <div style={{ borderTop: '1px solid #555', display: 'inline-block', width: '200px', marginBottom: '4px' }} />
-                    <br /><span style={{ fontSize: '9pt', fontWeight: 'bold' }}>Assinatura do Cliente</span>
-                    <br /><span style={{ fontSize: '8pt', color: '#555' }}>Nome: ___________________________________</span>
-                    <br /><span style={{ fontSize: '8pt', color: '#555', display: 'block', marginTop: '6px' }}>Data: _____/_____/__________</span>
+                  <td style={{ border: 'none', textAlign: 'center', paddingTop: '36px', width: '50%' }}>
+                    <div style={{ borderTop: '1px solid #666', display: 'inline-block', width: '210px', marginBottom: '3px' }} />
+                    <br /><span style={{ fontSize: '9pt', fontWeight: 700 }}>Assinatura do Cliente</span>
+                    <br /><span style={{ fontSize: '8pt', color: '#555' }}>Data: _____ / _____ / ____________</span>
                   </td>
-                  <td style={{ border: 'none', textAlign: 'center', paddingTop: '40px' }}>
-                    <div style={{ borderTop: '1px solid #555', display: 'inline-block', width: '200px', marginBottom: '4px' }} />
-                    <br /><span style={{ fontSize: '9pt', fontWeight: 'bold' }}>Responsável Técnico</span>
-                    <br /><span style={{ fontSize: '8pt', color: '#555' }}>Nome: ___________________________________</span>
+                  <td style={{ border: 'none', textAlign: 'center', paddingTop: '36px', width: '50%' }}>
+                    <div style={{ borderTop: '1px solid #666', display: 'inline-block', width: '210px', marginBottom: '3px' }} />
+                    <br /><span style={{ fontSize: '9pt', fontWeight: 700 }}>Consultor Técnico</span>
+                    <br /><span style={{ fontSize: '8pt', color: '#555' }}>Nome: _________________________________</span>
                   </td>
                 </tr>
               </tbody>
             </table>
 
-            <div style={{ marginTop: '12px', paddingTop: '6px', borderTop: '1px solid #ccc', fontSize: '7pt', color: '#999', textAlign: 'center' }}>
+            <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #ddd', fontSize: '7pt', color: '#aaa', textAlign: 'center' }}>
               Documento gerado em {new Date().toLocaleString('pt-BR')} · Oficina360 — Sistema de Gestão para Oficinas Automotivas
             </div>
           </div>

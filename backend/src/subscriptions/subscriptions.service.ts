@@ -204,6 +204,105 @@ export class SubscriptionsService {
     };
   }
 
+  async processMercadoPagoWebhook(payload: any, query?: Record<string, any>, headers?: Record<string, any>) {
+    const webhookToken = this.configService.get<string>('MP_WEBHOOK_TOKEN');
+    if (webhookToken) {
+      const receivedToken = headers?.['x-webhook-token'] || headers?.['X-Webhook-Token'];
+      if (receivedToken !== webhookToken) {
+        throw new ForbiddenException('Invalid webhook token');
+      }
+    }
+
+    const eventType = payload?.type || payload?.topic || query?.type || query?.topic;
+    const paymentId =
+      payload?.data?.id ||
+      payload?.resource?.id ||
+      query?.['data.id'] ||
+      query?.id;
+
+    if (!paymentId) {
+      return { received: true, ignored: true, reason: 'missing payment id' };
+    }
+
+    if (eventType && String(eventType).toLowerCase() !== 'payment') {
+      return { received: true, ignored: true, reason: `event type ${eventType} not handled` };
+    }
+
+    const accessToken = this.configService.get<string>('MP_ACCESS_TOKEN');
+    if (!accessToken) {
+      throw new NotFoundException('MP_ACCESS_TOKEN not configured');
+    }
+
+    const paymentResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!paymentResponse.ok) {
+      const errorText = await paymentResponse.text();
+      throw new InternalServerErrorException(`Mercado Pago payment lookup failed: ${errorText}`);
+    }
+
+    const paymentData = (await paymentResponse.json()) as any;
+    const paymentStatus = String(paymentData?.status || '').toLowerCase();
+
+    if (paymentStatus !== 'approved') {
+      return {
+        received: true,
+        ignored: true,
+        reason: `payment status ${paymentStatus} not approved`,
+      };
+    }
+
+    const metadata = paymentData?.metadata || {};
+    let tenantId: string | undefined = metadata?.tenantId;
+    let planName: string | undefined = metadata?.plan;
+
+    const externalReference = String(paymentData?.external_reference || '');
+    if ((!tenantId || !planName) && externalReference.includes(':')) {
+      const [refTenantId, refPlan] = externalReference.split(':');
+      tenantId = tenantId || refTenantId;
+      planName = planName || refPlan;
+    }
+
+    if (!tenantId || !planName) {
+      return { received: true, ignored: true, reason: 'missing tenantId or plan in metadata' };
+    }
+
+    const plan = await this.prisma.subscriptionPlan.findUnique({ where: { name: planName } });
+    if (!plan) {
+      throw new NotFoundException('Plan not found for webhook processing');
+    }
+
+    const now = new Date();
+    const currentPeriodEnd = new Date(now);
+    currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
+
+    const updated = await this.prisma.subscription.update({
+      where: { tenantId },
+      data: {
+        planId: plan.id,
+        status: 'ACTIVE',
+        cancelAtPeriodEnd: false,
+        trialEndsAt: null,
+        currentPeriodStart: now,
+        currentPeriodEnd,
+      },
+      include: { plan: true },
+    });
+
+    return {
+      received: true,
+      processed: true,
+      paymentId: String(paymentId),
+      tenantId,
+      plan: updated.plan.name,
+      status: updated.status,
+    };
+  }
+
   async checkAccess(tenantId: string, requiredPlan: string) {
     const subscription = await this.findByTenant(tenantId);
     

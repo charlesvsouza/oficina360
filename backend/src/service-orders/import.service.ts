@@ -126,6 +126,46 @@ Regras:
     return false;
   }
 
+  private normalizeResult(input: any): any {
+    const safe = input && typeof input === 'object' ? input : {};
+    const customer = safe.customer && typeof safe.customer === 'object' ? safe.customer : {};
+    const vehicle = safe.vehicle && typeof safe.vehicle === 'object' ? safe.vehicle : {};
+    const totals = safe.totals && typeof safe.totals === 'object' ? safe.totals : {};
+    const items = Array.isArray(safe.items) ? safe.items : [];
+
+    return {
+      customer: {
+        name: customer.name ?? '',
+        document: customer.document ?? '',
+        phone: customer.phone ?? '',
+        email: customer.email ?? '',
+        address: customer.address ?? '',
+      },
+      vehicle: {
+        brand: vehicle.brand ?? '',
+        model: vehicle.model ?? '',
+        plate: vehicle.plate ?? '',
+        year: vehicle.year ?? '',
+        km: typeof vehicle.km === 'number' ? vehicle.km : null,
+        vin: vehicle.vin ?? '',
+        color: vehicle.color ?? '',
+      },
+      items: items.map((item: any) => ({
+        type: item?.type === 'part' || item?.type === 'service' ? item.type : 'service',
+        description: item?.description ?? '',
+        quantity: typeof item?.quantity === 'number' && item.quantity > 0 ? item.quantity : 1,
+        unitPrice: typeof item?.unitPrice === 'number' ? item.unitPrice : 0,
+        internalCode: item?.internalCode ?? '',
+      })),
+      totals: {
+        parts: typeof totals.parts === 'number' ? totals.parts : 0,
+        services: typeof totals.services === 'number' ? totals.services : 0,
+        labor: typeof totals.labor === 'number' ? totals.labor : 0,
+        total: typeof totals.total === 'number' ? totals.total : 0,
+      },
+    };
+  }
+
   private async parseWithText(model: any, text: string): Promise<any> {
     const prompt = `${this.basePrompt}\n\nTexto extraído do PDF:\n${text}`;
     const result = await model.generateContent(prompt);
@@ -171,6 +211,8 @@ Regras:
       }
 
       const model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      let bestEffortResult: any = null;
+      const warnings: string[] = [];
       let text = '';
       try {
         text = await this.extractTextFromPdf(fileBuffer);
@@ -180,14 +222,28 @@ Regras:
 
       if (text.trim().length >= 80) {
         const parsedFromText = await this.parseWithText(model, text);
+        bestEffortResult = this.normalizeResult(parsedFromText);
         if (this.hasMeaningfulData(parsedFromText)) {
-          return parsedFromText;
+          return bestEffortResult;
         }
+
+        warnings.push('Texto do PDF lido, mas com poucos dados reconhecidos automaticamente.');
       }
 
       const parsedFromPdf = await this.parseWithPdf(model, fileBuffer);
+      const normalizedPdf = this.normalizeResult(parsedFromPdf);
       if (this.hasMeaningfulData(parsedFromPdf)) {
-        return parsedFromPdf;
+        return normalizedPdf;
+      }
+
+      bestEffortResult = normalizedPdf;
+      warnings.push('Análise automática concluiu com poucos campos preenchidos; revise e complete manualmente.');
+
+      if (bestEffortResult) {
+        return {
+          ...bestEffortResult,
+          _warnings: warnings,
+        };
       }
 
       throw new Error('Não foi possível extrair dados úteis do PDF.');

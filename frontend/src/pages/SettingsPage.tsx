@@ -69,6 +69,9 @@ export function SettingsPage() {
   const [checkoutLoadingPlan, setCheckoutLoadingPlan] = useState<string | null>(null);
   const [users, setUsers] = useState<any[]>([]);
   const currentPlan = subscription?.plan?.name || 'START';
+  const PLAN_ORDER: Record<string, number> = { START: 1, PRO: 2, REDE: 3 };
+  const isUpgrade = (planName: string) => (PLAN_ORDER[planName] ?? 0) > (PLAN_ORDER[currentPlan] ?? 0);
+  const isDowngrade = (planName: string) => (PLAN_ORDER[planName] ?? 0) < (PLAN_ORDER[currentPlan] ?? 0);
 
   const isMaster = user?.role === 'MASTER';
   const canManageUsers = user?.role === 'MASTER' || user?.role === 'ADMIN';
@@ -637,14 +640,21 @@ export function SettingsPage() {
                     </div>
 
                     <div className="grid grid-cols-1 gap-2">
-                      <button
-                        onClick={() => currentPlan !== plan.name && handleCheckoutPlan(plan.name)}
-                        disabled={currentPlan === plan.name || checkoutLoadingPlan === plan.name}
-                        className="h-10 rounded-xl bg-primary-600 hover:bg-primary-500 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-black uppercase tracking-wide transition-all flex items-center justify-center gap-2"
-                      >
-                        {checkoutLoadingPlan === plan.name ? <Loader2 size={14} className="animate-spin" /> : null}
-                        Comprar online
-                      </button>
+                      {isDowngrade(plan.name) ? (
+                        <div className="h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center gap-2 px-3">
+                          <Lock size={12} className="text-slate-500" />
+                          <span className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Disponível após vencimento do plano atual</span>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => currentPlan !== plan.name && handleCheckoutPlan(plan.name)}
+                          disabled={currentPlan === plan.name || checkoutLoadingPlan === plan.name}
+                          className="h-10 rounded-xl bg-primary-600 hover:bg-primary-500 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-black uppercase tracking-wide transition-all flex items-center justify-center gap-2"
+                        >
+                          {checkoutLoadingPlan === plan.name ? <Loader2 size={14} className="animate-spin" /> : null}
+                          {isUpgrade(plan.name) ? 'Fazer upgrade' : 'Plano atual'}
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}

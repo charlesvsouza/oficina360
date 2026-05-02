@@ -23,7 +23,20 @@ export function LandingPage() {
 
   return (
     <MarketingShell>
-      <section className="max-w-6xl mx-auto px-6 pt-8 pb-20 text-center">
+      <section className="relative max-w-6xl mx-auto px-6 pt-8 pb-20 text-center overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none flex items-start justify-center">
+          <motion.div
+            animate={{ scale: [1, 1.22, 1], opacity: [0.12, 0.3, 0.12] }}
+            transition={{ duration: 2.9, repeat: Infinity, ease: 'easeInOut' }}
+            className="mt-20 w-[440px] h-[440px] rounded-full bg-[#ff7b2f]/20 blur-[90px]"
+          />
+          <motion.div
+            animate={{ scale: [0.85, 1.18, 1.3], opacity: [0, 0.15, 0] }}
+            transition={{ duration: 2.9, repeat: Infinity, ease: 'easeOut', delay: 0.45 }}
+            className="absolute mt-10 w-[680px] h-[680px] rounded-full border border-[#ff7b2f]/20"
+          />
+        </div>
+
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -44,6 +57,41 @@ export function LandingPage() {
           <span className="text-white">Sigma</span>
           <span className="text-[#ff7b2f]"> Auto</span>
         </motion.h1>
+
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.17 }}
+          className="mx-auto mt-4 h-6 w-[260px] rounded-full border border-[#ff7b2f]/25 bg-[#0d1220]/40 overflow-hidden relative"
+        >
+          <motion.svg
+            viewBox="0 0 520 36"
+            className="absolute inset-0 h-full w-[200%]"
+            preserveAspectRatio="none"
+            animate={{ x: [0, -260] }}
+            transition={{ duration: 3.5, repeat: Infinity, ease: 'linear' }}
+          >
+            <path
+              d="M0 18 L520 18"
+              stroke="rgba(148, 163, 184, 0.35)"
+              strokeWidth="1.2"
+              fill="none"
+            />
+            <path
+              d="M0 18 L52 18 L66 18 L74 6 L84 30 L95 2 L108 34 L122 18 L214 18 L228 18 L236 6 L246 30 L257 2 L270 34 L284 18 L376 18 L390 18 L398 6 L408 30 L419 2 L432 34 L446 18 L520 18"
+              stroke="#fb923c"
+              strokeWidth="2"
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </motion.svg>
+          <motion.div
+            className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-[#fdba74] shadow-[0_0_10px_rgba(253,186,116,0.95)]"
+            animate={{ x: [-12, 268], opacity: [0, 1, 1, 0] }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: 'linear' }}
+          />
+        </motion.div>
 
         <motion.p
           initial={{ opacity: 0, y: 20 }}

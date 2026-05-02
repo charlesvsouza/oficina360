@@ -2,12 +2,14 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Delete,
   Body,
   Param,
   UseGuards,
   HttpCode,
   HttpStatus,
+  Request,
 } from '@nestjs/common';
 import { SuperAdminService } from './superadmin.service';
 import { SuperAdminGuard } from './guards/superadmin.guard';
@@ -63,5 +65,44 @@ export class SuperAdminController {
   @UseGuards(SuperAdminGuard)
   deleteTenant(@Param('id') id: string) {
     return this.superAdminService.deleteTenant(id);
+  }
+
+  /** Gera token de impersonação para acessar o painel de um tenant como MASTER */
+  @Post('tenants/:id/impersonate')
+  @UseGuards(SuperAdminGuard)
+  @HttpCode(HttpStatus.OK)
+  impersonateTenant(@Param('id') id: string, @Request() req: any) {
+    return this.superAdminService.impersonateTenant(id, req.superAdmin);
+  }
+
+  /** Suspende ou reativa um tenant */
+  @Patch('tenants/:id/status')
+  @UseGuards(SuperAdminGuard)
+  updateTenantStatus(
+    @Param('id') id: string,
+    @Body() body: { status: 'ACTIVE' | 'SUSPENDED' },
+  ) {
+    return this.superAdminService.updateTenantStatus(id, body.status);
+  }
+
+  /** Altera o plano de assinatura de um tenant */
+  @Patch('tenants/:id/plan')
+  @UseGuards(SuperAdminGuard)
+  updateTenantPlan(
+    @Param('id') id: string,
+    @Body() body: { planName: string },
+  ) {
+    return this.superAdminService.updateTenantPlan(id, body.planName);
+  }
+
+  /** Estende o período de assinatura de um tenant */
+  @Post('tenants/:id/extend-subscription')
+  @UseGuards(SuperAdminGuard)
+  @HttpCode(HttpStatus.OK)
+  extendSubscription(
+    @Param('id') id: string,
+    @Body() body: { days: number },
+  ) {
+    return this.superAdminService.extendSubscription(id, body.days);
   }
 }

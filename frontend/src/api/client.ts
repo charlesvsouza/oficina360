@@ -234,6 +234,14 @@ export const superAdminApi = {
     axios.delete(`${SA_BASE}/superadmin/tenants/${id}`, { headers: { Authorization: `Bearer ${localStorage.getItem('superAdminToken')}` } }),
   resendInvite: (id: string) =>
     axios.post(`${SA_BASE}/superadmin/tenants/${id}/resend-invite`, {}, { headers: { Authorization: `Bearer ${localStorage.getItem('superAdminToken')}` } }),
+  impersonate: (id: string) =>
+    axios.post(`${SA_BASE}/superadmin/tenants/${id}/impersonate`, {}, { headers: { Authorization: `Bearer ${localStorage.getItem('superAdminToken')}` } }),
+  updateTenantStatus: (id: string, status: 'ACTIVE' | 'SUSPENDED') =>
+    axios.patch(`${SA_BASE}/superadmin/tenants/${id}/status`, { status }, { headers: { Authorization: `Bearer ${localStorage.getItem('superAdminToken')}` } }),
+  updateTenantPlan: (id: string, planName: string) =>
+    axios.patch(`${SA_BASE}/superadmin/tenants/${id}/plan`, { planName }, { headers: { Authorization: `Bearer ${localStorage.getItem('superAdminToken')}` } }),
+  extendSubscription: (id: string, days: number) =>
+    axios.post(`${SA_BASE}/superadmin/tenants/${id}/extend-subscription`, { days }, { headers: { Authorization: `Bearer ${localStorage.getItem('superAdminToken')}` } }),
 };
 
 

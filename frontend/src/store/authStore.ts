@@ -32,9 +32,13 @@ interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
   isAuthenticated: boolean;
+  isImpersonating: boolean;
+  impersonatingTenantName: string | null;
   login: (user: User, tenant: Tenant, accessToken: string, refreshToken: string) => void;
   logout: () => void;
   updateTenant: (tenant: Tenant) => void;
+  startImpersonation: (user: User, tenant: Tenant, accessToken: string) => void;
+  stopImpersonation: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -45,6 +49,8 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
       refreshToken: null,
       isAuthenticated: false,
+      isImpersonating: false,
+      impersonatingTenantName: null,
       login: (user, tenant, accessToken, refreshToken) =>
         set({
           user,
@@ -52,6 +58,8 @@ export const useAuthStore = create<AuthState>()(
           accessToken,
           refreshToken,
           isAuthenticated: true,
+          isImpersonating: false,
+          impersonatingTenantName: null,
         }),
       logout: () =>
         set({
@@ -60,8 +68,30 @@ export const useAuthStore = create<AuthState>()(
           accessToken: null,
           refreshToken: null,
           isAuthenticated: false,
+          isImpersonating: false,
+          impersonatingTenantName: null,
         }),
       updateTenant: (tenant) => set({ tenant }),
+      startImpersonation: (user, tenant, accessToken) =>
+        set({
+          user,
+          tenant,
+          accessToken,
+          refreshToken: null,
+          isAuthenticated: true,
+          isImpersonating: true,
+          impersonatingTenantName: tenant.name,
+        }),
+      stopImpersonation: () =>
+        set({
+          user: null,
+          tenant: null,
+          accessToken: null,
+          refreshToken: null,
+          isAuthenticated: false,
+          isImpersonating: false,
+          impersonatingTenantName: null,
+        }),
     }),
     {
       name: 'oficina360-auth',

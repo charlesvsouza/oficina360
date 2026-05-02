@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { superAdminApi } from '../api/client';
+import { useAuthStore } from '../store/authStore';
 import { ProvisionTenantModal } from '../components/ProvisionTenantModal';
 import {
   Shield, Building, Users, FileText, Package,
   Trash2, Eye, LogOut, RefreshCw, Loader2, AlertCircle,
   CheckCircle2, X, AlertTriangle,
-  BarChart3, DollarSign, Plus, Mail, Copy,
+  BarChart3, DollarSign, Plus, Mail, Copy, LogIn,
 } from 'lucide-react';
 
 export function SuperAdminPage() {
@@ -28,6 +29,11 @@ export function SuperAdminPage() {
   const [resendingId, setResendingId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'active'>('all');
   const [copiedLink, setCopiedLink] = useState(false);
+  const [impersonating, setImpersonating] = useState<string | null>(null);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [updatingPlan, setUpdatingPlan] = useState(false);
+  const [extendingDays, setExtendingDays] = useState<number | null>(null);
+  const startImpersonation = useAuthStore((s) => s.startImpersonation);
   const frontendAppUrl = (import.meta.env.VITE_APP_URL || 'https://sigmaauto.com.br').replace(/\/+$/, '');
 
   const superAdminInfo = (() => {
@@ -122,6 +128,65 @@ export function SuperAdminPage() {
     navigator.clipboard.writeText(text);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
+  };
+
+  const handleImpersonate = async (tenantId: string) => {
+    setImpersonating(tenantId);
+    try {
+      const res = await superAdminApi.impersonate(tenantId);
+      const { accessToken, user, tenant: impTenant } = res.data;
+      startImpersonation(user, impTenant, accessToken);
+      navigate('/dashboard');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Erro ao acessar o tenant');
+    } finally {
+      setImpersonating(null);
+    }
+  };
+
+  const handleUpdateStatus = async (tenantId: string, status: 'ACTIVE' | 'SUSPENDED') => {
+    setUpdatingStatus(true);
+    try {
+      await superAdminApi.updateTenantStatus(tenantId, status);
+      setSuccessMsg(`Tenant ${status === 'ACTIVE' ? 'ativado' : 'suspenso'} com sucesso`);
+      loadData();
+      const res = await superAdminApi.getTenantDetails(tenantId);
+      setSelectedTenant(res.data);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Erro ao atualizar status');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const handleUpdatePlan = async (tenantId: string, planName: string) => {
+    setUpdatingPlan(true);
+    try {
+      await superAdminApi.updateTenantPlan(tenantId, planName);
+      setSuccessMsg(`Plano alterado para ${planName} com sucesso`);
+      loadData();
+      const res = await superAdminApi.getTenantDetails(tenantId);
+      setSelectedTenant(res.data);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Erro ao alterar plano');
+    } finally {
+      setUpdatingPlan(false);
+    }
+  };
+
+  const handleExtendSubscription = async (tenantId: string, days: number) => {
+    setExtendingDays(days);
+    try {
+      await superAdminApi.extendSubscription(tenantId, days);
+      setSuccessMsg(`Assinatura estendida por ${days} dias`);
+      loadData();
+      const res = await superAdminApi.getTenantDetails(tenantId);
+      setSelectedTenant(res.data);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Erro ao estender assinatura');
+    } finally {
+      setExtendingDays(null);
+    }
   };
 
   const handleLogout = () => {
@@ -253,6 +318,12 @@ export function SuperAdminPage() {
                       className="flex-1 flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 text-white text-xs font-bold py-2 rounded-xl transition-all">
                       <Eye size={13} /> Detalhes
                     </button>
+                    {tenant.status !== 'PENDING_SETUP' && (
+                      <button onClick={() => handleImpersonate(tenant.id)} disabled={impersonating === tenant.id}
+                        className="flex-1 flex items-center justify-center gap-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-xs font-bold py-2 rounded-xl transition-all disabled:opacity-50">
+                        {impersonating === tenant.id ? <Loader2 size={13} className="animate-spin" /> : <LogIn size={13} />} Acessar
+                      </button>
+                    )}
                     {tenant.status === 'PENDING_SETUP' && (
                       <button onClick={() => handleResendInvite(tenant.id)} disabled={resendingId === tenant.id}
                         className="flex-1 flex items-center justify-center gap-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-xs font-bold py-2 rounded-xl transition-all disabled:opacity-50">
@@ -357,6 +428,68 @@ export function SuperAdminPage() {
                       ))}
                     </div>
                   </div>
+
+                  {/* Acesso como MASTER (impersonação) */}
+                  {selectedTenant.status !== 'PENDING_SETUP' && (
+                    <button onClick={() => handleImpersonate(selectedTenant.id)} disabled={impersonating === selectedTenant.id}
+                      className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-black py-3 rounded-2xl transition-all">
+                      {impersonating === selectedTenant.id ? <Loader2 size={16} className="animate-spin" /> : <LogIn size={16} />}
+                      Acessar como MASTER
+                    </button>
+                  )}
+
+                  {/* Status */}
+                  <div className="bg-white/5 rounded-2xl p-4 space-y-3">
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Status do Tenant</p>
+                    <div className="flex gap-2">
+                      <button onClick={() => handleUpdateStatus(selectedTenant.id, 'ACTIVE')}
+                        disabled={updatingStatus || selectedTenant.status === 'ACTIVE'}
+                        className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-40">
+                        {updatingStatus ? <Loader2 size={14} className="animate-spin mx-auto" /> : 'Ativar'}
+                      </button>
+                      <button onClick={() => handleUpdateStatus(selectedTenant.id, 'SUSPENDED')}
+                        disabled={updatingStatus || selectedTenant.status === 'SUSPENDED'}
+                        className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 disabled:opacity-40">
+                        Suspender
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Alterar Plano */}
+                  {selectedTenant.subscription && (
+                    <div className="bg-white/5 rounded-2xl p-4 space-y-3">
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Alterar Plano</p>
+                      <p className="text-xs text-slate-500">Atual: <span className="text-white font-bold">{selectedTenant.subscription?.plan?.name ?? 'N/A'}</span></p>
+                      <div className="flex gap-2">
+                        {['START', 'PRO', 'REDE'].map((plan) => (
+                          <button key={plan} onClick={() => handleUpdatePlan(selectedTenant.id, plan)}
+                            disabled={updatingPlan || selectedTenant.subscription?.plan?.name === plan}
+                            className="flex-1 py-2.5 rounded-xl text-xs font-bold transition-all bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 disabled:opacity-40">
+                            {updatingPlan ? <Loader2 size={12} className="animate-spin mx-auto" /> : plan}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Estender Assinatura */}
+                  {selectedTenant.subscription && (
+                    <div className="bg-white/5 rounded-2xl p-4 space-y-3">
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Estender Assinatura</p>
+                      {selectedTenant.subscription?.currentPeriodEnd && (
+                        <p className="text-xs text-slate-500">Expira em: <span className="text-white">{new Date(selectedTenant.subscription.currentPeriodEnd).toLocaleDateString('pt-BR')}</span></p>
+                      )}
+                      <div className="flex gap-2">
+                        {[30, 60, 90].map((days) => (
+                          <button key={days} onClick={() => handleExtendSubscription(selectedTenant.id, days)}
+                            disabled={extendingDays !== null}
+                            className="flex-1 py-2.5 rounded-xl text-xs font-bold transition-all bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 disabled:opacity-40">
+                            {extendingDays === days ? <Loader2 size={12} className="animate-spin mx-auto" /> : `+${days}d`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <button onClick={() => { setPendingDelete({ id: selectedTenant.id, name: selectedTenant.name }); setDeleteConfirmText(''); }}
                     className="w-full flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold py-3 rounded-2xl transition-all">

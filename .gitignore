@@ -30,3 +30,6 @@ Thumbs.db
 # Temporary
 backend/dist_test/
 *.pdf
+
+.vercel
+.env*.local

@@ -223,6 +223,98 @@ export class SuperAdminService {
     return { deleted: true, tenantId, tenantName: tenant.name };
   }
 
+  /**
+   * Gera um token JWT de curta duração (2h) que permite ao Super Admin
+   * navegar no painel de um tenant como se fosse o usuário MASTER daquele tenant.
+   * O token carrega `isImpersonation: true` para fins de auditoria.
+   */
+  async impersonateTenant(tenantId: string, superAdminPayload: any) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      include: {
+        users: {
+          where: { role: 'MASTER', isActive: true },
+          take: 1,
+        },
+        subscription: { include: { plan: true } },
+      },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant não encontrado');
+    }
+
+    const masterUser = tenant.users[0];
+    if (!masterUser) {
+      throw new NotFoundException('Tenant não possui usuário MASTER ativo. Complete o setup primeiro.');
+    }
+
+    const token = this.jwtService.sign(
+      {
+        sub: masterUser.id,
+        email: masterUser.email,
+        role: masterUser.role,
+        tenantId: tenant.id,
+        isImpersonation: true,
+        superAdminId: superAdminPayload.sub,
+      },
+      {
+        secret: this.configService.get('JWT_SECRET') || 'oficina360-secret-key',
+        expiresIn: '2h',
+      },
+    );
+
+    return {
+      accessToken: token,
+      user: {
+        userId: masterUser.id,
+        email: masterUser.email,
+        name: masterUser.name,
+        role: masterUser.role,
+        tenantId: tenant.id,
+      },
+      tenant: {
+        id: tenant.id,
+        name: tenant.name,
+        subscription: tenant.subscription,
+      },
+      isImpersonation: true,
+    };
+  }
+
+  /** Suspende ou reativa um tenant */
+  async updateTenantStatus(tenantId: string, status: 'ACTIVE' | 'SUSPENDED') {
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
+    if (!tenant) throw new NotFoundException('Tenant não encontrado');
+    return this.prisma.tenant.update({ where: { id: tenantId }, data: { status } });
+  }
+
+  /** Altera o plano de assinatura */
+  async updateTenantPlan(tenantId: string, planName: string) {
+    const plan = await this.prisma.subscriptionPlan.findUnique({ where: { name: planName } });
+    if (!plan) throw new NotFoundException('Plano não encontrado');
+    const subscription = await this.prisma.subscription.findUnique({ where: { tenantId } });
+    if (!subscription) throw new NotFoundException('Subscription não encontrada para este tenant');
+    return this.prisma.subscription.update({
+      where: { tenantId },
+      data: { planId: plan.id },
+      include: { plan: true },
+    });
+  }
+
+  /** Estende o período de assinatura em N dias */
+  async extendSubscription(tenantId: string, days: number) {
+    const subscription = await this.prisma.subscription.findUnique({ where: { tenantId } });
+    if (!subscription) throw new NotFoundException('Subscription não encontrada');
+    const base = subscription.currentPeriodEnd > new Date() ? subscription.currentPeriodEnd : new Date();
+    const newEnd = new Date(base.getTime() + days * 24 * 60 * 60 * 1000);
+    return this.prisma.subscription.update({
+      where: { tenantId },
+      data: { currentPeriodEnd: newEnd, status: 'ACTIVE' },
+      include: { plan: true },
+    });
+  }
+
   async getSystemStats() {
     const [totalTenants, totalUsers, totalServiceOrders, totalRevenue] = await Promise.all([
       this.prisma.tenant.count(),

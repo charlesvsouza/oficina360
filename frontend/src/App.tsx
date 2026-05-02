@@ -32,10 +32,12 @@ import { UsersPage } from './pages/UsersPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SuperAdminPage } from './pages/SuperAdminPage';
 import { SuperAdminLoginPage } from './pages/SuperAdminLoginPage';
+import { ImpersonationBanner } from './components/ImpersonationBanner';
 
 export default function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <ImpersonationBanner />
       <Routes>
         {/* Landing comercial */}
         <Route path="/" element={<LandingPage />} />

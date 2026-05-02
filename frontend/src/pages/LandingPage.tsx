@@ -56,12 +56,14 @@ export function LandingPage() {
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   const startPlanCheckout = async (planName: Plan['name']) => {
-    // Lê o estado no momento do clique — evita problema de hidratação do Zustand
+    // Salva o plano ANTES de qualquer chamada — garante que o LoginPage
+    // recupere o plano pendente mesmo se o token expirar (401) durante o checkout
+    // e o interceptor redirecionar para /login sem passar pelo catch do React.
+    sessionStorage.setItem('pendingCheckoutPlan', planName);
+
     const isAuthenticated = useAuthStore.getState().isAuthenticated;
 
-    // Usuário não logado: salva plano no sessionStorage e redireciona para login
     if (!isAuthenticated) {
-      sessionStorage.setItem('pendingCheckoutPlan', planName);
       navigate('/login');
       return;
     }
@@ -76,11 +78,16 @@ export function LandingPage() {
       const response = await subscriptionsApi.createCheckout(planName, successUrl, cancelUrl);
       const checkoutUrl = response.data?.checkoutUrl;
       if (!checkoutUrl) throw new Error('Checkout indisponível para este plano');
+      // Sucesso: limpa o sessionStorage e vai para o MP
+      sessionStorage.removeItem('pendingCheckoutPlan');
       window.location.href = checkoutUrl;
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || 'Falha ao iniciar checkout';
-      setCheckoutError(msg);
-    } finally {
+      // Se não for 401 (que já redirecionou via interceptor), mostra erro na tela
+      if (err?.response?.status !== 401) {
+        sessionStorage.removeItem('pendingCheckoutPlan');
+        const msg = err?.response?.data?.message || err?.message || 'Falha ao iniciar checkout';
+        setCheckoutError(msg);
+      }
       setCheckoutLoading(null);
     }
   };

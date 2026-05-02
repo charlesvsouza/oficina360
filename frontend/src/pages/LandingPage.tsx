@@ -1,6 +1,13 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ArrowRight, CheckCircle2, Gauge, ShieldCheck, Zap } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  ArrowRight, CheckCircle2, Gauge, ShieldCheck, Zap,
+  Menu, X, Wrench, BarChart3, Package, DollarSign,
+  Users, ClipboardList, Star, Mail, Phone, MessageCircle,
+  BookOpen, Newspaper, HeartHandshake, Trophy, Clock, Lock,
+  ChevronRight, Send, Instagram, Facebook, Youtube, Linkedin, Twitter,
+} from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
 type Plan = {
@@ -48,8 +55,60 @@ const features = [
   { icon: Zap, title: 'Estoque inteligente', desc: 'Alertas de reposicao e rastreio de pecas por ordem.' },
 ];
 
+const navLinks = [
+  { label: 'Notícias', href: '#noticias' },
+  { label: 'Soluções', href: '#solucoes' },
+  { label: 'Quem Somos', href: '#quem-somos' },
+  { label: 'Diferenciais', href: '#diferenciais' },
+  { label: 'Contato', href: '#contato' },
+  { label: 'Suporte', href: '#suporte' },
+];
+
+const news = [
+  {
+    tag: 'Produto',
+    date: 'Mai 2026',
+    title: 'SigmaAuto lança bloqueio inteligente de downgrade de plano',
+    excerpt: 'A plataforma agora protege o cliente de rebaixamentos acidentais de plano, garantindo continuidade operacional até o vencimento da assinatura atual.',
+  },
+  {
+    tag: 'SEO',
+    date: 'Mai 2026',
+    title: 'Presença digital: SigmaAuto no ar com domínio próprio e sitemap',
+    excerpt: 'Com o domínio sigmaauto.com.br configurado, sitemap.xml e robots.txt publicados, a plataforma está pronta para ser encontrada no Google.',
+  },
+  {
+    tag: 'Experiência',
+    date: 'Mai 2026',
+    title: 'Nova tela de boas-vindas com identidade visual reforçada',
+    excerpt: 'A WelcomePage foi redesenhada com a tagline "Sistema para Oficina Mecânica | ERP Automotivo" e visual alinhado à landing page.',
+  },
+];
+
+const solutions = [
+  { icon: ClipboardList, title: 'Ordens de Serviço', desc: 'Gerencie todo o ciclo da OS: abertura, diagnóstico, aprovação do cliente, execução, entrega e pagamento. Tudo digital, sem papel.' },
+  { icon: Users, title: 'CRM de Clientes', desc: 'Histórico completo de cada cliente: veículos, OS anteriores, preferências e dados de contato. Relacionamento que fideliza.' },
+  { icon: Package, title: 'Controle de Estoque', desc: 'Peças, insumos e materiais com alertas de reposição automáticos. Nunca mais perca uma venda por falta de peça.' },
+  { icon: DollarSign, title: 'Financeiro Completo', desc: 'Receitas, despesas, fluxo de caixa e relatórios mensais. Saiba exatamente quanto sua oficina lucra.' },
+  { icon: BarChart3, title: 'Relatórios e Indicadores', desc: 'Dashboard com KPIs em tempo real: faturamento, OS por período, tempo médio de execução e produtividade da equipe.' },
+  { icon: Wrench, title: 'Catálogo de Serviços', desc: 'Monte seu catálogo de mão de obra com preços, tempo médio de operação e categoria. Padronize e profissionalize seu atendimento.' },
+];
+
+const diferenciais = [
+  { icon: Trophy, title: 'Feito para oficinas', desc: 'Desenvolvido com dono de oficina, para dono de oficina. Cada funcionalidade resolve um problema real do dia a dia.' },
+  { icon: Clock, title: 'Implementação em minutos', desc: 'Sem instalação, sem servidor próprio. Acesse do navegador, cadastre sua empresa e já comece a criar OS.' },
+  { icon: Lock, title: 'Segurança multi-tenant', desc: 'Cada oficina tem seus dados completamente isolados. Nunca um cliente vê dados de outro. Criptografia em toda a comunicação.' },
+  { icon: HeartHandshake, title: 'Suporte humano', desc: 'Nossas equipes de suporte respondem por e-mail e chat. Sem robôs, sem fila infinita. Pessoas reais ajudando de verdade.' },
+  { icon: Star, title: 'Atualizações constantes', desc: 'O sistema evolui toda semana com novas funcionalidades sugeridas pelos próprios clientes. Você cresce junto com a plataforma.' },
+  { icon: Gauge, title: 'Alta disponibilidade', desc: '99,95% de uptime garantido. Infraestrutura em nuvem com redundância automática para sua operação nunca parar.' },
+];
+
 export function LandingPage() {
   const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' });
+  const [contactSent, setContactSent] = useState(false);
   const startPlanCheckout = (planName: Plan['name']) => {
     navigate(`/planos?plan=${planName}`);
   };
@@ -273,10 +332,57 @@ export function LandingPage() {
       </section>
 
       {/* ── Footer ── */}
-      <footer className="relative z-10 border-t border-white/8 py-8 text-center">
-        <p className="text-xs text-white/25">
-          © {new Date().getFullYear()} SigmaAuto · sigmaauto.com.br · Todos os direitos reservados
-        </p>
+      <footer className="relative z-10 border-t border-white/8 py-10">
+        <div className="max-w-5xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
+          {/* Marca */}
+          <div className="flex flex-col items-center md:items-start gap-1">
+            <span className="text-base font-black tracking-tight text-white">
+              Sigma<span className="text-[#ff7b2f]">Auto</span>
+            </span>
+            <span className="text-[11px] text-white/30">Sistema para Oficina Mecânica · ERP Automotivo</span>
+          </div>
+
+          {/* Redes sociais */}
+          <div className="flex items-center gap-3">
+            {[
+              { icon: Instagram, href: 'https://instagram.com/sigmaauto', label: 'Instagram' },
+              { icon: Facebook,  href: 'https://facebook.com/sigmaauto',  label: 'Facebook' },
+              { icon: Youtube,   href: 'https://youtube.com/@sigmaauto',  label: 'YouTube' },
+              { icon: Linkedin,  href: 'https://linkedin.com/company/sigmaauto', label: 'LinkedIn' },
+              { icon: Twitter,   href: 'https://x.com/sigmaauto',         label: 'X / Twitter' },
+            ].map(({ icon: Icon, href, label }) => (
+              <a
+                key={label}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={label}
+                className="w-9 h-9 rounded-xl border border-white/10 bg-white/5 flex items-center justify-center text-white/40 hover:text-[#ff7b2f] hover:border-[#ff7b2f]/40 hover:bg-[#ff7b2f]/10 transition-all"
+              >
+                <Icon size={16} />
+              </a>
+            ))}
+
+            {/* WhatsApp — SVG manual pois lucide não tem */}
+            <a
+              href="https://wa.me/5511999999999"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="WhatsApp"
+              className="w-9 h-9 rounded-xl border border-white/10 bg-white/5 flex items-center justify-center text-white/40 hover:text-[#ff7b2f] hover:border-[#ff7b2f]/40 hover:bg-[#ff7b2f]/10 transition-all"
+            >
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+              </svg>
+            </a>
+          </div>
+
+          {/* Copyright */}
+          <p className="text-[11px] text-white/25 text-center md:text-right">
+            © {new Date().getFullYear()} SigmaAuto · sigmaauto.com.br<br />
+            Todos os direitos reservados
+          </p>
+        </div>
       </footer>
     </div>
   );

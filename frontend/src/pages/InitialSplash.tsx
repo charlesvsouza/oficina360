@@ -4,6 +4,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Wrench, Shield, Zap, Database, Cpu } from 'lucide-react';
 import { EcgPulse } from '../components/marketing/EcgPulse';
 
+const ECG_PATH_MM = 50;
+const ECG_SLOW_PATH_MM = 30;
+const ECG_SLOW_SPEED_MM_S = 2;
+const ECG_FAST_SPEED_MM_S = 3;
+const ECG_PHASE_ONE_SECONDS = ECG_SLOW_PATH_MM / ECG_SLOW_SPEED_MM_S;
+const ECG_TOTAL_SECONDS =
+  ECG_PHASE_ONE_SECONDS +
+  (ECG_PATH_MM - ECG_SLOW_PATH_MM) / ECG_FAST_SPEED_MM_S;
+
 const steps = [
   { id: 1, text: 'Iniciando sistema...', icon: Cpu },
   { id: 2, text: 'Carregando módulos...', icon: Wrench },
@@ -16,22 +25,37 @@ export function InitialSplash() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [complete, setComplete] = useState(false);
-  const progress = Math.min(currentStep / steps.length, 1);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    if (currentStep < steps.length) {
-      const timer = setTimeout(() => {
-        setCurrentStep(prev => prev + 1);
-      }, 900);
-      return () => clearTimeout(timer);
-    } else {
-      setComplete(true);
-      const timer = setTimeout(() => {
+    if (complete) {
+      const timer = window.setTimeout(() => {
         navigate('/login');
       }, 600);
-      return () => clearTimeout(timer);
+      return () => window.clearTimeout(timer);
     }
-  }, [currentStep, navigate]);
+
+    const startedAt = performance.now();
+    const interval = window.setInterval(() => {
+      const elapsedSeconds = (performance.now() - startedAt) / 1000;
+
+      const traveledMm = elapsedSeconds <= ECG_PHASE_ONE_SECONDS
+        ? elapsedSeconds * ECG_SLOW_SPEED_MM_S
+        : ECG_SLOW_PATH_MM + (elapsedSeconds - ECG_PHASE_ONE_SECONDS) * ECG_FAST_SPEED_MM_S;
+
+      const nextProgress = Math.min(traveledMm / ECG_PATH_MM, 1);
+      setProgress(nextProgress);
+
+      const nextStep = Math.min(Math.floor(nextProgress * steps.length), steps.length);
+      setCurrentStep(nextStep);
+
+      if (nextProgress >= 1) {
+        setComplete(true);
+      }
+    }, 100);
+
+    return () => window.clearInterval(interval);
+  }, [complete, navigate]);
 
   return (
     <div

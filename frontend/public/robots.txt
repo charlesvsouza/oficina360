@@ -1,0 +1,23 @@
+User-agent: *
+Allow: /
+Allow: /planos
+Allow: /login
+Allow: /register
+Allow: /forgot-password
+
+# Bloquear rotas internas (autenticadas)
+Disallow: /dashboard
+Disallow: /customers
+Disallow: /vehicles
+Disallow: /service-orders
+Disallow: /services
+Disallow: /inventory
+Disallow: /financial
+Disallow: /settings
+Disallow: /users
+Disallow: /welcome
+Disallow: /admin
+Disallow: /checkout
+Disallow: /activate
+
+Sitemap: https://sigmaauto.com.br/sitemap.xml

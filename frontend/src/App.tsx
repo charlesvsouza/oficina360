@@ -30,6 +30,7 @@ import { InventoryPage } from './pages/InventoryPage';
 import { FinancialPage } from './pages/FinancialPage';
 import { UsersPage } from './pages/UsersPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { KanbanPage } from './pages/KanbanPage';
 import { SuperAdminPage } from './pages/SuperAdminPage';
 import { SuperAdminLoginPage } from './pages/SuperAdminLoginPage';
 import { ImpersonationBanner } from './components/ImpersonationBanner';
@@ -84,6 +85,11 @@ export default function App() {
             <Route path="/financial" element={<FinancialPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
+        </Route>
+        
+        {/* Kanban — sem sidebar (tela cheia de pátio / modo TV) */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/kanban" element={<KanbanPage />} />
         </Route>
         
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -19,6 +19,7 @@ import {
   ChevronDown,
   Search,
   Bell,
+  Tv2,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -42,6 +43,7 @@ export function Layout() {
     { to: '/vehicles', icon: Car, label: 'Veículos' },
 
     { to: '/service-orders', icon: ClipboardList, label: 'Ordens de Serviço' },
+    { to: '/kanban', icon: Tv2, label: 'Kanban de Pátio', premium: true },
     { to: '/services', icon: Wrench, label: 'Serviços' },
     {
       to: '/inventory',

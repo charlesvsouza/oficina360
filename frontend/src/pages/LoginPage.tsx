@@ -15,6 +15,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { login } = useAuthStore();
+  const pendingCheckoutPlan = sessionStorage.getItem('pendingCheckoutPlan');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,6 +117,19 @@ export function LoginPage() {
               <p className="font-semibold mb-1">Falha ao iniciar checkout</p>
               <p className="text-orange-300/80">{checkoutError}</p>
               <p className="mt-2 text-orange-400/70 text-xs">Tente acessar o checkout pelo menu <strong>Configurações → Assinatura</strong>.</p>
+            </motion.div>
+          )}
+
+          {pendingCheckoutPlan && !checkoutError && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-blue-500/20 border border-blue-500/30 text-blue-100 p-4 rounded-xl text-sm mb-6"
+            >
+              <p className="font-semibold mb-1">Checkout pendente</p>
+              <p className="text-blue-200/90">
+                Faça login para continuar a assinatura do plano <strong>{pendingCheckoutPlan}</strong>.
+              </p>
             </motion.div>
           )}
 

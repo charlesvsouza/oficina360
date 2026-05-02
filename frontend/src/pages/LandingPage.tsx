@@ -275,7 +275,7 @@ export function LandingPage() {
       {/* ── Footer ── */}
       <footer className="relative z-10 border-t border-white/8 py-8 text-center">
         <p className="text-xs text-white/25">
-          © {new Date().getFullYear()} SygmaAuto · sigmaauto.com.br · Todos os direitos reservados
+          © {new Date().getFullYear()} SigmaAuto · sigmaauto.com.br · Todos os direitos reservados
         </p>
       </footer>
     </div>

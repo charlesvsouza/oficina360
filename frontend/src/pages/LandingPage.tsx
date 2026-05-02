@@ -60,7 +60,7 @@ export function LandingPage() {
           transition={{ duration: 0.6, delay: 0.32 }}
           className="mt-4 text-base text-white/45 max-w-2xl mx-auto"
         >
-          A home agora é objetiva: apresenta o produto, mostra os diferenciais principais e distribui o restante do conteúdo em páginas dedicadas para navegação mais limpa.
+          Menos planilha, menos retrabalho e mais clareza para decidir. Tudo em um fluxo simples, do atendimento ao fechamento da ordem de servico.
         </motion.p>
 
         <motion.div
@@ -135,9 +135,9 @@ export function LandingPage() {
       <section className="max-w-6xl mx-auto px-6 py-20">
         <div className="text-center mb-12">
           <p className="text-xs uppercase tracking-[0.25em] text-[#ff7b2f]/70 font-bold mb-3">Navegação Comercial</p>
-          <h2 className="text-3xl md:text-4xl font-black">Cada assunto agora tem sua própria página</h2>
+          <h2 className="text-3xl md:text-4xl font-black">Encontre rapido o que sua oficina precisa</h2>
           <p className="mt-3 text-white/45 text-sm max-w-2xl mx-auto">
-            Em vez de condensar tudo em uma landing longa, a navegação pública foi distribuída para reduzir rolagem excessiva e deixar cada tema com mais espaço.
+            Explore solucoes, diferenciais, suporte e canais de contato em paginas focadas para facilitar sua avaliacao da plataforma.
           </p>
         </div>
 

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
-import { Wrench, ArrowRight, Zap, ShieldCheck, BarChart3 } from 'lucide-react';
+import { Wrench, ArrowRight, ShieldCheck, BarChart3 } from 'lucide-react';
 
 const AUTO_ENTER_DURATION_MS = 60000;
 
@@ -60,13 +60,29 @@ const WelcomePage: React.FC = () => {
     <div className="min-h-screen bg-[#020617] text-white flex items-center justify-center overflow-hidden relative">
       {/* Pulse Glow Effect in Center */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <motion.div 
-          animate={{ 
-            scale: [1, 1.2, 1],
-            opacity: [0.1, 0.3, 0.1]
+        <motion.div
+          animate={{
+            scale: [1, 1.24, 1],
+            opacity: [0.14, 0.35, 0.14],
           }}
-          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-          className="w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[100px]"
+          transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
+          className="w-[420px] h-[420px] bg-blue-500/25 rounded-full blur-[90px]"
+        />
+        <motion.div
+          animate={{
+            scale: [0.85, 1.18, 1.32],
+            opacity: [0, 0.18, 0],
+          }}
+          transition={{ duration: 2.8, repeat: Infinity, ease: 'easeOut', delay: 0.45 }}
+          className="absolute w-[680px] h-[680px] rounded-full border border-blue-300/25 blur-[2px]"
+        />
+        <motion.div
+          animate={{
+            scale: [0.9, 1.35, 0.9],
+            opacity: [0.4, 0.75, 0.4],
+          }}
+          transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute w-4 h-4 rounded-full bg-blue-300/80 blur-[1px]"
         />
       </div>
 
@@ -93,6 +109,35 @@ const WelcomePage: React.FC = () => {
             </div>
             <div>
               <span className="text-xl font-bold tracking-tight text-white">Sigma Auto</span>
+              <div className="mt-1 h-6 w-[220px] rounded-full border border-blue-400/20 bg-slate-950/35 overflow-hidden relative">
+                <motion.svg
+                  viewBox="0 0 440 36"
+                  className="absolute inset-0 h-full w-[200%]"
+                  preserveAspectRatio="none"
+                  animate={{ x: [0, -220] }}
+                  transition={{ duration: 3.6, repeat: Infinity, ease: 'linear' }}
+                >
+                  <path
+                    d="M0 18 L440 18"
+                    stroke="rgba(148, 163, 184, 0.35)"
+                    strokeWidth="1.2"
+                    fill="none"
+                  />
+                  <path
+                    d="M0 18 L40 18 L52 18 L58 8 L64 28 L72 2 L82 34 L92 18 L180 18 L192 18 L198 8 L204 28 L212 2 L222 34 L232 18 L320 18 L332 18 L338 8 L344 28 L352 2 L362 34 L372 18 L440 18"
+                    stroke="#60a5fa"
+                    strokeWidth="2"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </motion.svg>
+                <motion.div
+                  className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-blue-300 shadow-[0_0_10px_rgba(96,165,250,0.95)]"
+                  animate={{ x: [-12, 228], opacity: [0, 1, 1, 0] }}
+                  transition={{ duration: 1.8, repeat: Infinity, ease: 'linear' }}
+                />
+              </div>
               <p className="text-[11px] text-slate-400 mt-0.5 tracking-wide">Sistema para Oficina Mecânica | ERP Automotivo</p>
             </div>
           </motion.div>

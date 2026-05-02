@@ -137,22 +137,22 @@ export const quickLinks = [
 
 export const news: NewsItem[] = [
   {
-    tag: 'Produto',
-    date: 'Mai 2026',
-    title: 'SigmaAuto lança bloqueio inteligente de downgrade de plano',
-    excerpt: 'A plataforma agora protege o cliente de rebaixamentos acidentais de plano, garantindo continuidade operacional até o vencimento da assinatura atual.',
+    tag: 'Em producao',
+    date: 'Em andamento',
+    title: 'Painel de produtividade por tecnico',
+    excerpt: 'Estamos evoluindo os indicadores operacionais para ajudar o gestor a acompanhar produtividade, tempo medio de execucao e gargalos da equipe com mais contexto.',
   },
   {
-    tag: 'SEO',
-    date: 'Mai 2026',
-    title: 'Presença digital: SigmaAuto no ar com domínio próprio e sitemap',
-    excerpt: 'Com o domínio sigmaauto.com.br configurado, sitemap.xml e robots.txt publicados, a plataforma está pronta para ser encontrada no Google.',
+    tag: 'Em breve',
+    date: 'Proximas entregas',
+    title: 'Lembretes inteligentes de revisao e retorno',
+    excerpt: 'Estamos preparando recursos para facilitar o relacionamento recorrente com o cliente, com comunicacoes de acompanhamento e lembretes de manutencao.',
   },
   {
-    tag: 'Experiência',
-    date: 'Mai 2026',
-    title: 'Nova tela de boas-vindas com identidade visual reforçada',
-    excerpt: 'A WelcomePage foi redesenhada com a tagline Sistema para Oficina Mecânica | ERP Automotivo e visual alinhado à landing page.',
+    tag: 'Em breve',
+    date: 'Planejamento continuo',
+    title: 'Mais automacoes no fluxo de O.S.',
+    excerpt: 'Estamos desenvolvendo melhorias para reduzir cliques no dia a dia, acelerar etapas da ordem de servico e tornar o fechamento mais previsivel.',
   },
 ];
 

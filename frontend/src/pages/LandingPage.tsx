@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowRight, CheckCircle2, Gauge, ShieldCheck, Zap,
@@ -113,12 +113,28 @@ export function LandingPage() {
     navigate(`/planos?plan=${planName}`);
   };
 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   const handleAccess = () => {
     if (useAuthStore.getState().isAuthenticated) {
       navigate('/dashboard');
     } else {
       navigate('/splash');
     }
+  };
+
+  const handleContactSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setContactSent(true);
+  };
+
+  const scrollTo = (id: string) => {
+    setMenuOpen(false);
+    setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' }), 50);
   };
 
   return (
@@ -133,19 +149,95 @@ export function LandingPage() {
         <div className="absolute top-[60%] right-[-6rem] w-[26rem] h-[26rem] rounded-full bg-[#2855d6]/8 blur-[100px]" />
       </div>
 
-      {/* ── Nav ── */}
-      <header className="relative z-10 max-w-5xl mx-auto px-6 pt-7 flex items-center justify-between">
-        <span className="text-sm font-bold tracking-[0.18em] text-white/40 uppercase">sigmaauto.com.br</span>
-        <button
-          onClick={handleAccess}
-          className="h-9 px-5 rounded-xl border border-white/15 text-sm font-bold text-white/80 hover:border-[#ff7b2f]/60 hover:text-white transition-all"
-        >
-          Acessar sistema
-        </button>
+      {/* ── Navbar ── */}
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          scrolled ? 'bg-[#090e17]/90 backdrop-blur-md border-b border-white/8 shadow-[0_4px_40px_rgba(0,0,0,0.4)]' : 'bg-transparent'
+        }`}
+      >
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between gap-6">
+          {/* Logo */}
+          <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="text-sm font-black tracking-tight text-white flex-shrink-0">
+            Sigma<span className="text-[#ff7b2f]">Auto</span>
+          </button>
+
+          {/* Links desktop */}
+          <nav className="hidden md:flex items-center gap-1">
+            {navLinks.map((link) => (
+              <button
+                key={link.label}
+                onClick={() => scrollTo(link.href.replace('#', ''))}
+                className="px-3 py-1.5 rounded-lg text-[13px] font-medium text-white/55 hover:text-white hover:bg-white/6 transition-all"
+              >
+                {link.label}
+              </button>
+            ))}
+            <Link
+              to="/privacidade"
+              className="px-3 py-1.5 rounded-lg text-[13px] font-medium text-white/55 hover:text-white hover:bg-white/6 transition-all"
+            >
+              Privacidade
+            </Link>
+          </nav>
+
+          {/* CTA + hamburguer */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleAccess}
+              className="h-8 px-4 rounded-xl border border-white/15 text-xs font-bold text-white/80 hover:border-[#ff7b2f]/60 hover:text-white hover:bg-[#ff7b2f]/8 transition-all hidden sm:flex items-center"
+            >
+              Acessar sistema
+            </button>
+            <button
+              onClick={() => setMenuOpen((v) => !v)}
+              className="md:hidden w-9 h-9 rounded-xl border border-white/15 flex items-center justify-center text-white/70 hover:text-white transition-colors"
+              aria-label="Menu"
+            >
+              {menuOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
+          </div>
+        </div>
+
+        {/* Menu mobile */}
+        <AnimatePresence>
+          {menuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="md:hidden border-t border-white/8 bg-[#090e17]/95 backdrop-blur-md overflow-hidden"
+            >
+              <div className="px-6 py-4 flex flex-col gap-1">
+                {navLinks.map((link) => (
+                  <button
+                    key={link.label}
+                    onClick={() => scrollTo(link.href.replace('#', ''))}
+                    className="text-left py-2.5 px-3 rounded-lg text-sm font-medium text-white/65 hover:text-white hover:bg-white/6 transition-all"
+                  >
+                    {link.label}
+                  </button>
+                ))}
+                <Link
+                  to="/privacidade"
+                  onClick={() => setMenuOpen(false)}
+                  className="py-2.5 px-3 rounded-lg text-sm font-medium text-white/65 hover:text-white hover:bg-white/6 transition-all"
+                >
+                  Privacidade
+                </Link>
+                <button
+                  onClick={handleAccess}
+                  className="mt-2 h-10 rounded-xl bg-[#ff7b2f] text-white font-bold text-sm"
+                >
+                  Acessar sistema
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
       {/* ── Hero ── */}
-      <section className="relative z-10 flex flex-col items-center text-center px-6 pt-24 pb-20">
+      <section className="relative z-10 flex flex-col items-center text-center px-6 pt-36 pb-20">
         {/* Badge */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -272,8 +364,384 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ── Planos ── */}
-      <section id="planos" className="relative z-10 max-w-5xl mx-auto px-6 pb-24">
+      {/* ═══════════════════════════════════════════════
+          ── Notícias ──
+      ═══════════════════════════════════════════════ */}
+      <section id="noticias" className="relative z-10 max-w-5xl mx-auto px-6 py-20">
+        <div className="text-center mb-12">
+          <p className="text-xs uppercase tracking-[0.25em] text-[#ff7b2f]/70 font-bold mb-3 flex items-center justify-center gap-2">
+            <Newspaper size={13} /> Notícias
+          </p>
+          <h2 className="text-3xl md:text-4xl font-black">Novidades da plataforma</h2>
+          <p className="mt-3 text-white/45 text-sm">Atualizações, lançamentos e melhorias do SigmaAuto.</p>
+        </div>
+        <div className="grid md:grid-cols-3 gap-5">
+          {news.map((item, i) => (
+            <motion.article
+              key={item.title}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1 }}
+              className="rounded-2xl border border-white/8 bg-white/4 backdrop-blur-sm p-6 flex flex-col hover:border-[#ff7b2f]/25 transition-colors"
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-[10px] font-black uppercase tracking-widest bg-[#ff7b2f]/15 text-[#ff7b2f] px-2 py-0.5 rounded-full">
+                  {item.tag}
+                </span>
+                <span className="text-[11px] text-white/30">{item.date}</span>
+              </div>
+              <h3 className="font-bold text-sm text-white leading-snug mb-2">{item.title}</h3>
+              <p className="text-xs text-white/50 leading-relaxed flex-1">{item.excerpt}</p>
+              <div className="mt-4 flex items-center gap-1 text-[#ff7b2f] text-xs font-bold">
+                Ler mais <ChevronRight size={13} />
+              </div>
+            </motion.article>
+          ))}
+        </div>
+      </section>
+
+      <div className="relative z-10 max-w-5xl mx-auto px-6">
+        <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      </div>
+
+      {/* ═══════════════════════════════════════════════
+          ── Soluções ──
+      ═══════════════════════════════════════════════ */}
+      <section id="solucoes" className="relative z-10 max-w-5xl mx-auto px-6 py-20">
+        <div className="text-center mb-12">
+          <p className="text-xs uppercase tracking-[0.25em] text-[#ff7b2f]/70 font-bold mb-3 flex items-center justify-center gap-2">
+            <Wrench size={13} /> Soluções
+          </p>
+          <h2 className="text-3xl md:text-4xl font-black">Tudo que sua oficina precisa</h2>
+          <p className="mt-3 text-white/45 text-sm">Módulos integrados para cada área da operação.</p>
+        </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {solutions.map(({ icon: Icon, title, desc }, i) => (
+            <motion.div
+              key={title}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.08 }}
+              className="rounded-2xl border border-white/8 bg-white/4 backdrop-blur-sm p-6 hover:border-[#ff7b2f]/30 transition-colors group"
+            >
+              <div className="w-11 h-11 rounded-xl bg-[#ff7b2f]/12 flex items-center justify-center mb-4 group-hover:bg-[#ff7b2f]/20 transition-colors">
+                <Icon size={22} className="text-[#ff7b2f]" />
+              </div>
+              <h3 className="font-bold text-sm text-white mb-2">{title}</h3>
+              <p className="text-xs text-white/50 leading-relaxed">{desc}</p>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      <div className="relative z-10 max-w-5xl mx-auto px-6">
+        <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      </div>
+
+      {/* ═══════════════════════════════════════════════
+          ── Quem Somos ──
+      ═══════════════════════════════════════════════ */}
+      <section id="quem-somos" className="relative z-10 max-w-5xl mx-auto px-6 py-20">
+        <div className="grid md:grid-cols-2 gap-12 items-center">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+          >
+            <p className="text-xs uppercase tracking-[0.25em] text-[#ff7b2f]/70 font-bold mb-3 flex items-center gap-2">
+              <HeartHandshake size={13} /> Quem Somos
+            </p>
+            <h2 className="text-3xl md:text-4xl font-black mb-6 leading-tight">
+              Feito por quem entende<br />
+              <span className="text-[#ff7b2f]">de oficina mecânica</span>
+            </h2>
+            <div className="space-y-4 text-white/60 text-sm leading-relaxed">
+              <p>
+                O SigmaAuto nasceu de uma frustração real: sistemas de gestão caros, complexos e que não foram pensados para a realidade da oficina brasileira.
+              </p>
+              <p>
+                Desenvolvemos uma plataforma <strong className="text-white">simples, rápida e completa</strong>, que qualquer mecânico consegue usar no primeiro dia — sem treinamento extenso, sem planilhas, sem papel.
+              </p>
+              <p>
+                Nossa missão é <strong className="text-white">digitalizar e profissionalizar as oficinas mecânicas do Brasil</strong>, dando para os donos o controle total da operação com indicadores em tempo real.
+              </p>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            className="grid grid-cols-2 gap-4"
+          >
+            {[
+              { value: '100%', label: 'Brasileiro', sub: 'Desenvolvido no Brasil, para o mercado nacional' },
+              { value: 'SaaS', label: 'Na nuvem', sub: 'Sem instalação, acesse de qualquer lugar' },
+              { value: '24/7', label: 'Disponível', sub: 'Servidores ativos todos os dias do ano' },
+              { value: '< 5min', label: 'Para começar', sub: 'Cadastro rápido, comece a usar hoje' },
+            ].map(({ value, label, sub }) => (
+              <div key={label} className="rounded-2xl border border-white/8 bg-white/4 p-5 text-center">
+                <p className="text-2xl font-black text-[#ff7b2f]">{value}</p>
+                <p className="text-sm font-bold text-white mt-1">{label}</p>
+                <p className="text-[11px] text-white/35 mt-1 leading-snug">{sub}</p>
+              </div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      <div className="relative z-10 max-w-5xl mx-auto px-6">
+        <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      </div>
+
+      {/* ═══════════════════════════════════════════════
+          ── Diferenciais ──
+      ═══════════════════════════════════════════════ */}
+      <section id="diferenciais" className="relative z-10 max-w-5xl mx-auto px-6 py-20">
+        <div className="text-center mb-12">
+          <p className="text-xs uppercase tracking-[0.25em] text-[#ff7b2f]/70 font-bold mb-3 flex items-center justify-center gap-2">
+            <Trophy size={13} /> Diferenciais
+          </p>
+          <h2 className="text-3xl md:text-4xl font-black">Por que escolher o SigmaAuto?</h2>
+          <p className="mt-3 text-white/45 text-sm">Veja o que nos torna a escolha certa para sua oficina.</p>
+        </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {diferenciais.map(({ icon: Icon, title, desc }, i) => (
+            <motion.div
+              key={title}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.08 }}
+              className="rounded-2xl border border-white/8 bg-white/4 backdrop-blur-sm p-6 hover:border-[#2855d6]/40 transition-colors group"
+            >
+              <div className="w-11 h-11 rounded-xl bg-[#2855d6]/12 flex items-center justify-center mb-4 group-hover:bg-[#2855d6]/20 transition-colors">
+                <Icon size={22} className="text-[#2855d6]" />
+              </div>
+              <h3 className="font-bold text-sm text-white mb-2">{title}</h3>
+              <p className="text-xs text-white/50 leading-relaxed">{desc}</p>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      <div className="relative z-10 max-w-5xl mx-auto px-6">
+        <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      </div>
+
+      {/* ═══════════════════════════════════════════════
+          ── Contato ──
+      ═══════════════════════════════════════════════ */}
+      <section id="contato" className="relative z-10 max-w-5xl mx-auto px-6 py-20">
+        <div className="grid md:grid-cols-2 gap-12 items-start">
+          <div>
+            <p className="text-xs uppercase tracking-[0.25em] text-[#ff7b2f]/70 font-bold mb-3 flex items-center gap-2">
+              <Mail size={13} /> Contato
+            </p>
+            <h2 className="text-3xl md:text-4xl font-black mb-6">Fale com a gente</h2>
+            <div className="space-y-4 text-sm text-white/60">
+              <p>Tem dúvidas, sugestões ou quer conhecer mais sobre o SigmaAuto? Nossa equipe responde em até 24 horas úteis.</p>
+              <div className="space-y-3 pt-2">
+                <a href="mailto:contato@sigmaauto.com.br" className="flex items-center gap-3 text-white/70 hover:text-white transition-colors">
+                  <div className="w-9 h-9 rounded-xl bg-white/6 flex items-center justify-center">
+                    <Mail size={16} className="text-[#ff7b2f]" />
+                  </div>
+                  contato@sigmaauto.com.br
+                </a>
+                <a href="mailto:suporte@sigmaauto.com.br" className="flex items-center gap-3 text-white/70 hover:text-white transition-colors">
+                  <div className="w-9 h-9 rounded-xl bg-white/6 flex items-center justify-center">
+                    <MessageCircle size={16} className="text-[#ff7b2f]" />
+                  </div>
+                  suporte@sigmaauto.com.br
+                </a>
+                <a href="https://wa.me/5511999999999" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-white/70 hover:text-white transition-colors">
+                  <div className="w-9 h-9 rounded-xl bg-white/6 flex items-center justify-center">
+                    <Phone size={16} className="text-[#ff7b2f]" />
+                  </div>
+                  WhatsApp (11) 99999-9999
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            {contactSent ? (
+              <div className="rounded-2xl border border-[#ff7b2f]/30 bg-[#ff7b2f]/8 p-8 text-center">
+                <CheckCircle2 size={40} className="text-[#ff7b2f] mx-auto mb-4" />
+                <h3 className="text-lg font-black text-white mb-2">Mensagem enviada!</h3>
+                <p className="text-sm text-white/55">Responderemos em breve no e-mail informado.</p>
+                <button
+                  onClick={() => { setContactSent(false); setContactForm({ name: '', email: '', message: '' }); }}
+                  className="mt-5 text-xs text-[#ff7b2f] hover:underline"
+                >
+                  Enviar outra mensagem
+                </button>
+              </div>
+            ) : (
+              <form
+                onSubmit={handleContactSubmit}
+                className="rounded-2xl border border-white/8 bg-white/4 backdrop-blur-sm p-6 space-y-4"
+              >
+                <div>
+                  <label className="block text-xs text-white/50 mb-1.5 font-medium">Seu nome</label>
+                  <input
+                    type="text"
+                    required
+                    value={contactForm.name}
+                    onChange={(e) => setContactForm((f) => ({ ...f, name: e.target.value }))}
+                    className="w-full h-10 rounded-xl bg-white/6 border border-white/10 px-3 text-sm text-white placeholder-white/25 focus:outline-none focus:border-[#ff7b2f]/50"
+                    placeholder="Nome completo"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-white/50 mb-1.5 font-medium">E-mail</label>
+                  <input
+                    type="email"
+                    required
+                    value={contactForm.email}
+                    onChange={(e) => setContactForm((f) => ({ ...f, email: e.target.value }))}
+                    className="w-full h-10 rounded-xl bg-white/6 border border-white/10 px-3 text-sm text-white placeholder-white/25 focus:outline-none focus:border-[#ff7b2f]/50"
+                    placeholder="seu@email.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-white/50 mb-1.5 font-medium">Mensagem</label>
+                  <textarea
+                    required
+                    rows={4}
+                    value={contactForm.message}
+                    onChange={(e) => setContactForm((f) => ({ ...f, message: e.target.value }))}
+                    className="w-full rounded-xl bg-white/6 border border-white/10 px-3 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-[#ff7b2f]/50 resize-none"
+                    placeholder="Como podemos ajudar?"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full h-11 rounded-xl bg-[#ff7b2f] text-white font-black text-sm hover:bg-[#f06820] transition-colors flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,123,47,0.35)]"
+                >
+                  Enviar mensagem <Send size={15} />
+                </button>
+              </form>
+            )}
+          </motion.div>
+        </div>
+      </section>
+
+      <div className="relative z-10 max-w-5xl mx-auto px-6">
+        <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      </div>
+
+      {/* ═══════════════════════════════════════════════
+          ── Suporte ──
+      ═══════════════════════════════════════════════ */}
+      <section id="suporte" className="relative z-10 max-w-5xl mx-auto px-6 py-20">
+        <div className="text-center mb-12">
+          <p className="text-xs uppercase tracking-[0.25em] text-[#ff7b2f]/70 font-bold mb-3 flex items-center justify-center gap-2">
+            <BookOpen size={13} /> Suporte
+          </p>
+          <h2 className="text-3xl md:text-4xl font-black">Estamos aqui para ajudar</h2>
+          <p className="mt-3 text-white/45 text-sm">Recursos para você tirar o máximo do SigmaAuto.</p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-5">
+          {/* Manual do usuário */}
+          <motion.a
+            href="https://github.com/charlesvsouza/sygmaauto/blob/master/MANUAL_USUARIO.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0 }}
+            className="rounded-2xl border border-[#ff7b2f]/25 bg-[#ff7b2f]/6 p-6 flex flex-col hover:border-[#ff7b2f]/50 hover:bg-[#ff7b2f]/10 transition-all group cursor-pointer"
+          >
+            <div className="w-11 h-11 rounded-xl bg-[#ff7b2f]/15 flex items-center justify-center mb-4 group-hover:bg-[#ff7b2f]/25 transition-colors">
+              <BookOpen size={22} className="text-[#ff7b2f]" />
+            </div>
+            <h3 className="font-bold text-white mb-2">Manual do Usuário</h3>
+            <p className="text-xs text-white/50 leading-relaxed flex-1">
+              Guia completo com passo a passo de todas as funcionalidades: OS, clientes, financeiro, estoque, usuários e muito mais.
+            </p>
+            <div className="mt-4 flex items-center gap-1 text-[#ff7b2f] text-xs font-bold">
+              Acessar manual <ChevronRight size={13} />
+            </div>
+          </motion.a>
+
+          {/* E-mail de suporte */}
+          <motion.a
+            href="mailto:suporte@sigmaauto.com.br"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="rounded-2xl border border-white/8 bg-white/4 p-6 flex flex-col hover:border-white/20 transition-all group cursor-pointer"
+          >
+            <div className="w-11 h-11 rounded-xl bg-white/6 flex items-center justify-center mb-4 group-hover:bg-white/10 transition-colors">
+              <Mail size={22} className="text-white/60" />
+            </div>
+            <h3 className="font-bold text-white mb-2">E-mail de Suporte</h3>
+            <p className="text-xs text-white/50 leading-relaxed flex-1">
+              Envie um e-mail para <strong className="text-white">suporte@sigmaauto.com.br</strong> e nossa equipe responderá em até 24 horas úteis.
+            </p>
+            <div className="mt-4 flex items-center gap-1 text-white/40 text-xs font-bold group-hover:text-white transition-colors">
+              Enviar e-mail <ChevronRight size={13} />
+            </div>
+          </motion.a>
+
+          {/* WhatsApp */}
+          <motion.a
+            href="https://wa.me/5511999999999"
+            target="_blank"
+            rel="noopener noreferrer"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="rounded-2xl border border-white/8 bg-white/4 p-6 flex flex-col hover:border-white/20 transition-all group cursor-pointer"
+          >
+            <div className="w-11 h-11 rounded-xl bg-white/6 flex items-center justify-center mb-4 group-hover:bg-white/10 transition-colors">
+              <Phone size={22} className="text-white/60" />
+            </div>
+            <h3 className="font-bold text-white mb-2">Suporte via WhatsApp</h3>
+            <p className="text-xs text-white/50 leading-relaxed flex-1">
+              Fale diretamente com nossa equipe de suporte pelo WhatsApp. Atendimento de segunda a sexta, das 9h às 18h.
+            </p>
+            <div className="mt-4 flex items-center gap-1 text-white/40 text-xs font-bold group-hover:text-white transition-colors">
+              Abrir WhatsApp <ChevronRight size={13} />
+            </div>
+          </motion.a>
+        </div>
+
+        {/* FAQ rápido */}
+        <div className="mt-10 rounded-2xl border border-white/8 bg-white/4 p-6">
+          <h3 className="font-black text-white mb-5 text-lg">Perguntas frequentes</h3>
+          <div className="space-y-4">
+            {[
+              ['Posso acessar pelo celular?', 'Sim. O SigmaAuto é responsivo e funciona em qualquer navegador mobile.'],
+              ['Preciso instalar algum programa?', 'Não. É 100% na nuvem — basta um navegador e internet.'],
+              ['Meus dados estão seguros?', 'Sim. Cada oficina tem dados isolados com criptografia e backup automático.'],
+              ['Como faço para adicionar um mecânico?', 'Acesse Usuários → Convidar Usuário, informe o e-mail e o perfil "Mecânico".'],
+            ].map(([pergunta, resposta]) => (
+              <div key={pergunta as string} className="border-b border-white/6 pb-4 last:border-0 last:pb-0">
+                <p className="font-bold text-sm text-white mb-1">{pergunta}</p>
+                <p className="text-xs text-white/50 leading-relaxed">{resposta}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <div className="relative z-10 max-w-5xl mx-auto px-6">
+        <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      </div>
+
+      {/* ── Planos ── */} className="relative z-10 max-w-5xl mx-auto px-6 pb-24">
         <div className="text-center mb-12">
           <p className="text-xs uppercase tracking-[0.25em] text-[#ff7b2f]/70 font-bold mb-3">Planos</p>
           <h2 className="text-3xl md:text-4xl font-black">Escolha e inicie sua assinatura</h2>
@@ -380,7 +848,8 @@ export function LandingPage() {
           {/* Copyright */}
           <p className="text-[11px] text-white/25 text-center md:text-right">
             © {new Date().getFullYear()} SigmaAuto · sigmaauto.com.br<br />
-            Todos os direitos reservados
+            <Link to="/privacidade" className="hover:text-[#ff7b2f] transition-colors">Política de Privacidade</Link>
+            {' · '}Todos os direitos reservados
           </p>
         </div>
       </footer>

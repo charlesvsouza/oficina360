@@ -5,6 +5,7 @@ import { SuperAdminRoute } from './components/SuperAdminRoute';
 import { Layout } from './components/Layout';
 import { InitialSplash } from './pages/InitialSplash';
 import { LandingPage } from './pages/LandingPage';
+import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
@@ -31,6 +32,7 @@ export default function App() {
       <Routes>
         {/* Landing comercial */}
         <Route path="/" element={<LandingPage />} />
+        <Route path="/privacidade" element={<PrivacyPolicyPage />} />
         <Route path="/splash" element={<InitialSplash />} />
         
         {/* Área de Gestão Global — protegida por token de super admin */}

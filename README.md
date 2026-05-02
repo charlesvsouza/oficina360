@@ -1,215 +1,150 @@
-# Oficina360 - Multi-tenant SaaS for Automotive Workshops
+# SigmaAuto — ERP para Oficinas Mecânicas
 
-<p align="center">
-  <img src="https://via.placeholder.com/150x50?text=Oficina360" alt="Oficina360" />
-</p>
+Sistema SaaS multi-tenant para gestão completa de oficinas mecânicas.
 
-A complete multi-tenant SaaS application for managing automotive workshops with subscription billing, service orders, inventory, and financial management.
+**Site:** [sigmaauto.com.br](https://sigmaauto.com.br)
 
-## Tech Stack
+---
 
-**Backend:**
-- Node.js + NestJS
-- Prisma ORM
-- PostgreSQL
-- JWT Authentication
+## Stack
 
-**Frontend:**
-- React + Vite
-- TailwindCSS
-- Zustand (State Management)
-- React Router
+| Camada | Tecnologias |
+|---|---|
+| **Frontend** | React 18 + Vite + TypeScript + TailwindCSS + Framer Motion |
+| **Backend** | NestJS + TypeScript + Prisma ORM |
+| **Banco de Dados** | PostgreSQL |
+| **Auth** | JWT (access + refresh token), multi-tenant |
+| **Pagamentos** | Mercado Pago Checkout Pro |
+| **Deploy** | Vercel (frontend) + Railway (backend) |
+| **CI/CD** | GitHub Actions |
 
-**Infrastructure:**
+---
+
+## Módulos
+
+- **Autenticação** — login, registro, JWT, refresh, roles
+- **Multi-tenant** — isolamento completo por oficina
+- **Clientes** — CRM com histórico de OS
+- **Veículos** — cadastro por cliente, placa, modelo, ano
+- **Ordens de Serviço** — ciclo completo: abertura → diagnóstico → aprovação → execução → entrega → pagamento
+- **Serviços** — catálogo com preço, TMO, categoria
+- **Estoque** — peças, movimentações, quick-add na OS
+- **Financeiro** — lançamentos, receitas/despesas, summary mensal
+- **Usuários** — CRUD com roles e permissões
+- **Assinaturas** — planos START/PRO/REDE, checkout online, upgrade/downgrade controlado
+- **Super Admin** — painel de gestão de todos os tenants
+
+---
+
+## Planos
+
+| | START | PRO | REDE |
+|---|---|---|---|
+| Preço | R\$ 149/mês | R\$ 299/mês | Sob consulta |
+| Usuários | até 3 | até 10 | ilimitado |
+| OS/mês | 50 | ilimitado | ilimitado |
+
+---
+
+## Desenvolvimento Local
+
+### Pré-requisitos
+
+- Node.js 20+
 - Docker + Docker Compose
+- PostgreSQL 15+ (ou via Docker)
 
-## Features
+### Instalação
 
-### Subscription Plans
-
-| Feature | BASIC | PREMIUM | MASTER |
-|---------|-------|---------|--------|
-| Customers | ✅ | ✅ | ✅ |
-| Vehicles | ✅ | ✅ | ✅ |
-| Service Orders | ✅ | ✅ | ✅ |
-| Manual Financial | ✅ | ✅ | ✅ |
-| Inventory | ❌ | ✅ | ✅ |
-| Dashboard Analytics | ❌ | ✅ | ✅ |
-| WhatsApp Notifications | ❌ | ✅ | ✅ |
-| Service Approval Link | ❌ | ✅ | ✅ |
-| Advanced Reports | ❌ | ❌ | ✅ |
-| Automation Triggers | ❌ | ❌ | ✅ |
-
-### Core Modules
-
-- **Tenants** - Multi-tenant workshop management
-- **Users** - Role-based access (Admin, Manager, Mechanic, Reception, Finance)
-- **Customers** - Customer CRM
-- **Vehicles** - Vehicle management with plate tracking
-- **Service Orders** - Full OS lifecycle with timeline
-- **Services Catalog** - Service pricing and duration
-- **Inventory** - Parts and stock management (Premium+)
-- **Financial** - Income/expense tracking
-- **Subscriptions** - Plan-based access control
-
-## Quick Start
-
-### Prerequisites
-
-- Node.js 18+
-- Docker & Docker Compose
-- PostgreSQL 15+
-
-### Development Setup
-
-1. **Clone and install dependencies:**
-
-```bash
+\\\ash
 # Backend
 cd backend
 npm install
 npx prisma generate
+npx prisma migrate dev
 
 # Frontend
 cd frontend
 npm install
-```
+\\\
 
-2. **Configure environment:**
+### Variáveis de Ambiente
 
-```bash
-cp backend/.env.example backend/.env
-# Edit .env with your database credentials
-```
+\\\ash
+# backend/.env
+DATABASE_URL=postgresql://user:pass@localhost:5432/sygmaauto
+JWT_SECRET=<openssl rand -hex 32>
+JWT_REFRESH_SECRET=<openssl rand -hex 32>
+FRONTEND_URL=http://localhost:5173
+NODE_ENV=development
+PORT=3000
 
-3. **Start database:**
+# frontend/.env
+VITE_API_URL=http://localhost:3000
+\\\
 
-```bash
-docker-compose up -d postgres
-```
+### Executar
 
-4. **Run migrations and seed:**
-
-```bash
-cd backend
-npx prisma migrate dev
-npm run prisma:seed
-```
-
-5. **Start development servers:**
-
-```bash
-# Backend (terminal 1)
+\\\ash
+# Backend
 cd backend && npm run start:dev
 
-# Frontend (terminal 2)
+# Frontend
 cd frontend && npm run dev
-```
+\\\
 
-### Docker Setup
+### Docker
 
-```bash
-# Start all services
+\\\ash
 docker-compose up -d
+\\\
 
-# View logs
-docker-compose logs -f
+---
 
-# Stop all services
-docker-compose down
-```
+## Deploy
 
-## Demo Credentials
+| Ambiente | Frontend | Backend |
+|---|---|---|
+| Produção | Vercel (auto-deploy via GitHub Actions) | Railway (auto-deploy via GitHub Actions) |
 
-| Role | Email | Password |
-|------|-------|----------|
-| Admin | admin@demo.com | admin123 |
-| Manager | manager@demo.com | manager123 |
-| Mechanic | mechanic@demo.com | mechanic123 |
+Push para master dispara o pipeline de CI/CD automaticamente.
 
-## API Endpoints
+---
 
-### Authentication
-- `POST /auth/register` - Register new tenant
-- `POST /auth/login` - User login
-- `POST /auth/refresh` - Refresh token
+## Roles
 
-### Tenants
-- `GET /tenants/me` - Get current tenant
-- `PATCH /tenants/me` - Update tenant
+| Role | Descrição |
+|---|---|
+| MASTER | Proprietário. Um por tenant. Acesso total. |
+| ADMIN | Gerência operacional. Pode convidar usuários. |
+| GERENTE | Gerência sem acesso a configurações. |
+| SECRETARIA | Atendimento e cadastros. |
+| MECANICO | Execução técnica. Sem acesso a valores. |
+| FINANCEIRO | Fechamento, pagamentos e relatórios. |
 
-### Users
-- `GET /users` - List users
-- `POST /users` - Create user (Admin)
-- `PATCH /users/:id` - Update user
+---
 
-### Customers
-- `GET /customers` - List customers
-- `POST /customers` - Create customer
-- `PATCH /customers/:id` - Update customer
+## Estrutura do Repositório
 
-### Vehicles
-- `GET /vehicles` - List vehicles
-- `POST /vehicles` - Create vehicle
-- `PATCH /vehicles/:id` - Update vehicle
-
-### Service Orders
-- `GET /service-orders` - List OS
-- `POST /service-orders` - Create OS
-- `PATCH /service-orders/:id` - Update OS
-- `POST /service-orders/:id/request-approval` - Request approval
-
-### Inventory (Premium+)
-- `GET /inventory/parts` - List parts
-- `POST /inventory/parts` - Create part
-- `POST /inventory/movements` - Stock movement
-
-### Financial
-- `GET /financial` - List transactions
-- `POST /financial` - Create transaction
-- `GET /financial/summary` - Financial summary
-
-### Subscriptions
-- `GET /subscriptions/current` - Current subscription
-- `GET /subscriptions/plans` - Available plans
-- `POST /subscriptions/change-plan` - Change plan
-
-## Project Structure
-
-```
-oficina360/
-├── backend/
+\\\
+sygmaauto/
+├── backend/          # NestJS API
+│   ├── src/          # Código-fonte (módulos por domínio)
+│   └── prisma/       # Schema e migrations
+├── frontend/         # React + Vite
 │   ├── src/
-│   │   ├── auth/           # Authentication module
-│   │   ├── tenants/       # Tenant management
-│   │   ├── users/         # User management
-│   │   ├── customers/     # Customer CRM
-│   │   ├── vehicles/      # Vehicle management
-│   │   ├── service-orders/# OS management
-│   │   ├── services/      # Services catalog
-│   │   ├── inventory/    # Inventory (Premium+)
-│   │   ├── financial/    # Financial module
-│   │   ├── subscriptions/# Subscription management
-│   │   ├── common/       # Shared utilities
-│   │   └── prisma/       # Prisma service
-│   ├── prisma/
-│   │   ├── schema.prisma # Database schema
-│   │   └── seed.ts      # Seed script
-│   └── Dockerfile
-├── frontend/
-│   ├── src/
-│   │   ├── api/          # API client
-│   │   ├── components/  # Reusable components
-│   │   ├── pages/       # Page components
-│   │   ├── store/       # Zustand stores
-│   │   ├── App.tsx      # Main app
-│   │   └── main.tsx     # Entry point
-│   ├── index.html
-│   └── Dockerfile
-├── docker-compose.yml
-└── README.md
-```
+│   │   ├── pages/    # Páginas da aplicação
+│   │   ├── components/
+│   │   ├── api/      # Chamadas à API (Axios)
+│   │   └── store/    # Estado global (Zustand)
+│   └── public/       # sitemap.xml, robots.txt
+├── .github/
+│   └── workflows/    # CI/CD GitHub Actions
+└── docker-compose.yml
+\\\
 
-## License
+---
 
-MIT License - See LICENSE file for details.
+## Licença
+
+Proprietário — todos os direitos reservados © 2026 SigmaAuto

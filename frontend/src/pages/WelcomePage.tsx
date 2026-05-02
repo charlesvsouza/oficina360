@@ -93,7 +93,7 @@ const WelcomePage: React.FC = () => {
             </div>
             <div>
               <span className="text-xl font-bold tracking-tight text-white">Sigma Auto</span>
-              <div className="h-1 w-full bg-blue-500/40 rounded-full mt-0.5" />
+              <p className="text-[11px] text-slate-400 mt-0.5 tracking-wide">Sistema para Oficina Mecânica | ERP Automotivo</p>
             </div>
           </motion.div>
 
@@ -116,7 +116,7 @@ const WelcomePage: React.FC = () => {
                 className="text-slate-300 text-lg mb-8 leading-relaxed"
               >
                 {user?.name
-                  ? `Olá, ${user.name.split(' ')[0]}. Tudo pronto para levar sua oficina ao próximo nível com a LexGen.`
+                  ? `Olá, ${user.name.split(' ')[0]}. Tudo pronto para levar sua oficina ao próximo nível com a Sigma Auto.`
                   : 'Sua plataforma de gestão automotiva completa está pronta.'}
               </motion.p>
 
@@ -159,7 +159,7 @@ const WelcomePage: React.FC = () => {
           <div className="mt-12 pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-              <span className="text-xs font-medium text-slate-500 uppercase tracking-widest">LexGen Cloud Online</span>
+              <span className="text-xs font-medium text-slate-500 uppercase tracking-widest">Sigma Auto Cloud Online</span>
             </div>
             
             <div className="flex flex-col md:items-end gap-2">

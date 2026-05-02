@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight, CheckCircle2, ChevronRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MarketingShell } from '../components/marketing/MarketingShell';
+import { EcgPulse } from '../components/marketing/EcgPulse';
 import { features, plans, quickLinks, type Plan } from '../data/marketingContent';
 import { useAuthStore } from '../store/authStore';
 
@@ -62,35 +63,9 @@ export function LandingPage() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.17 }}
-          className="mx-auto mt-4 h-6 w-[260px] rounded-full border border-[#ff7b2f]/25 bg-[#0d1220]/40 overflow-hidden relative"
+          className="mx-auto mt-4"
         >
-          <motion.svg
-            viewBox="0 0 520 36"
-            className="absolute inset-0 h-full w-[200%]"
-            preserveAspectRatio="none"
-            animate={{ x: [0, -260] }}
-            transition={{ duration: 3.5, repeat: Infinity, ease: 'linear' }}
-          >
-            <path
-              d="M0 18 L520 18"
-              stroke="rgba(148, 163, 184, 0.35)"
-              strokeWidth="1.2"
-              fill="none"
-            />
-            <path
-              d="M0 18 L52 18 L66 18 L74 6 L84 30 L95 2 L108 34 L122 18 L214 18 L228 18 L236 6 L246 30 L257 2 L270 34 L284 18 L376 18 L390 18 L398 6 L408 30 L419 2 L432 34 L446 18 L520 18"
-              stroke="#fb923c"
-              strokeWidth="2"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </motion.svg>
-          <motion.div
-            className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-[#fdba74] shadow-[0_0_10px_rgba(253,186,116,0.95)]"
-            animate={{ x: [-12, 268], opacity: [0, 1, 1, 0] }}
-            transition={{ duration: 1.8, repeat: Infinity, ease: 'linear' }}
-          />
+          <EcgPulse className="mx-auto h-7 w-[340px] rounded-full border border-[#ff7b2f]/25 bg-[#0d1220]/40 overflow-hidden relative" />
         </motion.div>
 
         <motion.p

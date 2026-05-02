@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
 import { authApi, subscriptionsApi } from '../api/client';
 import { Wrench, Mail, Lock, Loader2, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { EcgPulse } from '../components/marketing/EcgPulse';
+
+const LOGIN_PROGRESS_DURATION_MS = 30000;
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
@@ -12,10 +15,27 @@ export function LoginPage() {
   const [error, setError] = useState('');
   const [checkoutError, setCheckoutError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { login } = useAuthStore();
   const pendingCheckoutPlan = sessionStorage.getItem('pendingCheckoutPlan');
+
+  useEffect(() => {
+    if (!loading) {
+      setLoadingProgress(0);
+      return;
+    }
+
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => {
+      const elapsed = Date.now() - startedAt;
+      const nextProgress = Math.min(elapsed / LOGIN_PROGRESS_DURATION_MS, 1);
+      setLoadingProgress(nextProgress);
+    }, 100);
+
+    return () => window.clearInterval(timer);
+  }, [loading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -184,6 +204,26 @@ export function LoginPage() {
                 </>
               )}
             </button>
+
+            {loading ? (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="pt-2"
+              >
+                <EcgPulse
+                  className="h-6 w-full rounded-full border border-blue-400/25 bg-slate-950/35 overflow-hidden relative"
+                  lineColor="#60a5fa"
+                  pointColor="#93c5fd"
+                  waveDuration={2.1}
+                  travelDuration={3.1}
+                  pointProgress={loadingProgress}
+                />
+                <p className="mt-2 text-[11px] uppercase tracking-[0.12em] text-slate-400 text-center">
+                  Conectando... {Math.round(loadingProgress * 100)}%
+                </p>
+              </motion.div>
+            ) : null}
           </form>
 
           <div className="mt-10 pt-8 border-t border-white/5 text-center">

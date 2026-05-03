@@ -15,6 +15,6 @@ COPY backend/package*.json ./
 RUN if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
-RUN npx prisma generate
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 EXPOSE 3000
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node dist/main"]
+CMD ["sh", "-c", "npx prisma generate && npx prisma db push --accept-data-loss && node dist/main"]

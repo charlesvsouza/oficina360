@@ -28,6 +28,7 @@ import { ServiceOrdersPage } from './pages/ServiceOrdersPage';
 import { ServicesPage } from './pages/ServicesPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { FinancialPage } from './pages/FinancialPage';
+import { DREPage } from './pages/DREPage';
 import { UsersPage } from './pages/UsersPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { KanbanPage } from './pages/KanbanPage';
@@ -84,6 +85,7 @@ export default function App() {
             <Route path="/services" element={<ServicesPage />} />
             <Route path="/inventory" element={<InventoryPage />} />
             <Route path="/financial" element={<FinancialPage />} />
+            <Route path="/dre" element={<DREPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/whatsapp" element={<WhatsappPage />} />
           </Route>

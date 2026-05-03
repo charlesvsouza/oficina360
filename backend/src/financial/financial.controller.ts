@@ -28,6 +28,21 @@ export class FinancialController {
     );
   }
 
+  @Get('dre')
+  @ApiOperation({ summary: 'DRE — Demonstrativo de Resultado do Exercício' })
+  async getDRE(
+    @Tenant() tenant: { tenantId: string },
+    @Query('year') year?: string,
+    @Query('month') month?: string,
+  ) {
+    const now = new Date();
+    return this.financialService.getDRE(
+      tenant.tenantId,
+      year ? parseInt(year) : now.getFullYear(),
+      month ? parseInt(month) : now.getMonth() + 1,
+    );
+  }
+
   @Get('summary')
   @ApiOperation({ summary: 'Get financial summary' })
   async getSummary(

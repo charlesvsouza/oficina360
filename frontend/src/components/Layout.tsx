@@ -21,6 +21,7 @@ import {
   Bell,
   Tv2,
   MessageCircle,
+  BarChart3,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -56,6 +57,12 @@ export function Layout() {
       to: '/financial',
       icon: DollarSign,
       label: 'Financeiro',
+      premium: true,
+    },
+    {
+      to: '/dre',
+      icon: BarChart3,
+      label: 'DRE',
       premium: true,
     },
     { to: '/settings', icon: Settings, label: 'Configurações' },

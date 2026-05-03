@@ -1,8 +1,8 @@
 # Checkpoint Oficina360 — Para Copilot
 
-**Data:** 2026-05-01  
+**Data:** 2026-05-31  
 **Branch:** master  
-**Último commit:** `4bee7f0 feat(users): adiciona roles GERENTE, SECRETARIA, MECANICO na UsersPage`
+**Último commit:** `7fb5ce8 fix(whatsapp): adiciona coluna wavoipToken em Setting para Evolution API v2.3.7`
 
 ---
 

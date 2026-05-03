@@ -184,6 +184,8 @@ export const financialApi = {
     api.get('/financial', { params: { startDate, endDate } }),
   getSummary: (startDate?: string, endDate?: string) =>
     api.get('/financial/summary', { params: { startDate, endDate } }),
+  getDRE: (year: number, month: number) =>
+    api.get('/financial/dre', { params: { year, month } }),
   create: (data: any) => api.post('/financial', data),
   delete: (id: string) => api.delete(`/financial/${id}`),
 };

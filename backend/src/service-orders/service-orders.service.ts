@@ -190,7 +190,13 @@ export class ServiceOrdersService {
       include: {
         customer: true,
         vehicle: true,
-        items: { include: { service: true, part: true, assignedUser: { select: { id: true, name: true } } } },
+        items: {
+          include: {
+            service: true,
+            part: true,
+            assignedUser: { select: { id: true, name: true, role: true, jobFunction: true, workshopArea: true } },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -202,7 +208,13 @@ export class ServiceOrdersService {
       include: {
         customer: true,
         vehicle: true,
-        items: { include: { service: true, part: true, assignedUser: { select: { id: true, name: true } } } },
+        items: {
+          include: {
+            service: true,
+            part: true,
+            assignedUser: { select: { id: true, name: true, role: true, jobFunction: true, workshopArea: true } },
+          },
+        },
         timeline: { orderBy: { createdAt: 'desc' } },
       },
     });
@@ -280,7 +292,7 @@ export class ServiceOrdersService {
         vehicle: true,
         items: {
           include: {
-            assignedUser: { select: { id: true, name: true } },
+            assignedUser: { select: { id: true, name: true, role: true, jobFunction: true, workshopArea: true } },
           },
         },
       },
@@ -344,7 +356,11 @@ export class ServiceOrdersService {
       include: {
         customer: true,
         vehicle: true,
-        items: { include: { assignedUser: { select: { id: true, name: true } } } },
+        items: {
+          include: {
+            assignedUser: { select: { id: true, name: true, role: true, jobFunction: true, workshopArea: true } },
+          },
+        },
       },
     });
   }
@@ -542,7 +558,11 @@ export class ServiceOrdersService {
       include: {
         customer: true,
         vehicle: true,
-        items: { include: { assignedUser: { select: { id: true, name: true } } } },
+        items: {
+          include: {
+            assignedUser: { select: { id: true, name: true, role: true, jobFunction: true, workshopArea: true } },
+          },
+        },
       },
     });
 

@@ -6,11 +6,11 @@ import { serviceOrdersApi, customersApi, vehiclesApi, inventoryApi, financialApi
 import {
   Users, Car, ClipboardList, DollarSign, TrendingUp,
   Clock, CheckCircle, Loader2, Zap, ArrowRight, Plus,
-  Package, Activity, Calendar, AlertTriangle, Wrench,
+  Package, Activity, Calendar, AlertTriangle, Wrench, Trophy, Target, BarChart3,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell, PieChart, Pie, Legend,
+  ResponsiveContainer, Cell, PieChart, Pie, Legend, LineChart, Line,
 } from 'recharts';
 import { cn } from '../lib/utils';
 
@@ -27,6 +27,22 @@ const STATUS_COLORS: Record<string, string> = {
   ABERTA: '#94a3b8', EM_DIAGNOSTICO: '#818cf8', ORCAMENTO_PRONTO: '#60a5fa',
   AGUARDANDO_APROVACAO: '#fb923c', APROVADO: '#34d399', AGUARDANDO_PECAS: '#fbbf24',
   EM_EXECUCAO: '#22d3ee', PRONTO_ENTREGA: '#a78bfa', FATURADO: '#4ade80', ENTREGUE: '#1e293b',
+};
+
+const PRODUCTIVITY_FUNCTIONS = [
+  'MECANICO',
+  'ELETRICISTA',
+  'PINTOR',
+  'LAVADOR',
+  'EMBELEZADOR_AUTOMOTIVO',
+];
+
+const FUNCTION_LABEL: Record<string, string> = {
+  MECANICO: 'Mecânico',
+  ELETRICISTA: 'Eletricista',
+  PINTOR: 'Pintor',
+  LAVADOR: 'Lavador',
+  EMBELEZADOR_AUTOMOTIVO: 'Embelezador',
 };
 
 function getLast6Months() {
@@ -123,6 +139,102 @@ export function DashboardPage() {
     });
   }, [orders]);
 
+  const productivityData = useMemo(() => {
+    const completedOrders = orders.filter((o: any) => COMPLETED_STATUSES.includes(o.status));
+    const allServiceItems = completedOrders.flatMap((o: any) =>
+      (o.items || []).filter((i: any) => ['service', 'labor'].includes(String(i.type || '').toLowerCase())),
+    );
+
+    const assignedServiceItems = allServiceItems.filter((i: any) => Boolean(i.assignedUserId));
+    const assignedExecutors = new Set(
+      assignedServiceItems.map((i: any) => String(i.assignedUserId)).filter(Boolean),
+    );
+
+    const eficiencia = allServiceItems.length > 0
+      ? (assignedServiceItems.length / allServiceItems.length) * 100
+      : 0;
+
+    const eficaciaDen = stats.completedOrders + stats.canceledOrders;
+    const eficacia = eficaciaDen > 0 ? (stats.completedOrders / eficaciaDen) * 100 : 0;
+
+    const produtividade = assignedExecutors.size > 0
+      ? assignedServiceItems.reduce((s: number, i: any) => s + Number(i.quantity || 1), 0) / assignedExecutors.size
+      : 0;
+
+    const ticketMedio = stats.completedOrders > 0 ? stats.revenue / stats.completedOrders : 0;
+
+    const cicloDias = completedOrders.length > 0
+      ? completedOrders.reduce((sum: number, o: any) => {
+          const start = new Date(o.createdAt);
+          const end = new Date(o.deliveredAt || o.updatedAt || o.createdAt);
+          const days = Math.max(0, (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+          return sum + days;
+        }, 0) / completedOrders.length
+      : 0;
+
+    const byProfessional = new Map<string, any>();
+    assignedServiceItems.forEach((item: any) => {
+      const user = item.assignedUser;
+      if (!user) return;
+      const fn = String(user.jobFunction || user.role || '').toUpperCase();
+      if (!PRODUCTIVITY_FUNCTIONS.includes(fn)) return;
+
+      const key = `${fn}:${user.id}`;
+      const current = byProfessional.get(key) || {
+        functionKey: fn,
+        functionLabel: FUNCTION_LABEL[fn] || fn,
+        userId: user.id,
+        userName: user.name,
+        totalValue: 0,
+        totalHours: 0,
+        totalItems: 0,
+      };
+
+      current.totalValue += Number(item.totalPrice || 0);
+      current.totalHours += Number(item.quantity || 1);
+      current.totalItems += 1;
+      byProfessional.set(key, current);
+    });
+
+    const topByFunction = PRODUCTIVITY_FUNCTIONS.map((functionKey) => {
+      const contenders = Array.from(byProfessional.values())
+        .filter((p: any) => p.functionKey === functionKey)
+        .sort((a: any, b: any) => b.totalValue - a.totalValue || b.totalItems - a.totalItems);
+      return {
+        functionKey,
+        functionLabel: FUNCTION_LABEL[functionKey],
+        professional: contenders[0]?.userName || 'Sem dados',
+        totalValue: Number(contenders[0]?.totalValue || 0),
+        totalItems: Number(contenders[0]?.totalItems || 0),
+      };
+    });
+
+    const monthlyProductivity = getLast6Months().map(({ label, month, year }) => {
+      const monthOrders = completedOrders.filter((o: any) => {
+        const d = new Date(o.deliveredAt || o.updatedAt || o.createdAt);
+        return d.getMonth() === month && d.getFullYear() === year;
+      });
+      const monthItems = monthOrders.flatMap((o: any) =>
+        (o.items || []).filter((i: any) => ['service', 'labor'].includes(String(i.type || '').toLowerCase())),
+      );
+      const monthAssigned = monthItems.filter((i: any) => Boolean(i.assignedUserId));
+      return {
+        mes: label,
+        itensExecutados: monthAssigned.length,
+      };
+    });
+
+    return {
+      eficiencia,
+      eficacia,
+      produtividade,
+      ticketMedio,
+      cicloDias,
+      topByFunction,
+      monthlyProductivity,
+    };
+  }, [orders, stats.canceledOrders, stats.completedOrders, stats.revenue]);
+
   // Gráfico 3: Distribuição tipo de OS (concluída vs em aberto vs cancelada)
   const pieData = [
     { name: 'Concluídas', value: stats.completedOrders, fill: '#34d399' },
@@ -193,6 +305,135 @@ export function DashboardPage() {
           </motion.div>
         ))}
       </div>
+
+      {/* KPIs de Oficina */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+        {[
+          {
+            title: 'Eficiência',
+            value: `${productivityData.eficiencia.toFixed(1)}%`,
+            hint: 'Itens de serviço com executor definido',
+            icon: Target,
+          },
+          {
+            title: 'Eficácia',
+            value: `${productivityData.eficacia.toFixed(1)}%`,
+            hint: 'OS concluídas sobre concluídas+canceladas',
+            icon: CheckCircle,
+          },
+          {
+            title: 'Produtividade',
+            value: `${productivityData.produtividade.toFixed(1)} h/técnico`,
+            hint: 'Horas lançadas por executor ativo',
+            icon: Activity,
+          },
+          {
+            title: 'Ticket Médio',
+            value: `R$ ${productivityData.ticketMedio.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+            hint: 'Média por OS concluída',
+            icon: DollarSign,
+          },
+          {
+            title: 'Ciclo Médio',
+            value: `${productivityData.cicloDias.toFixed(1)} dias`,
+            hint: 'Tempo médio de abertura até entrega',
+            icon: Clock,
+          },
+        ].map((kpi) => (
+          <div key={kpi.title} className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center mb-3">
+              <kpi.icon size={18} />
+            </div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{kpi.title}</p>
+            <p className="text-xl font-black text-slate-900 mt-1">{kpi.value}</p>
+            <p className="text-[11px] text-slate-400 font-medium mt-1">{kpi.hint}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Produtividade por função */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.16 }}
+          className="xl:col-span-2 bg-white rounded-[2rem] border border-slate-200 shadow-sm p-8"
+        >
+          <div className="mb-6">
+            <h3 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+              <BarChart3 size={20} /> Produtividade por Área/Função
+            </h3>
+            <p className="text-sm text-slate-400 font-medium">Top profissional por função (valor executado em serviços)</p>
+          </div>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={productivityData.topByFunction} barCategoryGap="25%">
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+              <XAxis dataKey="functionLabel" tick={{ fontSize: 11, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
+              <YAxis tickFormatter={(v) => `R$${(Number(v) / 1000).toFixed(0)}k`} tick={{ fontSize: 10, fontWeight: 700, fill: '#cbd5e1' }} axisLine={false} tickLine={false} width={56} />
+              <Tooltip
+                contentStyle={{ borderRadius: 14, border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', fontSize: 12, fontWeight: 700 }}
+                formatter={(v: any) => [`R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 'Valor executado']}
+                labelFormatter={(label: any, payload: any) => {
+                  const item = payload?.[0]?.payload;
+                  if (!item) return label;
+                  return `${item.functionLabel} — ${item.professional}`;
+                }}
+              />
+              <Bar dataKey="totalValue" radius={[8, 8, 0, 0]} fill="#0f172a" />
+            </BarChart>
+          </ResponsiveContainer>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white rounded-[2rem] border border-slate-200 shadow-sm p-8"
+        >
+          <div className="mb-5">
+            <h3 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+              <Trophy size={20} /> Mais Produtivos
+            </h3>
+            <p className="text-sm text-slate-400 font-medium">Ranking por função</p>
+          </div>
+          <div className="space-y-3">
+            {productivityData.topByFunction.map((row: any) => (
+              <div key={row.functionKey} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{row.functionLabel}</p>
+                <p className="text-sm font-black text-slate-900 mt-1">{row.professional}</p>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  {row.totalItems} itens • R$ {Number(row.totalValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Tendência mensal de produtividade */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.24 }}
+        className="bg-white rounded-[2rem] border border-slate-200 shadow-sm p-8"
+      >
+        <div className="mb-6">
+          <h3 className="text-lg font-black text-slate-900 tracking-tight">Tendência de Produtividade</h3>
+          <p className="text-sm text-slate-400 font-medium">Itens executados com executor definido nos últimos 6 meses</p>
+        </div>
+        <ResponsiveContainer width="100%" height={220}>
+          <LineChart data={productivityData.monthlyProductivity}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+            <XAxis dataKey="mes" tick={{ fontSize: 11, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 10, fontWeight: 700, fill: '#cbd5e1' }} axisLine={false} tickLine={false} />
+            <Tooltip
+              contentStyle={{ borderRadius: 14, border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', fontSize: 12, fontWeight: 700 }}
+              formatter={(v: any) => [Number(v), 'Itens executados']}
+            />
+            <Line type="monotone" dataKey="itensExecutados" stroke="#0f172a" strokeWidth={3} dot={{ r: 4, fill: '#0f172a' }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </motion.div>
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

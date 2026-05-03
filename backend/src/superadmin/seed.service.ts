@@ -149,7 +149,7 @@ export class SeedService {
     const svcMap: Record<string, string> = {};
     for (const s of SERVICOS) {
       let svc = await this.prisma.service.findFirst({ where: { tenantId, name: s.name } });
-      if (!svc) { svc = await this.prisma.service.create({ data: { tenantId, name: s.name, category: s.category, price: s.price, isActive: true } }); stats.services++; }
+      if (!svc) { svc = await this.prisma.service.create({ data: { tenantId, name: s.name, category: s.category, basePrice: s.price, isActive: true } }); stats.services++; }
       svcMap[s.name] = svc.id;
     }
 

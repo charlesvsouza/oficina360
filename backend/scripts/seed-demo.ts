@@ -263,7 +263,7 @@ async function main() {
     let svc = await prisma.service.findFirst({ where: { tenantId, name: s.name } });
     if (!svc) {
       svc = await prisma.service.create({
-        data: { tenantId, name: s.name, category: s.category, price: s.price, isActive: true },
+        data: { tenantId, name: s.name, category: s.category, basePrice: s.price, isActive: true },
       });
     }
     svcMap[s.name] = svc.id;

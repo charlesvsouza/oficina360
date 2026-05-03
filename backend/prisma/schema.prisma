@@ -325,8 +325,17 @@ model ServiceOrder {
   approvedBy   String?
   
   // Controle de Fluxo
-  reserveStock  Boolean @default(false)
-  diagnosticCost Float  @default(0)
+  reserveStock      Boolean   @default(false)
+  diagnosticCost    Float     @default(0)
+
+  // Rastreamento de tempo por status (Opção B — alertas precisos no Kanban)
+  statusChangedAt   DateTime?
+
+  // Reserva / Pedido de Peças
+  partsReserved       Boolean   @default(false)
+  partsCheckedAt      DateTime?
+  expectedPartsDate   DateTime?
+  purchaseOrderNumber String?
   
   // Valores
 

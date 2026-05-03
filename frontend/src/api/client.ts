@@ -141,6 +141,10 @@ export const serviceOrdersApi = {
   updateItem: (id: string, itemId: string, data: any) => api.patch(`/service-orders/${id}/items/${itemId}`, data),
   updateStatus: (id: string, data: { status: string }) => api.patch(`/service-orders/${id}/status`, data),
   createDiagnosticOrder: (sourceOrderId: string) => api.post(`/service-orders/${sourceOrderId}/diagnostic-order`),
+  reserveParts: (id: string, expectedPartsDate?: string) =>
+    api.post(`/service-orders/${id}/reserve-parts`, { expectedPartsDate }),
+  cancelPartsReservation: (id: string) =>
+    api.post(`/service-orders/${id}/cancel-parts-reservation`),
   importPdf: (file: File) => {
     const formData = new FormData();
     formData.append('file', file);

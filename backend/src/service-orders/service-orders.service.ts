@@ -189,6 +189,7 @@ export class ServiceOrdersService {
         vehicleId: dto.vehicleId,
         orderType: 'ORCAMENTO',
         status: 'ABERTA',
+        statusChangedAt: new Date(),
         notes: dto.notes,
         complaint: dto.complaint,
         equipmentBrand: dto.equipmentBrand,
@@ -363,6 +364,7 @@ export class ServiceOrdersService {
       data: {
         orderType: 'ORDEM_SERVICO',
         status: 'APROVADO',
+        statusChangedAt: new Date(),
         approvedAt: new Date(),
         approvalStatus: 'APPROVED',
         totalDiscount,
@@ -427,7 +429,7 @@ export class ServiceOrdersService {
       }
     }
 
-    const updateData: any = { status: newStatus };
+    const updateData: any = { status: newStatus, statusChangedAt: new Date() };
 
     // Reverte estoque ao reprovar via atualização manual de status
     if (newStatus === 'REPROVADO') {
@@ -961,6 +963,185 @@ export class ServiceOrdersService {
 
     return order;
   }
+
+  // ─── Reserva de Peças ──────────────────────────────────────────────────────
+
+  async checkAndReserveParts(tenantId: string, id: string, expectedPartsDate: string | null, userId: string) {
+    const order = await this.findById(tenantId, id);
+
+    if (!['APROVADO', 'AGUARDANDO_PECAS'].includes(order.status)) {
+      throw new BadRequestException('Reserva de peças só pode ser feita em OS APROVADA ou AGUARDANDO_PECAS');
+    }
+
+    // Peças do tipo 'part' ainda não aplicadas ao estoque
+    const partItems = (order.items as any[]).filter(
+      (item: any) => item.type === 'part' && item.partId,
+    );
+
+    if (partItems.length === 0) {
+      throw new BadRequestException('Esta OS não possui peças para reservar');
+    }
+
+    // Verifica disponibilidade de cada peça
+    const available: any[] = [];
+    const missing: any[] = [];
+
+    for (const item of partItems) {
+      const part = await this.prisma.part.findFirst({
+        where: { id: item.partId, tenantId },
+        select: {
+          id: true, name: true, internalCode: true, sku: true,
+          currentStock: true, unitPrice: true, costPrice: true,
+          supplier: { select: { name: true } },
+        },
+      });
+
+      const needed = Math.ceil(Number(item.quantity));
+      const inStock = part?.currentStock ?? 0;
+
+      if (inStock >= needed) {
+        available.push({ item, part, needed });
+      } else {
+        missing.push({ item, part, needed, inStock, lacking: needed - inStock });
+      }
+    }
+
+    // Reserva as disponíveis imediatamente (debita estoque)
+    for (const { item, needed } of available) {
+      if (!item.applied) {
+        await this.applyStockMovement(
+          tenantId,
+          item.partId,
+          'EXIT',
+          needed,
+          `Reserva OS ${order.id.slice(0, 8).toUpperCase()}`,
+        );
+        await this.prisma.serviceOrderItem.update({
+          where: { id: item.id },
+          data: { applied: true },
+        });
+      }
+    }
+
+    // Atualiza OS com dados de reserva
+    const hasMissing = missing.length > 0;
+    const newStatus = hasMissing ? 'AGUARDANDO_PECAS' : order.status;
+    const now = new Date();
+
+    // Gera número sequencial de pedido de compra: PC-YYYYMMDD-XXXX
+    const seq = Math.floor(1000 + Math.random() * 9000);
+    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const purchaseOrderNumber = hasMissing ? `PC-${dateStr}-${seq}` : null;
+
+    await this.prisma.serviceOrder.update({
+      where: { id },
+      data: {
+        partsReserved: true,
+        partsCheckedAt: now,
+        ...(hasMissing && {
+          status: 'AGUARDANDO_PECAS',
+          statusChangedAt: now,
+          expectedPartsDate: expectedPartsDate ? new Date(expectedPartsDate) : null,
+          purchaseOrderNumber,
+        }),
+      },
+    });
+
+    await this.createTimeline(
+      id,
+      hasMissing ? 'AGUARDANDO_PECAS' : 'PARTS_RESERVED',
+      hasMissing
+        ? `${available.length} peça(s) reservada(s). ${missing.length} peça(s) em pedido de compra ${purchaseOrderNumber}.`
+        : `Todas as ${available.length} peça(s) reservadas com sucesso.`,
+      userId,
+    );
+
+    // Busca tenant para dados do PDF
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { name: true, document: true, phone: true, email: true, address: true },
+    });
+
+    return {
+      success: true,
+      reserved: available.length,
+      missing: missing.length,
+      status: newStatus,
+      purchaseOrderNumber,
+      tenant,
+      order: { id: order.id, vehicle: order.vehicle, customer: order.customer },
+      availableItems: available.map(({ item, part, needed }) => ({
+        itemId: item.id,
+        description: item.description,
+        internalCode: part?.internalCode,
+        sku: part?.sku,
+        needed,
+        unitPrice: item.unitPrice,
+      })),
+      missingItems: missing.map(({ item, part, needed, inStock, lacking }) => ({
+        itemId: item.id,
+        description: item.description,
+        internalCode: part?.internalCode,
+        sku: part?.sku,
+        needed,
+        inStock,
+        lacking,
+        unitPrice: item.unitPrice,
+        costPrice: (part as any)?.costPrice,
+        supplierName: (part as any)?.supplier?.name,
+      })),
+    };
+  }
+
+  async cancelPartsReservation(tenantId: string, id: string, userId: string) {
+    const order = await this.findById(tenantId, id);
+
+    if (!order.partsReserved) {
+      throw new BadRequestException('Esta OS não possui peças reservadas');
+    }
+
+    // Devolve ao estoque todas as peças aplicadas pela reserva
+    const appliedParts = (order.items as any[]).filter(
+      (item: any) => item.type === 'part' && item.partId && item.applied,
+    );
+
+    for (const item of appliedParts) {
+      await this.applyStockMovement(
+        tenantId,
+        item.partId,
+        'ENTRY',
+        Math.ceil(Number(item.quantity)),
+        `Cancelamento de reserva OS ${order.id.slice(0, 8).toUpperCase()}`,
+      );
+      await this.prisma.serviceOrderItem.update({
+        where: { id: item.id },
+        data: { applied: false },
+      });
+    }
+
+    await this.prisma.serviceOrder.update({
+      where: { id },
+      data: {
+        partsReserved: false,
+        partsCheckedAt: null,
+        expectedPartsDate: null,
+        purchaseOrderNumber: null,
+        status: 'APROVADO',
+        statusChangedAt: new Date(),
+      },
+    });
+
+    await this.createTimeline(
+      id,
+      'APROVADO',
+      `Reserva de peças cancelada. ${appliedParts.length} peça(s) devolvida(s) ao estoque.`,
+      userId,
+    );
+
+    return { success: true, returned: appliedParts.length };
+  }
+
+  // ─── Timeline ───────────────────────────────────────────────────────────────
 
   private async createTimeline(
     serviceOrderId: string,

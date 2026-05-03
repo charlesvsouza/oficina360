@@ -4,7 +4,7 @@ import { serviceOrdersApi } from '../api/client';
 import { useAuthStore } from '../store/authStore';
 import {
   RefreshCw, Maximize2, Minimize2, Loader2,
-  Car, User, Clock, AlertCircle, Monitor,
+  Car, User, Clock, AlertCircle, Monitor, AlertTriangle, Timer,
 } from 'lucide-react';
 
 const PROGRESS_STEPS = [
@@ -40,6 +40,45 @@ const SUMMARY_GROUPS = [
   { key: 'pronto',    label: 'Pronto',            statuses: ['PRONTO_ENTREGA'],                                 color: 'text-violet-400', activeBg: 'bg-violet-500/20' },
 ];
 
+// ─── Lógica de alertas ────────────────────────────────────────────────────────
+// Usa statusChangedAt quando disponível (Opção B), fallback para updatedAt/createdAt
+function getStatusAgeHours(os: any): number {
+  const ref = os.statusChangedAt || os.updatedAt || os.createdAt;
+  return (Date.now() - new Date(ref).getTime()) / 3_600_000;
+}
+
+type AlertLevel = 'none' | 'warning' | 'danger';
+
+function getAlertLevel(os: any): { level: AlertLevel; reason: string } {
+  const h = getStatusAgeHours(os);
+
+  // Sem orçamento há mais de 48h (ainda em entrada/diagnóstico)
+  if (['ABERTA', 'EM_DIAGNOSTICO'].includes(os.status) && h > 48) {
+    return { level: 'danger', reason: `Sem orçamento há ${Math.floor(h)}h` };
+  }
+
+  // Sem autorização há mais de 72h
+  if (os.status === 'AGUARDANDO_APROVACAO' && h > 72) {
+    return { level: 'danger', reason: `Sem autorização há ${Math.floor(h)}h` };
+  }
+  if (os.status === 'AGUARDANDO_APROVACAO' && h > 48) {
+    return { level: 'warning', reason: `Aguardando aprovação há ${Math.floor(h)}h` };
+  }
+
+  // Aguardando peças — vencida a data prevista ou >48h sem data
+  if (os.status === 'AGUARDANDO_PECAS') {
+    if (os.expectedPartsDate && new Date(os.expectedPartsDate) < new Date()) {
+      const overH = (Date.now() - new Date(os.expectedPartsDate).getTime()) / 3_600_000;
+      return { level: 'danger', reason: `Peças atrasadas ${Math.floor(overH)}h` };
+    }
+    if (!os.expectedPartsDate && h > 48) {
+      return { level: 'warning', reason: `Aguardando peças há ${Math.floor(h)}h` };
+    }
+  }
+
+  return { level: 'none', reason: '' };
+}
+
 function stepIndex(status: string) {
   if (status === 'AGUARDANDO_PECAS') return 4;
   const i = PROGRESS_STEPS.findIndex(s => s.status === status);
@@ -66,6 +105,17 @@ function urgencyClass(date: string) {
 function ReceptionCard({ os, tvMode }: { os: any; tvMode: boolean }) {
   const idx = stepIndex(os.status);
   const meta = STATUS_META[os.status] ?? { label: os.status, dot: 'bg-slate-400', badge: 'bg-slate-700', text: 'text-white' };
+  const { level, reason } = getAlertLevel(os);
+
+  const alertBorder =
+    level === 'danger'  ? 'border-red-500/70' :
+    level === 'warning' ? 'border-amber-400/70' :
+    'border-white/10';
+
+  const alertPulse =
+    level === 'danger'  ? 'animate-pulse' :
+    level === 'warning' ? 'animate-pulse' :
+    '';
 
   return (
     <motion.div
@@ -73,8 +123,17 @@ function ReceptionCard({ os, tvMode }: { os: any; tvMode: boolean }) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className="bg-slate-800/60 border border-white/10 rounded-2xl p-4 space-y-3 hover:border-white/20 transition-all"
+      className={`bg-slate-800/60 border-2 ${alertBorder} ${alertPulse} rounded-2xl p-4 space-y-3 hover:border-white/20 transition-all`}
     >
+      {/* Alerta */}
+      {level !== 'none' && (
+        <div className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-black ${
+          level === 'danger' ? 'bg-red-500/20 text-red-300' : 'bg-amber-500/20 text-amber-300'
+        }`}>
+          {level === 'danger' ? <AlertTriangle size={11} className="shrink-0" /> : <Timer size={11} className="shrink-0" />}
+          {reason}
+        </div>
+      )}
       {/* Header: veículo + badge + tempo */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2.5 min-w-0">
@@ -257,6 +316,19 @@ export function KanbanRecepcaoPage() {
             </span>
           </div>
         )}
+
+        {/* Alertas ativos */}
+        {(() => {
+          const alertCount = orders.filter(o => getAlertLevel(o).level !== 'none').length;
+          return alertCount > 0 ? (
+            <div className={`${prontos > 0 ? '' : 'ml-auto'} flex items-center gap-1.5 bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-lg shrink-0 animate-pulse`}>
+              <AlertTriangle size={13} className="text-red-400" />
+              <span className="text-red-300 text-xs font-bold">
+                {alertCount} alerta{alertCount !== 1 ? 's' : ''} ativo{alertCount !== 1 ? 's' : ''}
+              </span>
+            </div>
+          ) : null;
+        })()}
       </div>
 
       {/* Erro */}

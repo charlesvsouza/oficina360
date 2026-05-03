@@ -4,7 +4,7 @@ import {
   ClipboardList, Plus, Search, Car, User, XCircle,
   Wrench, Package, FileText, Trash2, Layout, X,
   Printer, Save, Zap, Loader2, RefreshCw, FileUp, ChevronDown,
-  ClipboardCheck,
+  ClipboardCheck, ShoppingCart, CheckCircle2, AlertTriangle, Calendar,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
@@ -170,6 +170,14 @@ export function ServiceOrdersPage() {
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const isReprovado = selectedOrder?.status === 'REPROVADO';
   const isClosed = CLOSED_STATUSES.includes(selectedOrder?.status ?? '');
+
+  // ─── Reserva de Peças ────────────────────────────────────────────────────
+  const [showReserveParts, setShowReserveParts] = useState(false);
+  const [reserveLoading, setReserveLoading] = useState(false);
+  const [reserveResult, setReserveResult] = useState<any>(null);
+  const [expectedPartsDate, setExpectedPartsDate] = useState('');
+  const [showPurchaseOrderPdf, setShowPurchaseOrderPdf] = useState(false);
+  const purchaseOrderFrameRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     if (!showStatusDropdown) return;
@@ -366,6 +374,107 @@ export function ServiceOrdersPage() {
   const getCurrentPhaseIndex = (status: string) => {
     const idx = FLOW_PHASES.findIndex((phase) => phase.statuses.includes(status));
     return idx >= 0 ? idx : 0;
+  };
+
+  const handleReserveParts = async () => {
+    if (!selectedOrder) return;
+    setReserveLoading(true);
+    try {
+      const res = await serviceOrdersApi.reserveParts(
+        selectedOrder.id,
+        expectedPartsDate || undefined,
+      );
+      setReserveResult(res.data);
+      // Recarrega OS para refletir novos status/campos
+      const updated = await serviceOrdersApi.getById(selectedOrder.id);
+      setSelectedOrder(updated.data);
+      loadOrders();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Erro ao reservar peças');
+    } finally {
+      setReserveLoading(false);
+    }
+  };
+
+  const buildPurchaseOrderHtml = (result: any) => {
+    const t = result.tenant || {};
+    const o = result.order || {};
+    const items = result.missingItems || [];
+    const now = new Date().toLocaleDateString('pt-BR');
+    const rows = items.map((item: any) => `
+      <tr>
+        <td>${item.internalCode || '—'}</td>
+        <td>${item.sku || '—'}</td>
+        <td>${item.description}</td>
+        <td style="text-align:center">${item.lacking}</td>
+        <td style="text-align:right">R$ ${Number(item.costPrice ?? item.unitPrice ?? 0).toFixed(2).replace('.', ',')}</td>
+        <td style="text-align:right">R$ ${(Number(item.costPrice ?? item.unitPrice ?? 0) * item.lacking).toFixed(2).replace('.', ',')}</td>
+        <td>${item.supplierName || '—'}</td>
+        <td>${o.id?.slice(0,8).toUpperCase() || '—'}</td>
+      </tr>
+    `).join('');
+    const total = items.reduce((s: number, item: any) => s + Number(item.costPrice ?? item.unitPrice ?? 0) * item.lacking, 0);
+    return `<!DOCTYPE html><html><head><meta charset="utf-8" /><title>Pedido de Compra ${result.purchaseOrderNumber}</title><style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: Arial, sans-serif; font-size: 9pt; color: #111; padding: 16px; }
+      .header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+      .company-name { font-size: 15pt; font-weight: 900; }
+      .doc-box { border: 2px solid #1e293b; padding: 8px 14px; text-align: right; min-width: 160px; }
+      .doc-box .doc-type { font-size: 7.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #666; }
+      .doc-box .doc-num { font-size: 16pt; font-weight: 900; font-family: monospace; letter-spacing: 2px; }
+      hr { border: none; border-top: 1px solid #ccc; margin: 8px 0; }
+      table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+      th { background: #1e293b; color: #fff; font-size: 7.5pt; text-transform: uppercase; letter-spacing: .5px; padding: 4px 6px; text-align: left; }
+      td { padding: 4px 6px; font-size: 8.5pt; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+      tr:nth-child(even) td { background: #f8fafc; }
+      .total-row td { font-weight: 900; border-top: 2px solid #1e293b; border-bottom: none; }
+      .sig { margin-top: 40px; border-top: 1px solid #ccc; padding-top: 4px; font-size: 8pt; color: #555; text-align: center; }
+      .preview-label { font-size: 7pt; color: #94a3b8; margin-top: 2px; }
+      @media print { body { padding: 8px; } }
+    </style></head><body>
+      <div class="header-row">
+        <div>
+          <div class="company-name">${t.name || ''}</div>
+          ${t.document ? `<div>${t.document}</div>` : ''}
+          ${t.address ? `<div>${t.address}</div>` : ''}
+          <div>${[t.phone ? 'Tel: ' + t.phone : '', t.email].filter(Boolean).join(' · ')}</div>
+        </div>
+        <div class="doc-box">
+          <div class="doc-type">Pedido de Compra</div>
+          <div class="doc-num">${result.purchaseOrderNumber || ''}</div>
+          <div style="font-size:8.5pt;margin-top:4px">Data: ${now}</div>
+          ${result.expectedPartsDate ? `<div style="font-size:8.5pt">Prev. Chegada: ${new Date(result.expectedPartsDate).toLocaleDateString('pt-BR')}</div>` : ''}
+        </div>
+      </div>
+      <hr />
+      <div style="font-size:8pt;margin-bottom:6px">
+        <strong>Veículo:</strong> ${(o.vehicle as any)?.brand || ''} ${(o.vehicle as any)?.model || ''} — Placa <strong>${(o.vehicle as any)?.plate || ''}</strong>
+        &nbsp;&nbsp;·&nbsp;&nbsp;
+        <strong>Cliente:</strong> ${(o.customer as any)?.name || ''}
+        &nbsp;&nbsp;·&nbsp;&nbsp;
+        <strong>OS:</strong> ${o.id?.slice(0,8).toUpperCase() || ''}
+      </div>
+      <table>
+        <thead><tr>
+          <th style="width:80px">Cód. Interno</th>
+          <th style="width:80px">Cód. Original</th>
+          <th>Peça / Descrição</th>
+          <th style="width:50px;text-align:center">Qtd</th>
+          <th style="width:80px;text-align:right">Unitário</th>
+          <th style="width:90px;text-align:right">Total</th>
+          <th style="width:100px">Fornecedor</th>
+          <th style="width:70px">Nº OS</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr class="total-row">
+          <td colspan="5" style="text-align:right">Total Estimado</td>
+          <td style="text-align:right">R$ ${total.toFixed(2).replace('.', ',')}</td>
+          <td colspan="2"></td>
+        </tr></tfoot>
+      </table>
+      <div class="sig">Assinatura / Aprovação: _________________________________  &nbsp;&nbsp;&nbsp; Data: ___________</div>
+      <div class="preview-label" style="text-align:center;margin-top:8px">Gerado em ${now} · SigmaAuto</div>
+    </body></html>`;
   };
 
   const changeStatus = async (status: string, adminOverride = false) => {
@@ -1256,8 +1365,8 @@ export function ServiceOrdersPage() {
                     )}
                     {nextStatuses.map((status) => {
                       const isCancel = status === 'CANCELADO';
-                      const isReprovado = status === 'REPROVADO';
-                      const isNegative = isCancel || isReprovado;
+                      const isReprovadoBtn = status === 'REPROVADO';
+                      const isNegative = isCancel || isReprovadoBtn;
                       return (
                         <button
                           key={status}
@@ -1276,6 +1385,17 @@ export function ServiceOrdersPage() {
                         </button>
                       );
                     })}
+
+                    {/* Botão Reservar Peças — visível em APROVADO e AGUARDANDO_PECAS com peças na OS */}
+                    {['APROVADO', 'AGUARDANDO_PECAS'].includes(selectedOrder?.status) && partItems.length > 0 && (
+                      <button
+                        onClick={() => { setReserveResult(null); setExpectedPartsDate(''); setShowReserveParts(true); }}
+                        className="w-full px-3 py-2 rounded-xl text-[10px] font-black tracking-wide transition-all text-left bg-amber-500 text-white hover:bg-amber-600 shadow-sm flex items-center gap-1.5"
+                      >
+                        <ShoppingCart size={12} />
+                        {selectedOrder?.partsReserved ? 'Rever Pedido de Peças' : 'Verificar / Reservar Peças'}
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -1331,6 +1451,170 @@ export function ServiceOrdersPage() {
           </>
         )}
       </div>
+
+      {/* ── MODAL RESERVA DE PEÇAS ───────────────────────────────── */}
+      <AnimatePresence>
+        {showReserveParts && selectedOrder && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { if (!reserveLoading) setShowReserveParts(false); }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+            <motion.div initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }} className="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-lg flex flex-col max-h-[88vh] overflow-hidden">
+
+              {/* Header */}
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-amber-50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center">
+                    <ShoppingCart size={18} className="text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-slate-900 text-sm uppercase tracking-widest">Reserva de Peças</h3>
+                    <p className="text-[10px] text-slate-500 font-semibold">OS {selectedOrder.id.slice(0,8).toUpperCase()} · {partItems.length} peça(s) na OS</p>
+                  </div>
+                </div>
+                <button onClick={() => { if (!reserveLoading) setShowReserveParts(false); }} className="text-slate-400 hover:text-red-500 transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="overflow-y-auto flex-1 p-6 space-y-5">
+                {!reserveResult ? (
+                  <>
+                    {/* Lista de peças */}
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Peças desta OS</p>
+                      {partItems.map((item: any) => {
+                        const stock = Number(item.part?.currentStock ?? 0);
+                        const needed = Math.ceil(Number(item.quantity));
+                        const ok = stock >= needed;
+                        return (
+                          <div key={item.id} className={cn('flex items-center justify-between rounded-xl px-3 py-2 border text-xs', ok ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200')}>
+                            <div className="flex items-center gap-2">
+                              {ok ? <CheckCircle2 size={14} className="text-emerald-500 shrink-0" /> : <AlertTriangle size={14} className="text-red-500 shrink-0" />}
+                              <div>
+                                <p className="font-bold text-slate-900 leading-tight">{item.description}</p>
+                                {item.part?.internalCode && <p className="text-slate-400 text-[10px]">Cód: {item.part.internalCode}</p>}
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="font-black text-slate-700">Nec: {needed}</p>
+                              <p className={cn('text-[10px] font-bold', ok ? 'text-emerald-600' : 'text-red-600')}>Estoque: {stock}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Data prevista chegada */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                        <Calendar size={11} /> Data prevista de chegada (para peças faltantes)
+                      </label>
+                      <input
+                        type="date"
+                        value={expectedPartsDate}
+                        min={new Date().toISOString().slice(0,10)}
+                        onChange={(e) => setExpectedPartsDate(e.target.value)}
+                        className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                      />
+                      <p className="text-[10px] text-slate-400">Opcional. Peças disponíveis serão reservadas imediatamente. Peças faltantes gerarão um Pedido de Compra.</p>
+                    </div>
+
+                    <button
+                      onClick={handleReserveParts}
+                      disabled={reserveLoading}
+                      className="w-full py-3 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-black text-sm tracking-wide transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                    >
+                      {reserveLoading ? <Loader2 size={16} className="animate-spin" /> : <ShoppingCart size={16} />}
+                      {reserveLoading ? 'Processando...' : 'Confirmar Reserva'}
+                    </button>
+                  </>
+                ) : (
+                  /* Resultado da reserva */
+                  <div className="space-y-4">
+                    {/* Resumo */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center">
+                        <p className="text-2xl font-black text-emerald-600">{reserveResult.reserved}</p>
+                        <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wide">Reservadas</p>
+                        <p className="text-[9px] text-emerald-600 mt-0.5">Baixadas do estoque</p>
+                      </div>
+                      <div className={cn('border rounded-2xl p-4 text-center', reserveResult.missing > 0 ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-200')}>
+                        <p className={cn('text-2xl font-black', reserveResult.missing > 0 ? 'text-red-600' : 'text-slate-400')}>{reserveResult.missing}</p>
+                        <p className={cn('text-[10px] font-bold uppercase tracking-wide', reserveResult.missing > 0 ? 'text-red-700' : 'text-slate-500')}>Faltantes</p>
+                        <p className="text-[9px] text-slate-500 mt-0.5">{reserveResult.missing > 0 ? 'Pedido gerado' : 'Tudo disponível'}</p>
+                      </div>
+                    </div>
+
+                    {/* Peças faltantes */}
+                    {reserveResult.missingItems?.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Pedido de Compra</p>
+                          <span className="bg-amber-100 text-amber-700 text-[10px] font-black px-2 py-0.5 rounded-full">{reserveResult.purchaseOrderNumber}</span>
+                        </div>
+                        {reserveResult.missingItems.map((item: any, i: number) => (
+                          <div key={i} className="flex items-start justify-between rounded-xl px-3 py-2 bg-red-50 border border-red-200 text-xs">
+                            <div>
+                              <p className="font-bold text-slate-900">{item.description}</p>
+                              <p className="text-slate-400 text-[10px]">Cód: {item.internalCode || '—'} · Orig: {item.sku || '—'} · Fornec: {item.supplierName || '—'}</p>
+                            </div>
+                            <div className="text-right shrink-0 ml-2">
+                              <p className="font-black text-red-700">Falta: {item.lacking}</p>
+                              <p className="text-[10px] text-slate-500">Estoque: {item.inStock}</p>
+                            </div>
+                          </div>
+                        ))}
+
+                        <button
+                          onClick={() => setShowPurchaseOrderPdf(true)}
+                          className="w-full py-2.5 rounded-xl bg-slate-900 text-white font-black text-xs tracking-wide flex items-center justify-center gap-2 hover:bg-slate-700 transition-all"
+                        >
+                          <Printer size={14} /> Imprimir Pedido de Compra
+                        </button>
+                      </div>
+                    )}
+
+                    <button
+                      onClick={() => setShowReserveParts(false)}
+                      className="w-full py-2.5 rounded-xl bg-slate-100 text-slate-700 font-black text-xs tracking-wide hover:bg-slate-200 transition-all"
+                    >
+                      Fechar
+                    </button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── MODAL PDF PEDIDO DE COMPRA ────────────────────────────── */}
+      <AnimatePresence>
+        {showPurchaseOrderPdf && reserveResult && (
+          <div className="fixed inset-0 z-[130] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowPurchaseOrderPdf(false)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+            <motion.div initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }} className="relative flex flex-col w-full max-w-5xl h-[90vh] rounded-[2rem] overflow-hidden bg-white shadow-2xl">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
+                <div>
+                  <h3 className="font-black text-slate-900 text-sm uppercase tracking-widest">Pedido de Compra — {reserveResult.purchaseOrderNumber}</h3>
+                  <p className="text-xs text-slate-500 font-semibold">Peças faltantes para a OS {selectedOrder?.id.slice(0,8).toUpperCase()}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setShowPurchaseOrderPdf(false)} className="h-9 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-100 transition-all">Voltar</button>
+                  <button onClick={() => purchaseOrderFrameRef.current?.contentWindow?.print()} className="h-9 px-4 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-700 transition-all flex items-center gap-1.5">
+                    <Printer size={13} /> Imprimir
+                  </button>
+                </div>
+              </div>
+              <iframe
+                ref={purchaseOrderFrameRef}
+                title="Pedido de Compra"
+                srcDoc={buildPurchaseOrderHtml({ ...reserveResult, expectedPartsDate: expectedPartsDate || null })}
+                className="flex-1 w-full bg-slate-200"
+              />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* ── MODAL CATÁLOGO ─────────────────────────────────────────── */}
       <AnimatePresence>

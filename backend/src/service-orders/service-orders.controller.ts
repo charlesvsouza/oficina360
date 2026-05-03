@@ -177,6 +177,29 @@ export class ServiceOrdersController {
     return this.serviceOrdersService.syncPrices(tenant.tenantId, id);
   }
 
+  @Post(':id/reserve-parts')
+  @Roles('MASTER', 'ADMIN', 'GERENTE', 'CHEFE_OFICINA', 'SECRETARIA')
+  @ApiOperation({ summary: 'Verificar e reservar peças da OS (debita estoque disponível, gera pedido para faltantes)' })
+  async reserveParts(
+    @Tenant() tenant: { tenantId: string },
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body('expectedPartsDate') expectedPartsDate?: string,
+  ) {
+    return this.serviceOrdersService.checkAndReserveParts(tenant.tenantId, id, expectedPartsDate ?? null, user.userId);
+  }
+
+  @Post(':id/cancel-parts-reservation')
+  @Roles('MASTER', 'ADMIN', 'GERENTE')
+  @ApiOperation({ summary: 'Cancelar reserva de peças — devolve ao estoque' })
+  async cancelPartsReservation(
+    @Tenant() tenant: { tenantId: string },
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+  ) {
+    return this.serviceOrdersService.cancelPartsReservation(tenant.tenantId, id, user.userId);
+  }
+
   @Post(':id/diagnostic-order')
   @Roles('MASTER', 'ADMIN', 'CHEFE_OFICINA', 'PRODUTIVO')
   @ApiOperation({ summary: 'Cria nova OS de diagnóstico a partir de OS reprovada' })

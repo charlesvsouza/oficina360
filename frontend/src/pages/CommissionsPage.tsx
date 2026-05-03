@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { commissionsApi, usersApi } from '../api/client';
 import { useAuthStore } from '../store/authStore';
-import { Loader2, DollarSign, CheckCircle2 } from 'lucide-react';
+import { Loader2, DollarSign, CheckCircle2, Download, Trophy } from 'lucide-react';
 
 const money = (value: number) =>
   Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -14,10 +14,12 @@ export function CommissionsPage() {
   const [payingId, setPayingId] = useState('');
   const [users, setUsers] = useState<any[]>([]);
   const [data, setData] = useState<any[]>([]);
+  const [leadership, setLeadership] = useState<any[]>([]);
   const [totals, setTotals] = useState({ total: 0, pending: 0, paid: 0 });
   const [filters, setFilters] = useState({
     status: '',
     userId: '',
+    workshopArea: '',
     startDate: '',
     endDate: '',
   });
@@ -31,12 +33,14 @@ export function CommissionsPage() {
         commissionsApi.getAll({
           status: filters.status || undefined,
           userId: filters.userId || undefined,
+          workshopArea: filters.workshopArea || undefined,
           startDate: filters.startDate || undefined,
           endDate: filters.endDate || undefined,
         }),
         usersApi.getAll(),
       ]);
       setData(Array.isArray(commRes.data?.data) ? commRes.data.data : []);
+      setLeadership(Array.isArray(commRes.data?.leadership?.leaderboard) ? commRes.data.leadership.leaderboard : []);
       setTotals(commRes.data?.totals || { total: 0, pending: 0, paid: 0 });
       setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
     } catch (error) {
@@ -68,6 +72,48 @@ export function CommissionsPage() {
     }
   };
 
+  const exportCsv = () => {
+    const header = [
+      'Executor',
+      'Area',
+      'Item',
+      'OS',
+      'Base',
+      'Percentual',
+      'Comissao',
+      'Status',
+      'CriadoEm',
+      'PagoEm',
+    ];
+
+    const rows = data.map((row) => [
+      row.user?.name || '',
+      row.user?.workshopArea || '',
+      row.serviceOrderItem?.description || '',
+      String(row.serviceOrderId || ''),
+      Number(row.baseValue || 0).toFixed(2),
+      Number(row.commissionPercent || 0).toFixed(2),
+      Number(row.commissionValue || 0).toFixed(2),
+      row.status || '',
+      row.createdAt ? new Date(row.createdAt).toISOString() : '',
+      row.paidAt ? new Date(row.paidAt).toISOString() : '',
+    ]);
+
+    const csv = [header, ...rows]
+      .map((line) => line.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `comissoes_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -75,6 +121,12 @@ export function CommissionsPage() {
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">Comissões</h1>
           <p className="text-slate-500 font-medium">Controle por executor e por item de serviço.</p>
         </div>
+        <button
+          onClick={exportCsv}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800"
+        >
+          <Download size={16} /> Exportar CSV
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -92,7 +144,7 @@ export function CommissionsPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 grid grid-cols-1 md:grid-cols-5 gap-3">
+      <div className="bg-white rounded-2xl border border-slate-200 p-4 grid grid-cols-1 md:grid-cols-6 gap-3">
         <select
           value={filters.status}
           onChange={(e) => setFilters({ ...filters, status: e.target.value })}
@@ -115,6 +167,19 @@ export function CommissionsPage() {
           ))}
         </select>
 
+        <select
+          value={filters.workshopArea}
+          onChange={(e) => setFilters({ ...filters, workshopArea: e.target.value })}
+          className="input bg-slate-50 border-slate-200"
+        >
+          <option value="">Todas áreas</option>
+          <option value="MECANICA">Mecânica</option>
+          <option value="ELETRICA">Elétrica</option>
+          <option value="FUNILARIA_PINTURA">Funilaria e Pintura</option>
+          <option value="LAVACAO">Lavação</option>
+          <option value="HIGIENIZACAO_EMBELEZAMENTO">Higienização e Embelezamento</option>
+        </select>
+
         <input
           type="date"
           value={filters.startDate}
@@ -132,6 +197,25 @@ export function CommissionsPage() {
         <button onClick={load} className="btn btn-primary">Filtrar</button>
       </div>
 
+      {leadership.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Trophy className="w-4 h-4 text-amber-500" />
+            <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">Visão de Liderança</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+            {leadership.slice(0, 8).map((p: any) => (
+              <div key={p.userId} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                <p className="text-xs font-black text-slate-900">{p.name}</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">{p.workshopArea || 'SEM_AREA'}</p>
+                <p className="text-sm font-black text-slate-900 mt-2">{money(p.total)}</p>
+                <p className="text-[11px] text-slate-500">{p.count} comissões</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-2xl border border-slate-200 overflow-x-auto">
         {loading ? (
           <div className="h-56 flex items-center justify-center">
@@ -142,6 +226,7 @@ export function CommissionsPage() {
             <thead className="bg-slate-50 text-slate-500 uppercase text-[10px] tracking-widest">
               <tr>
                 <th className="px-4 py-3 text-left">Executor</th>
+                <th className="px-4 py-3 text-left">Área</th>
                 <th className="px-4 py-3 text-left">Item</th>
                 <th className="px-4 py-3 text-left">OS</th>
                 <th className="px-4 py-3 text-right">Base</th>
@@ -155,6 +240,7 @@ export function CommissionsPage() {
               {data.map((row) => (
                 <tr key={row.id} className="border-t border-slate-100">
                   <td className="px-4 py-3 font-bold text-slate-900">{row.user?.name || '—'}</td>
+                  <td className="px-4 py-3 text-slate-500 text-xs">{row.user?.workshopArea || '—'}</td>
                   <td className="px-4 py-3 text-slate-600">{row.serviceOrderItem?.description || '—'}</td>
                   <td className="px-4 py-3 font-mono text-xs text-slate-600">#{String(row.serviceOrderId).slice(0, 8).toUpperCase()}</td>
                   <td className="px-4 py-3 text-right">{money(row.baseValue)}</td>
@@ -188,7 +274,7 @@ export function CommissionsPage() {
               ))}
               {data.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-slate-400">Nenhuma comissão encontrada no período.</td>
+                  <td colSpan={9} className="px-4 py-12 text-center text-slate-400">Nenhuma comissão encontrada no período.</td>
                 </tr>
               )}
             </tbody>

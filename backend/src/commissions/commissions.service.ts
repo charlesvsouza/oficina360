@@ -6,6 +6,7 @@ type ListFilters = {
   endDate?: string;
   status?: string;
   userId?: string;
+  workshopArea?: string;
 };
 
 @Injectable()
@@ -53,8 +54,20 @@ export class CommissionsService {
       where.userId = filters.userId && allowedIds.includes(filters.userId)
         ? filters.userId
         : { in: allowedIds };
+
+      // Chefe enxerga somente sua área, independentemente do filtro recebido.
+      if (actor?.workshopArea) {
+        where.user = { workshopArea: actor.workshopArea };
+      }
     } else {
       where.userId = user.userId;
+    }
+
+    if (filters.workshopArea && role !== 'CHEFE_OFICINA') {
+      where.user = {
+        ...(where.user || {}),
+        workshopArea: filters.workshopArea,
+      };
     }
 
     const commissions = await this.prisma.mechanicCommission.findMany({
@@ -101,9 +114,34 @@ export class CommissionsService {
       { total: 0, pending: 0, paid: 0 },
     );
 
+    const leaderboard = commissions.reduce<Record<string, { userId: string; name: string; workshopArea: string; total: number; pending: number; paid: number; count: number }>>((acc, c) => {
+      const userId = c.user?.id;
+      if (!userId) return acc;
+      if (!acc[userId]) {
+        acc[userId] = {
+          userId,
+          name: c.user?.name || 'Sem nome',
+          workshopArea: c.user?.workshopArea || 'SEM_AREA',
+          total: 0,
+          pending: 0,
+          paid: 0,
+          count: 0,
+        };
+      }
+      const value = Number(c.commissionValue || 0);
+      acc[userId].total += value;
+      acc[userId].count += 1;
+      if (c.status === 'PAGO') acc[userId].paid += value;
+      else acc[userId].pending += value;
+      return acc;
+    }, {});
+
     return {
       totals,
       data: commissions,
+      leadership: {
+        leaderboard: Object.values(leaderboard).sort((a, b) => b.total - a.total),
+      },
     };
   }
 

@@ -191,7 +191,7 @@ export const financialApi = {
 };
 
 export const commissionsApi = {
-  getAll: (params?: { startDate?: string; endDate?: string; status?: string; userId?: string }) =>
+  getAll: (params?: { startDate?: string; endDate?: string; status?: string; userId?: string; workshopArea?: string }) =>
     api.get('/commissions', { params: params || {} }),
   markAsPaid: (id: string) => api.patch(`/commissions/${id}/pay`),
 };

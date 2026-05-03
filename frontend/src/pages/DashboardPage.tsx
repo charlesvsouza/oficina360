@@ -45,6 +45,14 @@ const FUNCTION_LABEL: Record<string, string> = {
   EMBELEZADOR_AUTOMOTIVO: 'Embelezador',
 };
 
+const WORKSHOP_AREA_LABEL: Record<string, string> = {
+  MECANICA: 'Mecânica',
+  ELETRICA: 'Elétrica',
+  FUNILARIA_PINTURA: 'Funilaria e Pintura',
+  LAVACAO: 'Lavação',
+  HIGIENIZACAO_EMBELEZAMENTO: 'Higienização e Embelezamento',
+};
+
 function getLast6Months() {
   const months = [];
   for (let i = 5; i >= 0; i--) {
@@ -61,6 +69,8 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<any[]>([]);
   const [financialData, setFinancialData] = useState<any[]>([]);
+  const [productivityWindowDays, setProductivityWindowDays] = useState<7 | 30 | 90>(30);
+  const [selectedWorkshopArea, setSelectedWorkshopArea] = useState('ALL');
   const [stats, setStats] = useState({
     totalOrders: 0, pendingOrders: 0, completedOrders: 0,
     totalCustomers: 0, totalVehicles: 0, revenue: 0,
@@ -140,10 +150,22 @@ export function DashboardPage() {
   }, [orders]);
 
   const productivityData = useMemo(() => {
-    const completedOrders = orders.filter((o: any) => COMPLETED_STATUSES.includes(o.status));
-    const allServiceItems = completedOrders.flatMap((o: any) =>
+    const cutoffDate = new Date();
+    cutoffDate.setHours(0, 0, 0, 0);
+    cutoffDate.setDate(cutoffDate.getDate() - (productivityWindowDays - 1));
+
+    const getOrderDate = (o: any) => new Date(o.deliveredAt || o.updatedAt || o.createdAt);
+
+    const windowOrders = orders.filter((o: any) => getOrderDate(o) >= cutoffDate);
+    const completedOrders = windowOrders.filter((o: any) => COMPLETED_STATUSES.includes(o.status));
+
+    const serviceItemsRaw = completedOrders.flatMap((o: any) =>
       (o.items || []).filter((i: any) => ['service', 'labor'].includes(String(i.type || '').toLowerCase())),
     );
+
+    const allServiceItems = selectedWorkshopArea === 'ALL'
+      ? serviceItemsRaw
+      : serviceItemsRaw.filter((i: any) => String(i.assignedUser?.workshopArea || '') === selectedWorkshopArea);
 
     const assignedServiceItems = allServiceItems.filter((i: any) => Boolean(i.assignedUserId));
     const assignedExecutors = new Set(
@@ -154,14 +176,18 @@ export function DashboardPage() {
       ? (assignedServiceItems.length / allServiceItems.length) * 100
       : 0;
 
-    const eficaciaDen = stats.completedOrders + stats.canceledOrders;
-    const eficacia = eficaciaDen > 0 ? (stats.completedOrders / eficaciaDen) * 100 : 0;
+    const completedInWindow = windowOrders.filter((o: any) => COMPLETED_STATUSES.includes(o.status)).length;
+    const canceledInWindow = windowOrders.filter((o: any) => o.status === 'CANCELADO').length;
+    const eficaciaDen = completedInWindow + canceledInWindow;
+    const eficacia = eficaciaDen > 0 ? (completedInWindow / eficaciaDen) * 100 : 0;
 
     const produtividade = assignedExecutors.size > 0
       ? assignedServiceItems.reduce((s: number, i: any) => s + Number(i.quantity || 1), 0) / assignedExecutors.size
       : 0;
 
-    const ticketMedio = stats.completedOrders > 0 ? stats.revenue / stats.completedOrders : 0;
+    const ticketMedio = completedOrders.length > 0
+      ? completedOrders.reduce((sum: number, o: any) => sum + Number(o.totalCost || 0), 0) / completedOrders.length
+      : 0;
 
     const cicloDias = completedOrders.length > 0
       ? completedOrders.reduce((sum: number, o: any) => {
@@ -224,6 +250,20 @@ export function DashboardPage() {
       };
     });
 
+    const byAreaMap = assignedServiceItems.reduce<Record<string, number>>((acc, item: any) => {
+      const area = String(item.assignedUser?.workshopArea || 'SEM_AREA');
+      acc[area] = (acc[area] || 0) + Number(item.totalPrice || 0);
+      return acc;
+    }, {});
+
+    const areaBreakdown = Object.entries(byAreaMap)
+      .map(([area, value]) => ({
+        area,
+        areaLabel: WORKSHOP_AREA_LABEL[area] || 'Sem área',
+        valor: Number(value),
+      }))
+      .sort((a, b) => b.valor - a.valor);
+
     return {
       eficiencia,
       eficacia,
@@ -232,8 +272,9 @@ export function DashboardPage() {
       cicloDias,
       topByFunction,
       monthlyProductivity,
+      areaBreakdown,
     };
-  }, [orders, stats.canceledOrders, stats.completedOrders, stats.revenue]);
+  }, [orders, productivityWindowDays, selectedWorkshopArea]);
 
   // Gráfico 3: Distribuição tipo de OS (concluída vs em aberto vs cancelada)
   const pieData = [
@@ -307,6 +348,39 @@ export function DashboardPage() {
       </div>
 
       {/* KPIs de Oficina */}
+      <div className="bg-white rounded-3xl border border-slate-200 p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Período de Análise</span>
+          {[7, 30, 90].map((days) => (
+            <button
+              key={days}
+              onClick={() => setProductivityWindowDays(days as 7 | 30 | 90)}
+              className={cn(
+                'px-3 py-1.5 rounded-lg text-xs font-black transition-all',
+                productivityWindowDays === days
+                  ? 'bg-slate-900 text-white'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              )}
+            >
+              {days} dias
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Área</span>
+          <select
+            value={selectedWorkshopArea}
+            onChange={(e) => setSelectedWorkshopArea(e.target.value)}
+            className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-bold"
+          >
+            <option value="ALL">Todas as áreas</option>
+            {Object.entries(WORKSHOP_AREA_LABEL).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
         {[
           {
@@ -394,7 +468,7 @@ export function DashboardPage() {
             <h3 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
               <Trophy size={20} /> Mais Produtivos
             </h3>
-            <p className="text-sm text-slate-400 font-medium">Ranking por função</p>
+            <p className="text-sm text-slate-400 font-medium">Ranking por função e visão por área</p>
           </div>
           <div className="space-y-3">
             {productivityData.topByFunction.map((row: any) => (
@@ -406,6 +480,30 @@ export function DashboardPage() {
                 </p>
               </div>
             ))}
+          </div>
+          <div className="mt-4 pt-4 border-t border-slate-100">
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Produção por Área</p>
+            <div className="space-y-2">
+              {productivityData.areaBreakdown.length === 0 && (
+                <p className="text-xs text-slate-400">Sem dados no período selecionado.</p>
+              )}
+              {productivityData.areaBreakdown.slice(0, 5).map((a: any) => (
+                <div key={a.area}>
+                  <div className="flex items-center justify-between text-[11px] mb-0.5">
+                    <span className="font-bold text-slate-700">{a.areaLabel}</span>
+                    <span className="font-black text-slate-900">R$ {a.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-slate-900"
+                      style={{
+                        width: `${productivityData.areaBreakdown[0]?.valor ? (a.valor / productivityData.areaBreakdown[0].valor) * 100 : 0}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </motion.div>
       </div>
@@ -419,7 +517,7 @@ export function DashboardPage() {
       >
         <div className="mb-6">
           <h3 className="text-lg font-black text-slate-900 tracking-tight">Tendência de Produtividade</h3>
-          <p className="text-sm text-slate-400 font-medium">Itens executados com executor definido nos últimos 6 meses</p>
+          <p className="text-sm text-slate-400 font-medium">Itens executados com executor definido por mês (janela selecionada)</p>
         </div>
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={productivityData.monthlyProductivity}>

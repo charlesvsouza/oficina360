@@ -23,12 +23,14 @@ export class CommissionsController {
     @Query('endDate') endDate?: string,
     @Query('status') status?: string,
     @Query('userId') userId?: string,
+    @Query('workshopArea') workshopArea?: string,
   ) {
     return this.commissionsService.findAll(tenant.tenantId, user, {
       startDate,
       endDate,
       status,
       userId,
+      workshopArea,
     });
   }
 

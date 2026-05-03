@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
+import QRCode from 'qrcode';
 
 @Injectable()
 export class WhatsappAdminService {
@@ -56,28 +57,38 @@ export class WhatsappAdminService {
     throw lastError;
   }
 
-  private normalizeQr(raw: string | null): string | null {
-    if (!raw || typeof raw !== 'string') return null;
-    return raw.startsWith('data:') ? raw : `data:image/png;base64,${raw}`;
-  }
-
-  private extractQrCode(data: any): string | null {
-    const candidates = [
+  private async extractQrCode(data: any): Promise<string | null> {
+    const imageCandidates = [
       data?.base64,
       data?.qrcode?.base64,
       data?.Qrcode?.base64,
-      data?.qrcode,
-      data?.qr,
-      data?.code,
       data?.data?.base64,
       data?.data?.qrcode?.base64,
-      data?.data?.qr,
-      data?.data?.code,
     ];
 
-    for (const candidate of candidates) {
+    for (const candidate of imageCandidates) {
       if (typeof candidate === 'string' && candidate.length > 20) {
-        return this.normalizeQr(candidate);
+        return candidate.startsWith('data:') ? candidate : `data:image/png;base64,${candidate}`;
+      }
+    }
+
+    const payloadCandidates = [
+      data?.code,
+      data?.qr,
+      data?.pairingCode,
+      data?.data?.code,
+      data?.data?.qr,
+      data?.data?.pairingCode,
+    ];
+
+    for (const candidate of payloadCandidates) {
+      if (typeof candidate === 'string' && candidate.length > 3) {
+        try {
+          // Alguns endpoints retornam o payload do QR (code) em vez de imagem base64.
+          return await QRCode.toDataURL(candidate, { margin: 1, width: 320 });
+        } catch {
+          // Ignora candidato inválido e tenta o próximo.
+        }
       }
     }
 
@@ -145,7 +156,7 @@ export class WhatsappAdminService {
         return null;
       });
 
-      const qrFromCreate = this.extractQrCode(createRes?.data);
+      const qrFromCreate = await this.extractQrCode(createRes?.data);
       if (qrFromCreate) {
         this.logger.log('QR Code obtido via create');
         return { qrCode: qrFromCreate };
@@ -162,6 +173,7 @@ export class WhatsappAdminService {
 
       const maxPollAttempts = 10;
       const pollIntervalMs = 1500;
+      let restarted = false;
 
       for (const attempt of attempts) {
         for (let i = 1; i <= maxPollAttempts; i += 1) {
@@ -171,13 +183,28 @@ export class WhatsappAdminService {
               ? await this.withAuthRetry((headers) => axios.get(url, { headers, timeout: 10000 }))
               : await this.withAuthRetry((headers) => axios.post(url, {}, { headers, timeout: 10000 }));
 
-            const qr = this.extractQrCode(res.data);
+            const qr = await this.extractQrCode(res.data);
             if (qr) {
               this.logger.log(`QR Code obtido via ${attempt.method.toUpperCase()} ${attempt.path} (tentativa ${i})`);
               return { qrCode: qr };
             }
 
             const count = this.extractQrCount(res.data);
+            if (count === 0 && !restarted && i >= 4) {
+              await this.withAuthRetry((headers) => axios.put(
+                `${this.apiUrl}/instance/restart/${this.instance}`,
+                {},
+                { headers, timeout: 10000 },
+              )).then(() => {
+                restarted = true;
+                this.logger.warn(`QR travado em count=0. Restart executado para ${this.instance}.`);
+              }).catch((restartErr: any) => {
+                this.logger.warn(
+                  `Falha ao restart ${this.instance}: ${restartErr?.response?.status ?? 'n/a'} ${JSON.stringify(restartErr?.response?.data ?? restartErr.message)}`,
+                );
+              });
+            }
+
             this.logger.log(
               `Aguardando QR em ${attempt.method.toUpperCase()} ${attempt.path} (tentativa ${i}/${maxPollAttempts}) count=${count ?? 'n/a'}`,
             );

@@ -107,9 +107,11 @@ export function UsersPage() {
       };
 
       if (editingUser) {
-        // Para update, removemos o email pois ele costuma ser a chave/único
-        const { email, password, ...updateData } = payload;
-        await usersApi.update(editingUser.id, updateData);
+        const { email, password, commissionPercent, chiefId, ...rest } = payload;
+        await usersApi.update(editingUser.id, {
+          ...rest,
+          recoveryEmail: rest.recoveryEmail || undefined,
+        });
       } else {
         await usersApi.create(payload);
       }

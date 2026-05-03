@@ -208,7 +208,55 @@ Rota:  /admin/login
 
 > **Pré-requisito validado:** WhatsApp com estado `open` confirmado + teste de envio bem-sucedido para 5521979330093 em 03/05/2026.
 
-5. **Lembrete de manutenção preventiva** — WhatsApp automático por KM/data *(próxima entrega)*
-6. **DRE — Demonstrativo de Resultado** — Receita, CMV, Margem, EBITDA
-7. **Comissão de mecânicos** — % por serviço, relatório por funcionário
-8. **NPS Automático** — pesquisa pós-entrega, dashboard de satisfação
+5. ✅ **Comissão de mecânicos** — backend completo implementado e deployado
+   - `CommissionRate` + `Commission` models no schema Prisma
+   - `assignedUserId` em `ServiceOrderItem`
+   - `CommissionsModule/Service/Controller` com cálculo automático ao faturar OS
+   - **⚠️ BLOQUEIO:** tabelas `commission_rates` e `commissions` não existem em produção
+6. ⏸ **Seed de dados demo** — 48 OS, 10 executores, comissões — **bloqueado pelo item acima**
+7. **Lembrete de manutenção preventiva** — WhatsApp automático por KM/data
+8. **DRE — Demonstrativo de Resultado** — Receita, CMV, Margem, EBITDA
+9. **NPS Automático** — pesquisa pós-entrega, dashboard de satisfação
+
+---
+
+## ⚠️ Bloqueio Crítico — Tabelas de Comissão Ausentes em Produção
+
+**Sintoma:** `POST /management/seed-demo` retorna erro:
+```
+The table `public.commission_rates` does not exist in the current database.
+```
+
+**Tentativas de fix (03/05/2026) — nenhuma funcionou:**
+
+| # | Abordagem | Arquivo | Resultado |
+|---|---|---|---|
+| 1 | `SEED_DEMO=true` env var no Railway | `release.js` | Seed não disparou |
+| 2 | Endpoint HTTP `POST /management/seed-demo` | `management.controller.ts` | 500 — tabela ausente |
+| 3 | Cache bust Dockerfile + `prisma generate` forçado | `Dockerfile` | Tabelas ainda ausentes |
+| 4 | `ensureMissingTables()` raw SQL no `release.js` | `release.js` | Tabelas ainda ausentes |
+| 5 | `applyMissingMigrations()` no `PrismaService.onModuleInit` | `prisma.service.ts` | Tabelas ainda ausentes |
+
+**Causa raiz provável:** `releaseCommand` do Railway pode não estar executando, ou o `prisma db push` usa schema cacheado sem os novos modelos.
+
+**Solução definitiva pendente:** executar o SQL diretamente no Railway Dashboard → PostgreSQL → Query console:
+```sql
+CREATE TABLE IF NOT EXISTS commission_rates (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  "tenantId" TEXT NOT NULL, "userId" TEXT UNIQUE, role TEXT,
+  rate DOUBLE PRECISION NOT NULL,
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS commissions (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  "tenantId" TEXT NOT NULL, "serviceOrderId" TEXT NOT NULL,
+  "serviceOrderItemId" TEXT UNIQUE NOT NULL, "userId" TEXT NOT NULL,
+  "baseValue" DOUBLE PRECISION NOT NULL, "commissionPercent" DOUBLE PRECISION NOT NULL,
+  "commissionValue" DOUBLE PRECISION NOT NULL, status TEXT NOT NULL DEFAULT 'PENDENTE',
+  "paidAt" TIMESTAMPTZ, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE "ServiceOrderItem" ADD COLUMN IF NOT EXISTS "assignedUserId" TEXT;
+```
+Após executar o SQL, chamar: `POST /management/seed-demo/e3c1d0fb-aaf2-46c4-b84a-263cd6137734` com header `x-seed-key: sygma-seed-2026`

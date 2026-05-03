@@ -34,6 +34,7 @@ import { ReportsPage } from './pages/ReportsPage';
 import { UsersPage } from './pages/UsersPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { KanbanPage } from './pages/KanbanPage';
+import { KanbanRecepcaoPage } from './pages/KanbanRecepcaoPage';
 import { WhatsappPage } from './pages/WhatsappPage';
 import { SuperAdminPage } from './pages/SuperAdminPage';
 import { SuperAdminLoginPage } from './pages/SuperAdminLoginPage';
@@ -95,9 +96,10 @@ export default function App() {
           </Route>
         </Route>
         
-        {/* Kanban — sem sidebar (tela cheia de pátio / modo TV) */}
+        {/* Kanban e Recepção — sem sidebar (tela cheia / modo TV) */}
         <Route element={<ProtectedRoute />}>
           <Route path="/kanban" element={<KanbanPage />} />
+          <Route path="/kanban-recepcao" element={<KanbanRecepcaoPage />} />
         </Route>
         
         <Route path="*" element={<Navigate to="/" replace />} />

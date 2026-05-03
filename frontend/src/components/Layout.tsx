@@ -20,6 +20,7 @@ import {
   Search,
   Bell,
   Tv2,
+  Monitor,
   MessageCircle,
   BarChart3,
   FileText,
@@ -47,6 +48,7 @@ export function Layout() {
 
     { to: '/service-orders', icon: ClipboardList, label: 'Ordens de Serviço' },
     { to: '/kanban', icon: Tv2, label: 'Kanban de Pátio', premium: true },
+    { to: '/kanban-recepcao', icon: Monitor, label: 'Painel Recepção', premium: true },
     { to: '/whatsapp', icon: MessageCircle, label: 'WhatsApp', premium: true },
     { to: '/services', icon: Wrench, label: 'Serviços' },
     {

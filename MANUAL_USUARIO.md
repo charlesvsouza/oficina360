@@ -1,6 +1,6 @@
 # Manual do Usuário — SigmaAuto
 
-**Versão:** 1.1 — Maio/2026  
+**Versão:** 1.2 — Maio/2026  
 **Acesso:** [sigmaauto.com.br](https://sigmaauto.com.br)  
 **Suporte:** suporte@sigmaauto.com.br
 
@@ -14,15 +14,17 @@
 4. [Veículos](#4-veículos)
 5. [Ordens de Serviço](#5-ordens-de-serviço)
 6. [Kanban de Pátio](#6-kanban-de-pátio)
-7. [Checklist de Entrada e Saída](#7-checklist-de-entrada-e-saída)
-8. [WhatsApp Automático](#8-whatsapp-automático)
-9. [Serviços](#9-serviços)
-10. [Estoque](#10-estoque)
-11. [Financeiro](#11-financeiro)
-12. [Usuários](#12-usuários)
-13. [Configurações e Assinatura](#13-configurações-e-assinatura)
-14. [Perfis de Acesso (Roles)](#14-perfis-de-acesso-roles)
-15. [Dúvidas Frequentes](#15-dúvidas-frequentes)
+7. [Painel de Recepção (Modo TV)](#7-painel-de-recepção-modo-tv)
+8. [Checklist de Entrada e Saída](#8-checklist-de-entrada-e-saída)
+9. [WhatsApp Automático](#9-whatsapp-automático)
+10. [Serviços](#10-serviços)
+11. [Estoque](#11-estoque)
+12. [Financeiro](#12-financeiro)
+13. [Relatórios Gerenciais](#13-relatórios-gerenciais)
+14. [Usuários](#14-usuários)
+15. [Configurações e Assinatura](#15-configurações-e-assinatura)
+16. [Perfis de Acesso (Roles)](#16-perfis-de-acesso-roles)
+17. [Dúvidas Frequentes](#17-dúvidas-frequentes)
 
 ---
 
@@ -139,18 +141,51 @@ Dentro da OS aberta:
 2. Clique em **"Adicionar Peça"** para incluir peças do estoque
 3. Informe a quantidade e confirme
 
-### 5.4 Registrar diagnóstico
+### 5.4 Reservar peças e gerar Pedido de Compra
+
+Quando a OS estiver com status **APROVADA** ou **AGUARDANDO PEÇAS** e tiver peças lançadas, o botão **"Verificar / Reservar Peças"** fica disponível.
+
+**Fluxo de reserva:**
+1. Clique em **"Verificar / Reservar Peças"** (ícone de carrinho, cor âmbar)
+2. O sistema exibe um modal com cada peça e sua disponibilidade em estoque:
+   - **Verde ✓** — peça disponível, será reservada imediatamente
+   - **Vermelho ⚠** — peça faltante, irá gerar pedido de compra
+3. Informe opcionalmente a **data prevista de chegada** das peças faltantes
+4. Clique em **"Confirmar Reserva"**
+
+**O que acontece após a confirmação:**
+- Peças disponíveis: debitadas do estoque imediatamente
+- Peças faltantes: gerado **Pedido de Compra** em PDF
+- Se houver peças faltantes, a OS passa automaticamente para **AGUARDANDO PEÇAS**
+
+**Pedido de Compra (PDF):**
+
+O PDF é gerado no mesmo padrão visual da O.S. e contém:
+- Dados completos da oficina (nome, CNPJ, endereço, telefone, e-mail)
+- Número sequencial automático no formato `PC-AAAAMMDD-XXXX`
+- Tabela com: Cód. Interno · Cód. Original (SKU) · Peça/Descrição · Qtd · Unitário · Total · Fornecedor · Nº OS
+- Rodapé com assinatura
+
+Use o botão **"Imprimir"** no modal para enviar ao fornecedor.
+
+**Cancelar reserva:**
+
+Perfis MASTER, ADMIN e GERENTE podem cancelar a reserva de uma OS. Ao cancelar:
+- Todas as peças reservadas são devolvidas ao estoque
+- A OS retorna ao status **APROVADA**
+
+### 5.5 Registrar diagnóstico
 
 1. Clique na aba **"Diagnóstico"** dentro da OS
 2. Descreva o problema encontrado
 3. Adicione fotos se necessário
 4. Salve o diagnóstico
 
-### 5.5 Aprovar orçamento
+### 5.6 Aprovar orçamento
 
 Após o diagnóstico, clique em **"Solicitar Aprovação"** para enviar o orçamento ao cliente. O cliente pode aprovar via link.
 
-### 5.6 Finalizar e receber pagamento
+### 5.7 Finalizar e receber pagamento
 
 Quando os serviços estiverem concluídos:
 1. Mude o status para **"Pronto"**
@@ -158,7 +193,7 @@ Quando os serviços estiverem concluídos:
 3. Confirme o recebimento
 4. Entregue o veículo e marque como **"Entregue"**
 
-### 5.7 Imprimir OS
+### 5.8 Imprimir OS
 
 Use o botão **"Imprimir"** dentro da OS para gerar uma versão para impressão.
 
@@ -184,15 +219,70 @@ O Kanban de Pátio é um painel visual que exibe todas as OS em andamento organi
 
 > Dica: atualize automaticamente mantendo a aba aberta. O Kanban reflete o estado atual das OS em tempo real.
 
+### 6.3 Alertas visuais automáticos
+
+O sistema monitora o tempo de permanência de cada OS em seu status atual e exibe alertas coloridos diretamente nos cartões:
+
+| Situação | Visual | Critério |
+|---|---|---|
+| Sem orçamento | Borda **vermelha pulsante** | ABERTA ou EM DIAGNÓSTICO há mais de **48h** |
+| Aguardando aprovação (aviso) | Borda **âmbar pulsante** | AGUARDANDO APROVAÇÃO entre **48h e 72h** |
+| Aguardando aprovação (crítico) | Borda **vermelha pulsante** | AGUARDANDO APROVAÇÃO há mais de **72h** |
+| Peças com data prevista vencida | Borda **vermelha pulsante** | AGUARDANDO PEÇAS com data prevista ultrapassada |
+| Aguardando peças (aviso) | Borda **âmbar pulsante** | AGUARDANDO PEÇAS há mais de **48h** sem data prevista |
+
+Um badge descritivo aparece no topo do cartão com o motivo e o tempo decorrido (ex: *"Sem autorização há 78h"*).
+
+Na faixa superior do painel, o contador **"X alertas ativos"** (em vermelho pulsante) mostra o total de OS que requerem atenção imediata.
+
 ---
 
-## 7. Checklist de Entrada e Saída
+## 7. Painel de Recepção (Modo TV)
+
+> Disponível no plano **PRO** e **REDE**.
+
+O Painel de Recepção é uma visão dedicada para **monitores de recepção e TV de piso de oficina**. Diferente do Kanban de gestão, este painel mostra apenas as OS ativas em um layout compacto e escuro, otimizado para leitura à distância.
+
+### 7.1 Acessar o Painel de Recepção
+
+1. Clique em **Painel de Recepção** no menu lateral (ícone de monitor)
+2. O painel exibe os cards de OS agrupados com contadores por fase
+
+### 7.2 Filtros por fase
+
+Use a barra de filtros no topo para focar em um grupo de status:
+
+| Grupo | Status incluídos |
+|---|---|
+| **Recebendo** | Aberta, Em Diagnóstico |
+| **Orçamento** | Aguardando Aprovação |
+| **Em Serviço** | Aprovada, Em Execução |
+| **Peças** | Aguardando Peças |
+| **Prontos** | Pronto para Entrega |
+
+Clique em um grupo para filtrar; clique novamente para voltar a **Todos**.
+
+### 7.3 Modo TV (Fullscreen)
+
+1. Clique no botão **"Modo TV"** no canto superior direito
+2. O painel ocupa toda a tela com fonte maior, ideal para TV
+3. Clique em **"Sair do modo TV"** para voltar à visualização normal
+
+### 7.4 Alertas no Painel de Recepção
+
+Os mesmos alertas visuais do Kanban de Pátio (bordas pulsantes e badges) também aparecem neste painel, com a mesma lógica de tempo por status. O contador de alertas ativos fica visível na faixa de filtros.
+
+> O painel atualiza automaticamente a cada **60 segundos**. Deixe-o aberto permanentemente em um monitor dedicado.
+
+---
+
+## 8. Checklist de Entrada e Saída
 
 > Disponível no plano **PRO** e **REDE**.
 
 O Checklist registra o estado do veículo no momento da entrada e da saída, com fotos, protegendo juridicamente a oficina.
 
-### 7.1 Preencher o checklist de entrada
+### 8.1 Preencher o checklist de entrada
 
 1. Dentro de uma OS, clique na aba **"Checklist"**
 2. Para cada uma das **15 áreas** do veículo (para-choque, lataria, vidros, pneus etc.), selecione a condição:
@@ -201,7 +291,7 @@ O Checklist registra o estado do veículo no momento da entrada e da saída, com
 4. Informe o **nível de combustível** (0 a 8 traços)
 5. Clique em **Salvar Checklist**
 
-### 7.2 Checklist de saída
+### 8.2 Checklist de saída
 
 Repita o processo antes de entregar o veículo ao cliente. O sistema mantém o histórico de entrada e saída separados para comparação.
 
@@ -209,13 +299,13 @@ Repita o processo antes de entregar o veículo ao cliente. O sistema mantém o h
 
 ---
 
-## 8. WhatsApp Automático
+## 9. WhatsApp Automático
 
 > Disponível no plano **PRO** e **REDE**.
 
 O sistema envia mensagens WhatsApp automaticamente ao cliente em cada etapa importante da OS.
 
-### 8.1 Mensagens enviadas automaticamente
+### 9.1 Mensagens enviadas automaticamente
 
 | Evento | Mensagem enviada |
 |---|---|
@@ -227,7 +317,7 @@ O sistema envia mensagens WhatsApp automaticamente ao cliente em cada etapa impo
 
 As mensagens são enviadas para o **telefone cadastrado no cliente**. Certifique-se de que o número está correto e no formato com DDD.
 
-### 8.2 Configurar a conexão WhatsApp
+### 9.2 Configurar a conexão WhatsApp
 
 1. Clique em **WhatsApp** no menu lateral (visível para MASTER e ADMIN)
 2. Clique em **"Conectar WhatsApp"** para gerar o QR Code
@@ -235,7 +325,7 @@ As mensagens são enviadas para o **telefone cadastrado no cliente**. Certifique
 4. Aponte a câmera para o QR Code exibido na tela
 5. Aguarde a confirmação de status **"Conectado"**
 
-### 8.3 Verificar o status da conexão
+### 9.3 Verificar o status da conexão
 
 A tela de WhatsApp exibe em tempo real se a conexão está **Ativa** ou **Desconectada**. Se desconectada, gere um novo QR Code.
 
@@ -243,11 +333,11 @@ A tela de WhatsApp exibe em tempo real se a conexão está **Ativa** ou **Descon
 
 ---
 
-## 9. Serviços
+## 10. Serviços
 
 O catálogo de serviços define os tipos de mão de obra que sua oficina realiza.
 
-### 6.1 Cadastrar um serviço
+### 10.1 Cadastrar um serviço
 
 1. Clique em **Serviços** no menu lateral
 2. Clique em **"Novo Serviço"**
@@ -262,11 +352,11 @@ O catálogo de serviços define os tipos de mão de obra que sua oficina realiza
 
 ---
 
-## 10. Estoque
+## 11. Estoque
 
 Controle de peças e materiais utilizados nas OS.
 
-### 10.1 Cadastrar uma peça
+### 11.1 Cadastrar uma peça
 
 1. Clique em **Estoque** no menu lateral
 2. Clique em **"Nova Peça"**
@@ -277,21 +367,21 @@ Controle de peças e materiais utilizados nas OS.
    - **Preço de custo** e **preço de venda**
 4. Clique em **Salvar**
 
-### 10.2 Movimentações
+### 11.2 Movimentações
 
 Ao adicionar uma peça em uma OS, o estoque é debitado automaticamente. Você também pode registrar entradas manuais (compras, devoluções).
 
-### 10.3 Alerta de estoque baixo
+### 11.3 Alerta de estoque baixo
 
 O sistema exibe alertas quando a quantidade de uma peça estiver abaixo do mínimo configurado.
 
 ---
 
-## 11. Financeiro
+## 12. Financeiro
 
 Controle de receitas e despesas da oficina.
 
-### 11.1 Lançamentos
+### 12.1 Lançamentos
 
 1. Clique em **Financeiro** no menu lateral
 2. Clique em **"Novo Lançamento"**
@@ -305,21 +395,66 @@ Controle de receitas e despesas da oficina.
 
 > Pagamentos registrados em OS são lançados automaticamente como receita.
 
-### 11.2 Resumo mensal
+### 12.2 Resumo mensal
 
 O painel financeiro exibe o **total de receitas**, **total de despesas** e o **saldo do mês** com gráficos comparativos.
 
-### 11.3 Exportar relatório
+### 12.3 Exportar relatório
 
 Use o botão **"Imprimir"** para gerar um relatório financeiro do período selecionado.
 
 ---
 
-## 12. Usuários
+---
+
+## 13. Relatórios Gerenciais
+
+> Disponível no plano **PRO** e **REDE**.
+
+O módulo de Relatórios Gerenciais oferece 4 tipos de análise com pré-visualização em PDF (modal A4) e impressão direta via navegador. Todos os relatórios incluem cabeçalho com dados da oficina e rodapé com assinatura.
+
+### 13.1 Acessar os relatórios
+
+1. Clique em **Relatórios** no menu lateral
+2. Selecione o tipo de relatório desejado
+3. Informe o período ou filtros solicitados
+4. Clique em **"Gerar Relatório"**
+5. Revise na pré-visualização e clique em **"Imprimir"** para enviar à impressora ou salvar como PDF
+
+### 13.2 Tipos de relatório disponíveis
+
+#### Relatório de OS por Período
+Visão geral das Ordens de Serviço em um intervalo de datas. Inclui:
+- KPIs: total de OS, faturamento, ticket médio, OS concluídas vs. canceladas
+- Lista completa de OS do período com status e valores
+- Top clientes por faturamento
+- Breakdown por status
+
+#### DRE / Resultado Mensal
+Demonstração de Resultado do Exercício consolidada. Inclui:
+- Receita bruta, CMV (custo das mercadorias vendidas), margem bruta
+- EBITDA e resultado líquido
+- Histórico comparativo dos últimos 6 meses
+
+#### Relatório de Comissões por Período
+Análise das comissões da equipe técnica. Inclui:
+- Ranking de colaboradores por valor de comissão
+- Totais pendentes e pagos por colaborador
+- Filtro por período e status de pagamento
+
+#### Projeção de Pedido de Compra
+Análise de giro e necessidade de reposição do estoque. Inclui:
+- Giro de estoque dos últimos 90 dias por item
+- Classificação de urgência: **CRÍTICO** / **URGENTE** / **ATENÇÃO**
+- Quantidade sugerida de compra e custo estimado total
+
+---
+
+## 14. Usuários
 
 > Disponível apenas para perfis **MASTER** e **ADMIN**.
 
-### 12.1 Convidar um usuário
+### 14.1 Convidar um usuário
 
 1. Clique em **Usuários** no menu lateral
 2. Clique em **"Convidar Usuário"**
@@ -328,15 +463,15 @@ Use o botão **"Imprimir"** para gerar um relatório financeiro do período sele
 
 O usuário receberá um e-mail com um link para criar sua senha e acessar o sistema.
 
-### 12.2 Editar ou desativar
+### 14.2 Editar ou desativar
 
 Clique no usuário na lista para editar suas informações ou desativá-lo.
 
 ---
 
-## 13. Configurações e Assinatura
+## 15. Configurações e Assinatura
 
-### 13.1 Dados da oficina
+### 15.1 Dados da oficina
 
 1. Clique em **Configurações** no menu lateral
 2. Na aba **Empresa**, preencha:
@@ -346,12 +481,12 @@ Clique no usuário na lista para editar suas informações ou desativá-lo.
    - Telefone e e-mail
 3. Clique em **Salvar**
 
-### 13.2 Configurações operacionais
+### 15.2 Configurações operacionais
 
 - **Valor da hora de mão de obra** — usado como base para cálculo de OS
 - **Horas de diagnóstico** — tempo médio cobrado por diagnóstico
 
-### 13.3 Assinatura e plano
+### 15.3 Assinatura e plano
 
 Na aba **Assinatura** você visualiza seu plano atual e pode fazer **upgrade** para um plano superior:
 
@@ -364,7 +499,7 @@ Para fazer upgrade, clique no plano desejado e você será redirecionado para o 
 
 ---
 
-## 14. Perfis de Acesso (Roles)
+## 16. Perfis de Acesso (Roles)
 
 O sistema possui diferentes níveis de acesso para proteger informações sensíveis:
 
@@ -379,7 +514,7 @@ O sistema possui diferentes níveis de acesso para proteger informações sensí
 
 ---
 
-## 15. Dúvidas Frequentes
+## 17. Dúvidas Frequentes
 
 **Esqueci minha senha. O que faço?**  
 Na tela de login, clique em "Esqueci minha senha", informe seu e-mail e siga as instruções enviadas.
@@ -407,6 +542,15 @@ Acesse **WhatsApp** no menu lateral e verifique se o status está como **"Conect
 
 **O Kanban de Pátio não aparece no menu. Por quê?**  
 O Kanban está disponível apenas nos planos **PRO** e **REDE**. Acesse **Configurações → Assinatura** para fazer upgrade.
+
+**O Painel de Recepção é diferente do Kanban de Pátio?**  
+Sim. O **Kanban de Pátio** é voltado para a equipe interna (arrastar cards, ver detalhes). O **Painel de Recepção** é otimizado para exibição em TV — layout escuro e compacto, auto-refresh de 60 segundos, filtros por fase e alertas visuais.
+
+**Como funciona o alerta de peças atrasadas?**  
+Ao reservar peças e informar uma data prevista de chegada, o sistema monitora automaticamente. Se a data for ultrapassada e a OS ainda estiver em AGUARDANDO PEÇAS, o card ficará com borda vermelha pulsante e o badge "Peças atrasadas Xh" tanto no Kanban quanto no Painel de Recepção.
+
+**O Pedido de Compra reserva o estoque automaticamente?**  
+Sim. As peças que já estão no estoque são reservadas (debitadas) no momento da confirmação. As peças faltantes geram o PDF do Pedido de Compra para envio ao fornecedor. Ao receber as peças, faça uma entrada manual no Estoque.
 
 **Posso usar o Checklist sem tirar fotos?**  
 Sim. As fotos são opcionais. Você pode preencher apenas as condições de cada área do veículo e salvar sem adicionar imagens.

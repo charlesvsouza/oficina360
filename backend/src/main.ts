@@ -45,8 +45,12 @@ async function bootstrap() {
     res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
-  const port = process.env.PORT || 3000;
+  const port = 3000;
+  console.log(`[startup] process.env.PORT=${process.env.PORT ?? 'undefined'} | listen_port=${port}`);
   await app.listen(port, '0.0.0.0');
-  console.log(`🚀 Server running on http://0.0.0.0:${port}`);
+  console.log(`[startup] server listening on 0.0.0.0:${port}`);
 }
-bootstrap();
+bootstrap().catch((error) => {
+  console.error('[startup] fatal error during bootstrap', error);
+  process.exit(1);
+});

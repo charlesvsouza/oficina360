@@ -139,20 +139,6 @@ export class WhatsappAdminService {
     return null;
   }
 
-  private extractQrCount(data: any): number | null {
-    const candidates = [
-      data?.count,
-      data?.qrcode?.count,
-      data?.data?.count,
-      data?.data?.qrcode?.count,
-    ];
-
-    for (const candidate of candidates) {
-      if (typeof candidate === 'number') return candidate;
-    }
-
-    return null;
-  }
 
   private async wait(ms: number): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, ms));
@@ -184,21 +170,24 @@ export class WhatsappAdminService {
     if (!this.isConfigured()) return { qrCode: null, error: 'Evolution API não configurada' };
 
     try {
-      let instanceApiKey = await this.getInstanceApiKey();
+      // Apaga a instância existente para garantir estado limpo.
+      const oldKey = await this.getInstanceApiKey();
+      await this.withAuthRetry(
+        (headers) => axios.delete(`${this.apiUrl}/instance/delete/${this.instance}`, { headers, timeout: 8000 }),
+        oldKey ?? undefined,
+      ).catch((err: any) => {
+        this.logger.log(`delete instance: ${err?.response?.status ?? 'n/a'} (pode não existir ainda)`);
+      });
 
-      // Tenta criar; se já existir, segue o fluxo normalmente.
+      await this.wait(1500);
+
+      // Cria instância fresca com QR habilitado.
       const createRes = await this.withAuthRetry((headers) => axios.post(
         `${this.apiUrl}/instance/create`,
         { instanceName: this.instance, qrcode: true, integration: 'WHATSAPP-BAILEYS' },
         { headers, timeout: 10000 },
       )).catch((err: any) => {
-        const status = err?.response?.status;
-        const payload = JSON.stringify(err?.response?.data ?? err.message);
-        if (status === 403 && payload.includes('already in use')) {
-          this.logger.log(`create instance: já existe (${this.instance}), continuando com connect`);
-          return null;
-        }
-        this.logger.warn(`create instance: ${status ?? 'n/a'} ${payload}`);
+        this.logger.warn(`create instance: ${err?.response?.status ?? 'n/a'} ${JSON.stringify(err?.response?.data ?? err.message)}`);
         return null;
       });
 
@@ -208,103 +197,37 @@ export class WhatsappAdminService {
         return { qrCode: qrFromCreate };
       }
 
-      // Fallbacks para versões diferentes da Evolution API.
-      // Alguns endpoints retornam { count: 0 } nos primeiros segundos enquanto o QR ainda é gerado.
-      const attempts: Array<{ method: 'get' | 'post'; path: string }> = [
-        { method: 'get', path: `/instance/connect/${this.instance}` },
-        { method: 'get', path: `/instance/qrcode/${this.instance}` },
-        { method: 'get', path: `/instance/qrbase64/${this.instance}` },
-      ];
+      // Busca apikey da instância recém-criada.
+      const instanceApiKey = await this.getInstanceApiKey();
 
-      const maxPollAttempts = 10;
-      const pollIntervalMs = 1500;
-      let recoveryAttempted = false;
+      // Polling: aguarda a instância gerar o QR.
+      const maxAttempts = 15;
+      const intervalMs = 2000;
 
-      for (const attempt of attempts) {
-        for (let i = 1; i <= maxPollAttempts; i += 1) {
-          try {
-            const url = `${this.apiUrl}${attempt.path}`;
-            const res = attempt.method === 'get'
-              ? await this.withAuthRetry((headers) => axios.get(url, { headers, timeout: 10000 }), instanceApiKey ?? undefined)
-              : await this.withAuthRetry((headers) => axios.post(url, {}, { headers, timeout: 10000 }), instanceApiKey ?? undefined);
+      for (let i = 1; i <= maxAttempts; i++) {
+        await this.wait(intervalMs);
+        try {
+          const res = await this.withAuthRetry(
+            (headers) => axios.get(`${this.apiUrl}/instance/connect/${this.instance}`, { headers, timeout: 10000 }),
+            instanceApiKey ?? undefined,
+          );
 
-            const qr = await this.extractQrCode(res.data);
-            if (qr) {
-              this.logger.log(`QR Code obtido via ${attempt.method.toUpperCase()} ${attempt.path} (tentativa ${i})`);
-              return { qrCode: qr };
-            }
+          const raw = JSON.stringify(res.data ?? {});
+          this.logger.log(`connect (tentativa ${i}/${maxAttempts}): ${raw.substring(0, 200)}`);
 
-            const count = this.extractQrCount(res.data);
-            if (
-              count === 0
-              && !recoveryAttempted
-              && i >= 4
-              && attempt.method === 'get'
-              && attempt.path.startsWith('/instance/connect/')
-            ) {
-              recoveryAttempted = true;
-              this.logger.warn(`QR travado em count=0. Executando recuperação (delete + create) para ${this.instance}.`);
-
-              await this.withAuthRetry((headers) => axios.delete(
-                `${this.apiUrl}/instance/delete/${this.instance}`,
-                { headers, timeout: 8000 },
-              ), instanceApiKey ?? undefined).catch((deleteErr: any) => {
-                this.logger.warn(
-                  `Falha no delete ${this.instance}: ${deleteErr?.response?.status ?? 'n/a'} ${JSON.stringify(deleteErr?.response?.data ?? deleteErr.message)}`,
-                );
-              });
-
-              await this.wait(2000);
-
-              const recoveryCreate = await this.withAuthRetry((headers) => axios.post(
-                `${this.apiUrl}/instance/create`,
-                { instanceName: this.instance, qrcode: true, integration: 'WHATSAPP-BAILEYS' },
-                { headers, timeout: 10000 },
-              )).catch((createErr: any) => {
-                const payload = JSON.stringify(createErr?.response?.data ?? createErr.message);
-                this.logger.warn(`Falha no create pós-recuperação ${this.instance}: ${createErr?.response?.status ?? 'n/a'} ${payload}`);
-                return null;
-              });
-
-              const qrFromRecovery = await this.extractQrCode(recoveryCreate?.data);
-              if (qrFromRecovery) {
-                this.logger.log('QR Code obtido via create pós-recuperação');
-                return { qrCode: qrFromRecovery };
-              }
-
-              // Atualiza a apikey da instância recriada para os próximos polls.
-              instanceApiKey = await this.getInstanceApiKey();
-            }
-
-            this.logger.log(
-              `Aguardando QR em ${attempt.method.toUpperCase()} ${attempt.path} (tentativa ${i}/${maxPollAttempts}) count=${count ?? 'n/a'}`,
-            );
-
-            if (i < maxPollAttempts) {
-              await this.wait(pollIntervalMs);
-            }
-          } catch (err: any) {
-            const status = err?.response?.status;
-            this.logger.warn(
-              `Falha em ${attempt.method.toUpperCase()} ${attempt.path} (tentativa ${i}): ${status ?? 'n/a'} ${JSON.stringify(err?.response?.data ?? err.message)}`,
-            );
-
-            // Se endpoint não existir/não aceitar método, tenta o próximo endpoint.
-            if (status === 404 || status === 405) break;
-
-            // Em erros de auth, não adianta repetir esse endpoint.
-            if (status === 401 || status === 403) break;
-
-            if (i < maxPollAttempts) {
-              await this.wait(pollIntervalMs);
-            }
+          const qr = await this.extractQrCode(res.data);
+          if (qr) {
+            this.logger.log(`QR Code obtido na tentativa ${i}`);
+            return { qrCode: qr };
           }
+        } catch (err: any) {
+          this.logger.warn(`connect (tentativa ${i}): ${err?.response?.status ?? 'n/a'} ${JSON.stringify(err?.response?.data ?? err.message)}`);
         }
       }
 
       return {
         qrCode: null,
-        error: 'QR ainda não disponível. A instância está conectando. Aguarde alguns segundos e gere novamente.',
+        error: 'QR não gerado após 30 segundos. Verifique a configuração da Evolution API e tente novamente.',
       };
     } catch (err: any) {
       const msg = err?.response?.data?.message ?? err.message;

@@ -191,6 +191,8 @@ export class WhatsappAdminService {
         return null;
       });
 
+      this.logger.log(`create response: ${JSON.stringify(createRes?.data ?? {}).substring(0, 300)}`);
+
       const qrFromCreate = await this.extractQrCode(createRes?.data);
       if (qrFromCreate) {
         this.logger.log('QR Code obtido via create');
@@ -200,28 +202,50 @@ export class WhatsappAdminService {
       // Busca apikey da instância recém-criada.
       const instanceApiKey = await this.getInstanceApiKey();
 
-      // Polling: aguarda a instância gerar o QR.
+      // Polling: tenta connect E fetchInstances (v2 retorna QR dentro do fetchInstances).
       const maxAttempts = 15;
       const intervalMs = 2000;
 
       for (let i = 1; i <= maxAttempts; i++) {
         await this.wait(intervalMs);
+
+        // Tenta /instance/connect primeiro.
         try {
           const res = await this.withAuthRetry(
             (headers) => axios.get(`${this.apiUrl}/instance/connect/${this.instance}`, { headers, timeout: 10000 }),
             instanceApiKey ?? undefined,
           );
-
-          const raw = JSON.stringify(res.data ?? {});
-          this.logger.log(`connect (tentativa ${i}/${maxAttempts}): ${raw.substring(0, 200)}`);
-
           const qr = await this.extractQrCode(res.data);
           if (qr) {
-            this.logger.log(`QR Code obtido na tentativa ${i}`);
+            this.logger.log(`QR Code obtido via connect (tentativa ${i})`);
+            return { qrCode: qr };
+          }
+        } catch { /* ignora, tenta fetchInstances */ }
+
+        // Tenta extrair QR do fetchInstances (Evolution API v2).
+        try {
+          const fetchRes = await this.withAuthRetry(
+            (headers) => axios.get(`${this.apiUrl}/instance/fetchInstances`, { headers, timeout: 8000 }),
+          );
+          const instances: any[] = Array.isArray(fetchRes.data) ? fetchRes.data
+            : Array.isArray(fetchRes.data?.response) ? fetchRes.data.response
+            : Array.isArray(fetchRes.data?.data) ? fetchRes.data.data : [];
+
+          const current = instances.find((item) => {
+            const name = item?.instance?.instanceName ?? item?.instanceName;
+            return name === this.instance;
+          });
+
+          const raw = JSON.stringify(current ?? {});
+          this.logger.log(`fetchInstances (tentativa ${i}/${maxAttempts}): ${raw.substring(0, 300)}`);
+
+          const qr = await this.extractQrCode(current) ?? await this.extractQrCode(current?.qrcode);
+          if (qr) {
+            this.logger.log(`QR Code obtido via fetchInstances (tentativa ${i})`);
             return { qrCode: qr };
           }
         } catch (err: any) {
-          this.logger.warn(`connect (tentativa ${i}): ${err?.response?.status ?? 'n/a'} ${JSON.stringify(err?.response?.data ?? err.message)}`);
+          this.logger.warn(`fetchInstances (tentativa ${i}): ${err?.response?.status ?? 'n/a'}`);
         }
       }
 

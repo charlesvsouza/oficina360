@@ -76,17 +76,70 @@ async function terminateAllAppConnections() {
   }
 }
 
+async function ensureMissingTables(url) {
+  const cleanUrl = stripPoolParams(url);
+  const client = new Client({
+    connectionString: cleanUrl,
+    connectionTimeoutMillis: 15000,
+    ssl: url.includes('sslmode=require') ? { rejectUnauthorized: false } : false,
+  });
+  try {
+    await client.connect();
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS commission_rates (
+        id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        "tenantId"  TEXT NOT NULL,
+        "userId"    TEXT UNIQUE,
+        role        TEXT,
+        rate        DOUBLE PRECISION NOT NULL,
+        "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now(),
+        "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+    `);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS commissions (
+        id                   TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        "tenantId"           TEXT NOT NULL,
+        "serviceOrderId"     TEXT NOT NULL,
+        "serviceOrderItemId" TEXT UNIQUE NOT NULL,
+        "userId"             TEXT NOT NULL,
+        "baseValue"          DOUBLE PRECISION NOT NULL,
+        "commissionPercent"  DOUBLE PRECISION NOT NULL,
+        "commissionValue"    DOUBLE PRECISION NOT NULL,
+        status               TEXT NOT NULL DEFAULT 'PENDENTE',
+        "paidAt"             TIMESTAMPTZ,
+        "createdAt"          TIMESTAMPTZ NOT NULL DEFAULT now(),
+        "updatedAt"          TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+    `);
+    await client.query(`
+      ALTER TABLE "ServiceOrderItem" ADD COLUMN IF NOT EXISTS "assignedUserId" TEXT;
+    `);
+    console.log('[release] ensureMissingTables: OK');
+  } catch (err) {
+    console.warn('[release] ensureMissingTables error (non-fatal):', err.message);
+  } finally {
+    try { await client.end(); } catch (_) {}
+  }
+}
+
 async function main() {
   await terminateAllAppConnections();
 
-  // Set connection_limit=1 for the prisma db push process so it doesn't re-flood the pool
   const rawUrl = process.env.DATABASE_URL || '';
+  await ensureMissingTables(rawUrl);
+
+  // Set connection_limit=1 for the prisma db push process so it doesn't re-flood the pool
   const baseUrl = stripPoolParams(rawUrl);
   const sep = baseUrl.includes('?') ? '&' : '?';
   process.env.DATABASE_URL = `${baseUrl}${sep}connection_limit=1&pool_timeout=30&connect_timeout=15`;
 
   console.log('[release] Running prisma db push...');
-  execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
+  try {
+    execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
+  } catch (err) {
+    console.error('[release] prisma db push failed (non-fatal, SQL fallback already ran):', err.message);
+  }
 
   const seedFlag = (process.env.SEED_DEMO || '').trim().toLowerCase();
   console.log(`[release] SEED_DEMO="${seedFlag}"`);

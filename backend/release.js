@@ -88,11 +88,17 @@ async function main() {
   console.log('[release] Running prisma db push...');
   execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
 
-  if (process.env.SEED_DEMO === 'true') {
-    console.log('[release] SEED_DEMO=true — executando seed de dados demo...');
-    const { runSeed } = require('./seed-demo.js');
-    await runSeed();
-    console.log('[release] Seed concluído.');
+  const seedFlag = (process.env.SEED_DEMO || '').trim().toLowerCase();
+  console.log(`[release] SEED_DEMO="${seedFlag}"`);
+  if (seedFlag === 'true' || seedFlag === '1') {
+    console.log('[release] Iniciando seed de dados demo...');
+    try {
+      const { runSeed } = require('./seed-demo.js');
+      await runSeed();
+      console.log('[release] Seed concluído com sucesso.');
+    } catch (seedErr) {
+      console.error('[release] Erro no seed (non-fatal):', seedErr.message);
+    }
   }
 
   console.log('[release] Done.');

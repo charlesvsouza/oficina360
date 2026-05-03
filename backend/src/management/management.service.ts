@@ -1,4 +1,4 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
@@ -66,13 +66,15 @@ export class ManagementService {
   async listAllTenants() {
     return this.prisma.tenant.findMany({
       include: {
-        _count: {
-          select: { users: true }
-        },
-        subscription: {
-          include: { plan: true }
-        }
-      }
+        _count: { select: { users: true } },
+        subscription: { include: { plan: true } },
+      },
     });
+  }
+
+  async getFirstActiveTenant() {
+    const tenant = await this.prisma.tenant.findFirst({ where: { status: 'ACTIVE' } });
+    if (!tenant) throw new NotFoundException('Nenhum tenant ativo encontrado');
+    return tenant;
   }
 }

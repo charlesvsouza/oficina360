@@ -1,4 +1,4 @@
-# Build stage -- bust cache: 20260503d
+# Build stage -- bust cache: 20260503e
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY backend/package*.json ./
@@ -16,6 +16,7 @@ RUN if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY backend/release.js ./release.js
 EXPOSE 3000
-# prisma db push is run via Railway releaseCommand before container starts
+# prisma db push + idle connection cleanup run via release.js (Railway releaseCommand)
 CMD ["node", "dist/main"]

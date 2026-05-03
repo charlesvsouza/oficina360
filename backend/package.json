@@ -12,6 +12,7 @@
     "prisma:push": "prisma db push",
     "prisma:seed": "ts-node prisma/seed.ts",
     "db:reset:admins": "ts-node scripts/reset-and-bootstrap-admins.ts",
+    "seed:bi35": "ts-node scripts/seed-bi-35-processes.ts",
     "test:mercadopago": "ts-node scripts/test-mercadopago.ts",
     "upsert-superadmin": "ts-node scripts/upsert-superadmin.ts"
   },

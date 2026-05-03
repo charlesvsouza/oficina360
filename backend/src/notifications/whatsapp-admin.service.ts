@@ -126,6 +126,8 @@ export class WhatsappAdminService {
   }
 
   private async extractQrCode(data: any): Promise<string | null> {
+    if (!data) return null;
+
     const imageCandidates = [
       data?.base64,
       data?.qrcode?.base64,
@@ -164,6 +166,7 @@ export class WhatsappAdminService {
       }
     }
 
+    this.logger.debug(`Não foi possível extrair QR da resposta: ${JSON.stringify(data).substring(0, 200)}`);
     return null;
   }
 
@@ -213,7 +216,32 @@ export class WhatsappAdminService {
 
       if (existing) {
         instanceApiKey = this.instanceToken(existing);
-        this.logger.log(`Instância encontrada: status=${existing?.connectionStatus ?? existing?.status ?? 'n/a'} token=${instanceApiKey ? 'ok' : 'ausente'}`);
+        const currentStatus = existing?.connectionStatus ?? existing?.status ?? 'n/a';
+        this.logger.log(`Instância encontrada: status=${currentStatus} token=${instanceApiKey ? 'ok' : 'ausente'}`);
+
+        // Força atualização do webhook para garantir que aponta para a URL correta
+        if (webhookUrl) {
+          try {
+            await this.withAuthRetry(
+              (headers) =>
+                axios.post(
+                  `${this.apiUrl}/webhook/set/${this.instance}`,
+                  {
+                    url: webhookUrl,
+                    enabled: true,
+                    byEvents: true,
+                    base64: true, // Garante que o QR venha em base64 no webhook
+                    events: ['QRCODE_UPDATED', 'CONNECTION_UPDATE', 'MESSAGES_UPSERT'],
+                  },
+                  { headers, timeout: 8000 },
+                ),
+              instanceApiKey ?? undefined,
+            );
+            this.logger.log(`Webhook atualizado para instância existente: ${webhookUrl}`);
+          } catch (err: any) {
+            this.logger.warn(`Falha ao atualizar webhook (pode ser versão antiga da API): ${err.message}`);
+          }
+        }
       } else {
         // Cria instância fresca com webhook.
         const createPayload: Record<string, any> = {
@@ -227,27 +255,33 @@ export class WhatsappAdminService {
             url: webhookUrl,
             enabled: true,
             byEvents: true,
-            events: ['QRCODE_UPDATED', 'CONNECTION_UPDATE'],
+            base64: true,
+            events: ['QRCODE_UPDATED', 'CONNECTION_UPDATE', 'MESSAGES_UPSERT'],
           };
           this.logger.log(`Criando instância com webhook: ${webhookUrl}`);
         }
 
-        const createRes = await this.withAuthRetry((headers) => axios.post(
-          `${this.apiUrl}/instance/create`,
-          createPayload,
-          { headers, timeout: 10000 },
-        )).catch((err: any) => {
-          this.logger.warn(`create: ${err?.response?.status ?? 'n/a'} ${JSON.stringify(err?.response?.data ?? err.message)}`);
+        const createRes = await this.withAuthRetry((headers) =>
+          axios.post(`${this.apiUrl}/instance/create`, createPayload, {
+            headers,
+            timeout: 15000,
+          }),
+        ).catch((err: any) => {
+          this.logger.error(
+            `Erro no create: ${err?.response?.status ?? 'n/a'} ${JSON.stringify(
+              err?.response?.data ?? err.message,
+            )}`,
+          );
           return null;
         });
 
-        this.logger.log(`create: ${JSON.stringify(createRes?.data ?? {}).substring(0, 400)}`);
+        this.logger.log(`create response: ${JSON.stringify(createRes?.data ?? {}).substring(0, 400)}`);
 
         const qrFromCreate = await this.extractQrCode(createRes?.data);
         if (qrFromCreate) return { qrCode: qrFromCreate };
 
-        instanceApiKey = createRes?.data?.hash ?? null;
-        await this.wait(1000);
+        instanceApiKey = this.instanceToken(createRes?.data) ?? createRes?.data?.hash ?? null;
+        await this.wait(2000);
         existing = await this.fetchCurrentInstance();
         this.logger.log(`fetchInstances pós-create: ${JSON.stringify(existing ?? {}).substring(0, 200)}`);
       }

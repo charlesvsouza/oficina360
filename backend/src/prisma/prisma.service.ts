@@ -20,6 +20,44 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   async onModuleInit() {
     await this.$connect();
+    await this.applyMissingMigrations();
+  }
+
+  private async applyMissingMigrations() {
+    try {
+      await this.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS commission_rates (
+          id           TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+          "tenantId"   TEXT NOT NULL,
+          "userId"     TEXT UNIQUE,
+          role         TEXT,
+          rate         DOUBLE PRECISION NOT NULL,
+          "createdAt"  TIMESTAMPTZ NOT NULL DEFAULT now(),
+          "updatedAt"  TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+      await this.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS commissions (
+          id                   TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+          "tenantId"           TEXT NOT NULL,
+          "serviceOrderId"     TEXT NOT NULL,
+          "serviceOrderItemId" TEXT UNIQUE NOT NULL,
+          "userId"             TEXT NOT NULL,
+          "baseValue"          DOUBLE PRECISION NOT NULL,
+          "commissionPercent"  DOUBLE PRECISION NOT NULL,
+          "commissionValue"    DOUBLE PRECISION NOT NULL,
+          status               TEXT NOT NULL DEFAULT 'PENDENTE',
+          "paidAt"             TIMESTAMPTZ,
+          "createdAt"          TIMESTAMPTZ NOT NULL DEFAULT now(),
+          "updatedAt"          TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `);
+      await this.$executeRawUnsafe(`
+        ALTER TABLE "ServiceOrderItem" ADD COLUMN IF NOT EXISTS "assignedUserId" TEXT
+      `);
+    } catch (err) {
+      console.error('[prisma] applyMissingMigrations error:', err.message);
+    }
   }
 
   async onModuleDestroy() {

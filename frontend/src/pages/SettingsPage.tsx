@@ -63,7 +63,7 @@ export function SettingsPage() {
     email: '',
     address: '',
   });
-  const [opsData, setOpsData] = useState({ laborHourlyRate: 120, diagnosticHours: 0.5 });
+  const [opsData, setOpsData] = useState({ laborHourlyRate: 120, diagnosticHours: 0.5, defaultCommissionPercent: 0 });
   const [subscription, setSubscription] = useState<any>(null);
   const [plans, setPlans] = useState<any[]>([]);
   const [checkoutLoadingPlan, setCheckoutLoadingPlan] = useState<string | null>(null);
@@ -80,6 +80,7 @@ export function SettingsPage() {
     MASTER:     { label: 'Master',     color: 'bg-slate-900 text-white',          desc: 'Proprietário — acesso total' },
     ADMIN:      { label: 'Admin',      color: 'bg-violet-100 text-violet-700',    desc: 'Gerência administrativa' },
     GERENTE:    { label: 'Gerente',    color: 'bg-blue-100 text-blue-700',        desc: 'Gerência operacional' },
+    CHEFE_OFICINA: { label: 'Chefe Oficina', color: 'bg-rose-100 text-rose-700',  desc: 'Liderança técnica por área' },
     FINANCEIRO: { label: 'Financeiro', color: 'bg-emerald-100 text-emerald-700',  desc: 'Fechamento e pagamentos' },
     SECRETARIA: { label: 'Secretaria', color: 'bg-cyan-100 text-cyan-700',        desc: 'Recepção e cadastros' },
     MECANICO:   { label: 'Mecânico',   color: 'bg-amber-100 text-amber-700',      desc: 'Execução de serviços' },
@@ -111,7 +112,11 @@ export function SettingsPage() {
           email: t.email || '',
           address: t.address || '',
         });
-        setOpsData({ laborHourlyRate: t.laborHourlyRate ?? 120, diagnosticHours: t.diagnosticHours ?? 0.5 });
+        setOpsData({
+          laborHourlyRate: t.laborHourlyRate ?? 120,
+          diagnosticHours: t.diagnosticHours ?? 0.5,
+          defaultCommissionPercent: t.defaultCommissionPercent ?? 0,
+        });
       } else {
         console.error('Falha ao carregar dados da oficina:', tenantResult.reason);
       }
@@ -187,7 +192,11 @@ export function SettingsPage() {
     e.preventDefault();
     setSavingOps(true);
     try {
-      await tenantsApi.update({ laborHourlyRate: Number(opsData.laborHourlyRate), diagnosticHours: Number(opsData.diagnosticHours) });
+      await tenantsApi.update({
+        laborHourlyRate: Number(opsData.laborHourlyRate),
+        diagnosticHours: Number(opsData.diagnosticHours),
+        defaultCommissionPercent: Number(opsData.defaultCommissionPercent),
+      });
     } catch (error) {
       console.error('Falha ao salvar configurações operacionais:', error);
     } finally {
@@ -500,6 +509,30 @@ export function SettingsPage() {
                     ≈ R$ {(opsData.laborHourlyRate * opsData.diagnosticHours).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} por diagnóstico
                     ({opsData.diagnosticHours}h × R$ {opsData.laborHourlyRate}/h)
                   </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Comissão Padrão Global (%)</label>
+                  <p className="text-xs text-slate-400 ml-1 mb-2">
+                    Usada quando o colaborador não possui comissão individual definida.
+                  </p>
+                  <div className="relative">
+                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">%</span>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={opsData.defaultCommissionPercent}
+                      onChange={(e) => isMaster && setOpsData({ ...opsData, defaultCommissionPercent: Number(e.target.value) })}
+                      disabled={!isMaster}
+                      className={cn(
+                        "w-full pl-12 pr-5 py-4 rounded-2xl border text-xl font-black transition-all",
+                        isMaster
+                          ? "border-slate-200 bg-slate-50/50 focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900"
+                          : "border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed"
+                      )}
+                    />
+                  </div>
                 </div>
               </div>
 

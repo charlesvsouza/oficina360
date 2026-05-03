@@ -42,8 +42,34 @@ export function UsersPage() {
     recoveryEmail: '',
     password: '',
     role: 'MECANICO',
+    jobFunction: '',
+    workshopArea: '',
+    commissionPercent: '',
+    chiefId: '',
     isActive: true
   });
+
+  const workshopAreas = [
+    { value: 'MECANICA', label: 'Mecânica' },
+    { value: 'ELETRICA', label: 'Elétrica' },
+    { value: 'FUNILARIA_PINTURA', label: 'Funilaria e Pintura' },
+    { value: 'LAVACAO', label: 'Lavação' },
+    { value: 'HIGIENIZACAO_EMBELEZAMENTO', label: 'Higienização e Embelezamento' },
+  ];
+
+  const jobFunctions = [
+    { value: 'MECANICO', label: 'Mecânico' },
+    { value: 'ELETRICISTA', label: 'Eletricista' },
+    { value: 'APRENDIZ', label: 'Aprendiz' },
+    { value: 'PINTOR', label: 'Pintor' },
+    { value: 'PREPARADOR', label: 'Preparador' },
+    { value: 'COLABORADOR_SERVICOS_GERAIS', label: 'Serviços Gerais' },
+    { value: 'FUNILEIRO', label: 'Funileiro' },
+    { value: 'LAVADOR', label: 'Lavador' },
+    { value: 'MARTELINHO_OURO', label: 'Martelinho de Ouro' },
+    { value: 'EMBELEZADOR_AUTOMOTIVO', label: 'Embelezador Automotivo' },
+    { value: 'CHEFE_OFICINA', label: 'Chefe de Oficina' },
+  ];
 
   useEffect(() => {
     if (!canManageUsers) {
@@ -71,12 +97,21 @@ export function UsersPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const payload = {
+        ...formData,
+        jobFunction: formData.jobFunction || undefined,
+        workshopArea: formData.workshopArea || undefined,
+        chiefId: formData.chiefId || undefined,
+        commissionPercent:
+          formData.commissionPercent === '' ? undefined : Number(formData.commissionPercent),
+      };
+
       if (editingUser) {
         // Para update, removemos o email pois ele costuma ser a chave/único
-        const { email, password, ...updateData } = formData;
+        const { email, password, ...updateData } = payload;
         await usersApi.update(editingUser.id, updateData);
       } else {
-        await usersApi.create(formData);
+        await usersApi.create(payload);
       }
       setShowModal(false);
       resetForm();
@@ -95,6 +130,10 @@ export function UsersPage() {
       recoveryEmail: user.recoveryEmail || '',
       password: '',
       role: user.role,
+      jobFunction: user.jobFunction || '',
+      workshopArea: user.workshopArea || '',
+      commissionPercent: user.commissionPercent != null ? String(user.commissionPercent) : '',
+      chiefId: user.chiefId || '',
       isActive: user.isActive
     });
     setShowModal(true);
@@ -119,6 +158,10 @@ export function UsersPage() {
       recoveryEmail: '',
       password: '',
       role: 'MECANICO',
+      jobFunction: '',
+      workshopArea: '',
+      commissionPercent: '',
+      chiefId: '',
       isActive: true
     });
   };
@@ -159,6 +202,8 @@ export function UsersPage() {
         return <span className="badge bg-purple-500/10 text-purple-400 border border-purple-500/20 px-3 py-1 flex items-center gap-1.5 font-black text-[10px] uppercase tracking-widest"><Shield size={12} /> Admin</span>;
       case 'GERENTE':
         return <span className="badge bg-blue-500/10 text-blue-500 border border-blue-500/20 px-3 py-1 font-black text-[10px] uppercase tracking-widest">Gerente</span>;
+      case 'CHEFE_OFICINA':
+        return <span className="badge bg-rose-500/10 text-rose-500 border border-rose-500/20 px-3 py-1 font-black text-[10px] uppercase tracking-widest">Chefe Oficina</span>;
       case 'FINANCEIRO':
         return <span className="badge bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-3 py-1 font-black text-[10px] uppercase tracking-widest">Financeiro</span>;
       case 'SECRETARIA':
@@ -223,6 +268,8 @@ export function UsersPage() {
                 <tr className="bg-slate-50/50 border-b border-slate-100">
                   <th className="py-5 px-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Colaborador</th>
                   <th className="py-5 px-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Nível de Acesso</th>
+                  <th className="py-5 px-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Área/Função</th>
+                  <th className="py-5 px-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Comissão</th>
                   <th className="py-5 px-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
                   <th className="py-5 px-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Ações</th>
                 </tr>
@@ -243,6 +290,7 @@ export function UsersPage() {
                             user.role === 'MASTER'     ? 'bg-amber-100 text-amber-600' :
                             user.role === 'ADMIN'      ? 'bg-purple-100 text-purple-600' :
                             user.role === 'GERENTE'    ? 'bg-blue-100 text-blue-600' :
+                            user.role === 'CHEFE_OFICINA' ? 'bg-rose-100 text-rose-600' :
                             user.role === 'FINANCEIRO' ? 'bg-emerald-100 text-emerald-600' :
                             user.role === 'SECRETARIA' ? 'bg-cyan-100 text-cyan-600' :
                             user.role === 'MECANICO'   ? 'bg-orange-100 text-orange-600' :
@@ -266,6 +314,22 @@ export function UsersPage() {
                       </td>
                       <td className="py-6 px-8">
                         {getRoleBadge(user.role)}
+                      </td>
+                      <td className="py-6 px-8">
+                        <div className="text-xs font-bold text-slate-700">
+                          {workshopAreas.find((a) => a.value === user.workshopArea)?.label || '—'}
+                        </div>
+                        <div className="text-[10px] text-slate-500 mt-1">
+                          {jobFunctions.find((f) => f.value === user.jobFunction)?.label || '—'}
+                        </div>
+                      </td>
+                      <td className="py-6 px-8">
+                        <span className="text-xs font-black text-slate-700">
+                          {user.commissionPercent != null ? `${Number(user.commissionPercent).toFixed(1)}%` : 'Padrão Global'}
+                        </span>
+                        {user.chief?.name && (
+                          <div className="text-[10px] text-slate-500 mt-1">Chefe: {user.chief.name}</div>
+                        )}
                       </td>
                       <td className="py-6 px-8">
                         {user.isActive ? (
@@ -407,11 +471,65 @@ export function UsersPage() {
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                     className="input h-14 bg-slate-50 border-slate-200 font-bold"
                   >
+                    <option value="CHEFE_OFICINA">CHEFE OFICINA — Liderança técnica por área</option>
                     <option value="ADMIN">ADMIN — Administrador</option>
                     <option value="GERENTE">GERENTE — Gerência operacional</option>
                     <option value="FINANCEIRO">FINANCEIRO — Fechamento e pagamentos</option>
                     <option value="SECRETARIA">SECRETARIA — Recepção e cadastros</option>
                     <option value="MECANICO">MECÂNICO — Execução de serviços</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Área da Oficina</label>
+                  <select
+                    value={formData.workshopArea}
+                    onChange={(e) => setFormData({ ...formData, workshopArea: e.target.value })}
+                    className="input h-14 bg-slate-50 border-slate-200 font-bold"
+                  >
+                    <option value="">Selecione...</option>
+                    {workshopAreas.map((area) => (
+                      <option key={area.value} value={area.value}>{area.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Função na Oficina</label>
+                  <select
+                    value={formData.jobFunction}
+                    onChange={(e) => setFormData({ ...formData, jobFunction: e.target.value })}
+                    className="input h-14 bg-slate-50 border-slate-200 font-bold"
+                  >
+                    <option value="">Selecione...</option>
+                    {jobFunctions.map((job) => (
+                      <option key={job.value} value={job.value}>{job.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Comissão Individual (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={formData.commissionPercent}
+                    onChange={(e) => setFormData({ ...formData, commissionPercent: e.target.value })}
+                    className="input h-14 bg-slate-50 border-slate-200 font-bold"
+                    placeholder="Vazio = comissão global"
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Chefe da Equipe</label>
+                  <select
+                    value={formData.chiefId}
+                    onChange={(e) => setFormData({ ...formData, chiefId: e.target.value })}
+                    className="input h-14 bg-slate-50 border-slate-200 font-bold"
+                  >
+                    <option value="">Sem chefe definido</option>
+                    {users
+                      .filter((u) => u.role === 'CHEFE_OFICINA' && u.id !== editingUser?.id)
+                      .map((u) => (
+                        <option key={u.id} value={u.id}>{u.name}</option>
+                      ))}
                   </select>
                 </div>
               </div>

@@ -16,6 +16,11 @@ export class CreateOrUpdateItemDto {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
+  assignedUserId?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
   internalCode?: string;
 
   @ApiProperty()
@@ -55,6 +60,11 @@ export class UpdateServiceOrderItemDto {
   @IsOptional()
   @IsString()
   partId?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  assignedUserId?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()

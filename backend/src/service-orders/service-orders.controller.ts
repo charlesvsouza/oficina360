@@ -20,7 +20,7 @@ export class ServiceOrdersController {
   ) {}
 
   @Post('import-pdf')
-  @Roles('ADMIN', 'PRODUTIVO')
+  @Roles('MASTER', 'ADMIN', 'CHEFE_OFICINA', 'PRODUTIVO')
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -59,7 +59,7 @@ export class ServiceOrdersController {
   }
 
   @Post('orcamento')
-  @Roles('ADMIN', 'PRODUTIVO')
+  @Roles('MASTER', 'ADMIN', 'CHEFE_OFICINA', 'PRODUTIVO')
   @ApiOperation({ summary: 'Criar orçamento' })
   async createOrcamento(
     @Tenant() tenant: { tenantId: string },
@@ -70,7 +70,7 @@ export class ServiceOrdersController {
   }
 
   @Post()
-  @Roles('ADMIN', 'PRODUTIVO')
+  @Roles('MASTER', 'ADMIN', 'CHEFE_OFICINA', 'PRODUTIVO')
   @ApiOperation({ summary: 'Criar OS ou Orçamento' })
   async create(
     @Tenant() tenant: { tenantId: string },
@@ -84,7 +84,7 @@ export class ServiceOrdersController {
   }
 
   @Patch(':id')
-  @Roles('ADMIN', 'PRODUTIVO')
+  @Roles('MASTER', 'ADMIN', 'CHEFE_OFICINA', 'PRODUTIVO')
   @ApiOperation({ summary: 'Atualizar ordem' })
   async update(
     @Tenant() tenant: { tenantId: string },
@@ -96,7 +96,7 @@ export class ServiceOrdersController {
   }
 
   @Patch(':id/status')
-  @Roles('ADMIN', 'PRODUTIVO')
+  @Roles('MASTER', 'ADMIN', 'GERENTE', 'CHEFE_OFICINA', 'PRODUTIVO')
   @ApiOperation({ summary: 'Atualizar status' })
   async updateStatus(
     @Tenant() tenant: { tenantId: string },
@@ -178,7 +178,7 @@ export class ServiceOrdersController {
   }
 
   @Post(':id/diagnostic-order')
-  @Roles('MASTER', 'ADMIN', 'PRODUTIVO')
+  @Roles('MASTER', 'ADMIN', 'CHEFE_OFICINA', 'PRODUTIVO')
   @ApiOperation({ summary: 'Cria nova OS de diagnóstico a partir de OS reprovada' })
   async createDiagnosticOrder(
     @Tenant() tenant: { tenantId: string },
@@ -189,7 +189,7 @@ export class ServiceOrdersController {
   }
 
   @Post(':id/items')
-  @Roles('ADMIN', 'PRODUTIVO')
+  @Roles('MASTER', 'ADMIN', 'CHEFE_OFICINA', 'PRODUTIVO')
   @ApiOperation({ summary: 'Adicionar item à ordem' })
   async addItem(
     @Tenant() tenant: { tenantId: string },
@@ -201,7 +201,7 @@ export class ServiceOrdersController {
   }
 
   @Delete(':id/items/:itemId')
-  @Roles('ADMIN', 'PRODUTIVO')
+  @Roles('MASTER', 'ADMIN', 'CHEFE_OFICINA', 'PRODUTIVO')
   @ApiOperation({ summary: 'Remover item da ordem' })
   async removeItem(
     @Tenant() tenant: { tenantId: string },
@@ -213,7 +213,7 @@ export class ServiceOrdersController {
   }
 
   @Patch(':id/items/:itemId')
-  @Roles('ADMIN', 'PRODUTIVO')
+  @Roles('MASTER', 'ADMIN', 'CHEFE_OFICINA', 'PRODUTIVO')
   @ApiOperation({ summary: 'Atualizar item da ordem' })
   async updateItem(
     @Tenant() tenant: { tenantId: string },

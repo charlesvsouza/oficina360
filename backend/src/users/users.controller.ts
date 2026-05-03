@@ -20,21 +20,21 @@ export class UsersController {
   constructor(private usersService: UsersService) {}
 
   @Get()
-  @Roles('ADMIN')
+  @Roles('MASTER', 'ADMIN')
   @ApiOperation({ summary: 'List all users' })
   async findAll(@Tenant() tenant: { tenantId: string }) {
     return this.usersService.findAll(tenant.tenantId);
   }
 
   @Get(':id')
-  @Roles('ADMIN')
+  @Roles('MASTER', 'ADMIN')
   @ApiOperation({ summary: 'Get user by ID' })
   async findOne(@Tenant() tenant: { tenantId: string }, @Param('id') id: string) {
     return this.usersService.findById(tenant.tenantId, id);
   }
 
   @Post()
-  @Roles('ADMIN')
+  @Roles('MASTER', 'ADMIN')
   @ApiOperation({ summary: 'Create new user' })
   async create(
     @Tenant() tenant: { tenantId: string },
@@ -44,7 +44,7 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @Roles('ADMIN')
+  @Roles('MASTER', 'ADMIN')
   @ApiOperation({ summary: 'Update user' })
   async update(
     @Tenant() tenant: { tenantId: string },
@@ -55,14 +55,14 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @Roles('ADMIN')
+  @Roles('MASTER', 'ADMIN')
   @ApiOperation({ summary: 'Delete user' })
   async delete(@Tenant() tenant: { tenantId: string }, @Param('id') id: string) {
     return this.usersService.delete(tenant.tenantId, id);
   }
 
   @Post(':id/change-password')
-  @Roles('ADMIN')
+  @Roles('MASTER', 'ADMIN')
   @ApiOperation({ summary: 'Change user password' })
   async changePassword(
     @Tenant() tenant: { tenantId: string },
@@ -73,7 +73,7 @@ export class UsersController {
   }
 
   @Post(':id/admin-reset-password')
-  @Roles('ADMIN')
+  @Roles('MASTER', 'ADMIN')
   @ApiOperation({ summary: 'Admin reset user password' })
   async adminResetPassword(
     @Tenant() tenant: { tenantId: string },

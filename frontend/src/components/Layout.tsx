@@ -60,6 +60,12 @@ export function Layout() {
       premium: true,
     },
     {
+      to: '/commissions',
+      icon: DollarSign,
+      label: 'Comissões',
+      premium: true,
+    },
+    {
       to: '/dre',
       icon: BarChart3,
       label: 'DRE',

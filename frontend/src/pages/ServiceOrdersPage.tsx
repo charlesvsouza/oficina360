@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { serviceOrdersApi, customersApi, vehiclesApi, servicesApi, inventoryApi, tenantsApi } from '../api/client';
+import { serviceOrdersApi, customersApi, vehiclesApi, servicesApi, inventoryApi, tenantsApi, usersApi } from '../api/client';
 import {
   ClipboardList, Plus, Search, Car, User, XCircle,
   Wrench, Package, FileText, Trash2, Layout, X,
@@ -126,7 +126,8 @@ export function ServiceOrdersPage() {
   const { user } = useAuthStore();
   const canManageStock = ['MASTER', 'ADMIN', 'MECANICO', 'PRODUTIVO'].includes(user?.role ?? '');
   const canDelete = user?.role === 'MASTER';
-  const canChangeStatus = ['MASTER', 'ADMIN', 'GERENTE'].includes(user?.role ?? '');
+  const canChangeStatus = ['MASTER', 'ADMIN', 'GERENTE', 'CHEFE_OFICINA'].includes(user?.role ?? '');
+  const canAssignExecutor = ['MASTER', 'ADMIN', 'CHEFE_OFICINA', 'GERENTE'].includes(user?.role ?? '');
   const CLOSED_STATUSES = ['FATURADO', 'ENTREGUE', 'CANCELADO', 'REPROVADO'];
   const printContentRef = useRef<HTMLDivElement>(null);
   const printFrameRef = useRef<HTMLIFrameElement>(null);
@@ -134,6 +135,7 @@ export function ServiceOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
+  const [executors, setExecutors] = useState<any[]>([]);
   const [tenantFullData, setTenantFullData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -153,6 +155,7 @@ export function ServiceOrdersPage() {
   const [catalogSearch, setCatalogSearch] = useState('');
   const [quickAdd, setQuickAdd] = useState({ description: '', unitPrice: '', quantity: '1' });
   const [partQties, setPartQties] = useState<Record<string, number>>({});
+  const [quickAssignedUserId, setQuickAssignedUserId] = useState('');
   const [pendingQtyByItem, setPendingQtyByItem] = useState<Record<string, number>>({});
   const [syncingTotals, setSyncingTotals] = useState(false);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
@@ -194,14 +197,18 @@ export function ServiceOrdersPage() {
 
   const loadBasics = async () => {
     try {
-      const [cRes, vRes, tRes] = await Promise.all([
+      const [cRes, vRes, tRes, uRes] = await Promise.all([
         customersApi.getAll(),
         vehiclesApi.getAll(),
         tenantsApi.getMe(),
+        usersApi.getAll(),
       ]);
       setCustomers(cRes.data);
       setVehicles(vRes.data);
       setTenantFullData(tRes.data);
+      setExecutors(
+        (Array.isArray(uRes.data) ? uRes.data : []).filter((u: any) => u.isActive)
+      );
     } catch (err) {
       console.error(err);
     }
@@ -384,6 +391,7 @@ export function ServiceOrdersPage() {
       setCatalogMode(mode);
       setCatalogSearch('');
       setPartQties({});
+      setQuickAssignedUserId(selectedOrder?.mechanicId || '');
       setQuickAdd({ description: '', unitPrice: '', quantity: '1' });
     } catch (err) {
       console.error(err);
@@ -412,7 +420,13 @@ export function ServiceOrdersPage() {
     const qty = parseFloat(quickAdd.quantity) || 1;
     if (!quickAdd.description.trim()) { alert('Informe a descrição.'); return; }
     if (!price || price <= 0) { alert('Informe um preço válido.'); return; }
-    await addItem({ type: catalogMode, description: quickAdd.description.trim(), quantity: qty, unitPrice: price });
+    await addItem({
+      type: catalogMode,
+      description: quickAdd.description.trim(),
+      quantity: qty,
+      unitPrice: price,
+      ...(catalogMode === 'service' && quickAssignedUserId ? { assignedUserId: quickAssignedUserId } : {}),
+    });
   };
 
   const updateItem = async (itemId: string, data: any) => {
@@ -451,6 +465,9 @@ export function ServiceOrdersPage() {
 
   const serviceItems = [...itemsOf('service'), ...itemsOf('labor')];
   const partItems = itemsOf('part');
+  const executorOptions = executors.filter((u: any) =>
+    ['MASTER', 'ADMIN', 'CHEFE_OFICINA', 'MECANICO', 'PRODUTIVO'].includes(String(u.role || '').toUpperCase())
+  );
   const nextStatuses = selectedOrder ? (STATUS_FLOW_UI[selectedOrder.status] ?? []) : [];
 
   const filteredOrders = orders.filter(
@@ -1100,6 +1117,7 @@ export function ServiceOrdersPage() {
                   <thead className="bg-slate-50/50 text-slate-500 font-bold uppercase text-[10px]">
                     <tr>
                       <th className="px-5 py-3 border-b border-slate-100">Descrição</th>
+                      <th className="px-5 py-3 border-b border-slate-100 w-56">Executor</th>
                       <th className="px-5 py-3 border-b border-slate-100 w-20 text-center">Qtd/Hrs</th>
                       <th className="px-5 py-3 border-b border-slate-100 w-28">Unitário</th>
                       <th className="px-5 py-3 border-b border-slate-100 w-28 text-right">Subtotal</th>
@@ -1110,6 +1128,28 @@ export function ServiceOrdersPage() {
                     {serviceItems.map((item: any) => (
                       <tr key={item.id} className="hover:bg-slate-50/50">
                         <td className="px-5 py-3 font-bold text-slate-900">{item.description}</td>
+                        <td className="px-5 py-3">
+                          <select
+                            value={item.assignedUserId || ''}
+                            onChange={(e) => {
+                              const nextUserId = e.target.value;
+                              if (!nextUserId) return;
+                              updateItem(item.id, { assignedUserId: nextUserId });
+                            }}
+                            disabled={isClosed || !canAssignExecutor}
+                            className={cn(
+                              'w-full rounded-lg border px-2 py-1.5 text-[11px] font-bold',
+                              isClosed || !canAssignExecutor
+                                ? 'bg-slate-100 border-slate-100 text-slate-400 cursor-not-allowed'
+                                : 'bg-white border-slate-200'
+                            )}
+                          >
+                            <option value="">Selecionar executor...</option>
+                            {executorOptions.map((u: any) => (
+                              <option key={u.id} value={u.id}>{u.name}</option>
+                            ))}
+                          </select>
+                        </td>
                         <td className="px-5 py-3">
                           <input
                             type="number" step="0.5" min="0.5"
@@ -1128,7 +1168,7 @@ export function ServiceOrdersPage() {
                       </tr>
                     ))}
                     {serviceItems.length === 0 && (
-                      <tr><td colSpan={5} className="px-5 py-6 text-center text-slate-400 text-xs">Nenhum serviço lançado</td></tr>
+                      <tr><td colSpan={6} className="px-5 py-6 text-center text-slate-400 text-xs">Nenhum serviço lançado</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -1393,6 +1433,21 @@ export function ServiceOrdersPage() {
                     <Plus size={13} /> Lançar
                   </button>
                 </div>
+                {catalogMode === 'service' && (
+                  <div className="mt-2">
+                    <label className="text-[9px] font-bold text-slate-500 uppercase">Executor do Serviço</label>
+                    <select
+                      value={quickAssignedUserId}
+                      onChange={(e) => setQuickAssignedUserId(e.target.value)}
+                      className="mt-1 w-full px-3 py-2 rounded-xl border border-amber-200 bg-white text-xs font-bold"
+                    >
+                      <option value="">Selecionar executor...</option>
+                      {executorOptions.map((u: any) => (
+                        <option key={u.id} value={u.id}>{u.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               {/* Search */}
@@ -1424,6 +1479,7 @@ export function ServiceOrdersPage() {
                             description: s.name,
                             quantity: s.tmo || 1,
                             unitPrice: s.hourlyRate || s.basePrice || 0,
+                            ...(quickAssignedUserId ? { assignedUserId: quickAssignedUserId } : {}),
                           })}
                           disabled={isClosed}
                           className="w-full p-4 bg-white border border-slate-100 rounded-2xl hover:border-slate-900 hover:shadow-md text-left transition-all group flex items-center justify-between disabled:opacity-40 disabled:cursor-not-allowed"

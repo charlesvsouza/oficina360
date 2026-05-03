@@ -52,6 +52,90 @@ export class ServiceOrdersService {
     }
   }
 
+  private async getActor(tenantId: string, userId: string) {
+    return this.prisma.user.findFirst({
+      where: { id: userId, tenantId, isActive: true },
+      select: { id: true, role: true, workshopArea: true },
+    });
+  }
+
+  private async validateAssignedUser(tenantId: string, assignedUserId?: string, actorUserId?: string) {
+    if (!assignedUserId) return;
+
+    const assignedUser = await this.prisma.user.findFirst({
+      where: { id: assignedUserId, tenantId, isActive: true },
+      select: { id: true, workshopArea: true, chiefId: true },
+    });
+
+    if (!assignedUser) {
+      throw new NotFoundException('Executor do item não encontrado para este tenant');
+    }
+
+    if (actorUserId) {
+      const actor = await this.getActor(tenantId, actorUserId);
+      if (actor?.role === 'CHEFE_OFICINA') {
+        if (!actor.workshopArea || actor.workshopArea !== assignedUser.workshopArea) {
+          throw new ForbiddenException('Chefe de oficina só pode alocar executores da própria área');
+        }
+        if (assignedUser.chiefId && assignedUser.chiefId !== actor.id) {
+          throw new ForbiddenException('Executor não pertence à equipe deste chefe de oficina');
+        }
+      }
+    }
+  }
+
+  private async generateCommissionsForDeliveredOrder(tenantId: string, serviceOrderId: string) {
+    const existing = await this.prisma.mechanicCommission.count({
+      where: { tenantId, serviceOrderId },
+    });
+    if (existing > 0) return;
+
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { defaultCommissionPercent: true },
+    });
+
+    const order = await this.prisma.serviceOrder.findFirst({
+      where: { id: serviceOrderId, tenantId },
+      include: {
+        items: {
+          include: {
+            assignedUser: {
+              select: { id: true, commissionPercent: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!order) return;
+
+    const defaultPercent = Number(tenant?.defaultCommissionPercent ?? 0);
+    const commissionRows = order.items
+      .filter((item: any) => ['service', 'labor'].includes(String(item.type)) && item.assignedUserId)
+      .map((item: any) => {
+        const percent = Number(item.assignedUser?.commissionPercent ?? defaultPercent);
+        const baseValue = Number(item.totalPrice ?? 0);
+        return {
+          tenantId,
+          userId: String(item.assignedUserId),
+          serviceOrderId,
+          serviceOrderItemId: String(item.id),
+          commissionPercent: percent,
+          baseValue,
+          commissionValue: baseValue * (percent / 100),
+          status: 'PENDENTE',
+        };
+      })
+      .filter((row) => row.commissionValue > 0);
+
+    if (commissionRows.length > 0) {
+      await this.prisma.mechanicCommission.createMany({
+        data: commissionRows,
+      });
+    }
+  }
+
   private async applyStockMovement(
     tenantId: string,
     partId: string,
@@ -106,7 +190,7 @@ export class ServiceOrdersService {
       include: {
         customer: true,
         vehicle: true,
-        items: { include: { service: true, part: true } },
+        items: { include: { service: true, part: true, assignedUser: { select: { id: true, name: true } } } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -118,7 +202,7 @@ export class ServiceOrdersService {
       include: {
         customer: true,
         vehicle: true,
-        items: { include: { service: true, part: true } },
+        items: { include: { service: true, part: true, assignedUser: { select: { id: true, name: true } } } },
         timeline: { orderBy: { createdAt: 'desc' } },
       },
     });
@@ -144,7 +228,9 @@ export class ServiceOrdersService {
 
     // Processa itens
     let totalParts = 0, totalServices = 0, totalLabor = 0;
-    const itemsData = dto.items?.map((item) => {
+    const itemsData: any[] = [];
+    for (const item of dto.items || []) {
+      await this.validateAssignedUser(tenantId, item.assignedUserId, userId);
       const qty = item.quantity || 1;
       const unitPrice = item.unitPrice || 0;
       const discount = item.discount || 0;
@@ -154,9 +240,10 @@ export class ServiceOrdersService {
       else if (item.type === 'service') totalServices += total;
       else totalLabor += total;
 
-      return {
+      itemsData.push({
         serviceId: item.serviceId,
         partId: item.partId,
+        assignedUserId: item.assignedUserId,
         description: item.description,
         quantity: qty,
         unitPrice,
@@ -164,8 +251,8 @@ export class ServiceOrdersService {
         totalPrice: total,
         type: item.type,
         applied: false,
-      };
-    }) || [];
+      });
+    }
 
     const order = await this.prisma.serviceOrder.create({
       data: {
@@ -191,7 +278,11 @@ export class ServiceOrdersService {
       include: {
         customer: true,
         vehicle: true,
-        items: true,
+        items: {
+          include: {
+            assignedUser: { select: { id: true, name: true } },
+          },
+        },
       },
     });
 
@@ -253,7 +344,7 @@ export class ServiceOrdersService {
       include: {
         customer: true,
         vehicle: true,
-        items: true,
+        items: { include: { assignedUser: { select: { id: true, name: true } } } },
       },
     });
   }
@@ -451,11 +542,15 @@ export class ServiceOrdersService {
       include: {
         customer: true,
         vehicle: true,
-        items: true,
+        items: { include: { assignedUser: { select: { id: true, name: true } } } },
       },
     });
 
     await this.createTimeline(id, newStatus, dto.notes || `Status alterado para ${newStatus}`, userId);
+
+    if (newStatus === 'ENTREGUE') {
+      await this.generateCommissionsForDeliveredOrder(tenantId, id);
+    }
 
     // Notificações WhatsApp (fire-and-forget)
     if (this.whatsapp.isConfigured()) {
@@ -649,6 +744,8 @@ export class ServiceOrdersService {
       await this.ensureStockPrivilege(tenantId, userId);
     }
 
+    await this.validateAssignedUser(tenantId, dto.assignedUserId, userId);
+
     let qty = dto.quantity || 1;
     let unitPrice = dto.unitPrice || 0;
     let description = dto.description;
@@ -699,6 +796,7 @@ export class ServiceOrdersService {
         serviceOrderId: orderId,
         serviceId: dto.serviceId,
         partId: finalPartId,
+        assignedUserId: dto.assignedUserId,
         description,
         quantity: qty,
         unitPrice,
@@ -785,6 +883,9 @@ export class ServiceOrdersService {
       await this.ensureStockPrivilege(tenantId, userId);
     }
 
+    const nextAssignedUserId = dto.assignedUserId !== undefined ? dto.assignedUserId : oldItem.assignedUserId;
+    await this.validateAssignedUser(tenantId, nextAssignedUserId || undefined, userId);
+
     const qty = dto.quantity !== undefined ? dto.quantity : oldItem.quantity;
     const unitPrice = dto.unitPrice !== undefined ? dto.unitPrice : oldItem.unitPrice;
     const discount = dto.discount !== undefined ? dto.discount : oldItem.discount;
@@ -816,6 +917,7 @@ export class ServiceOrdersService {
       where: { id: itemId },
       data: {
         description: dto.description || oldItem.description,
+        assignedUserId: nextAssignedUserId,
         quantity: qty,
         unitPrice,
         discount,

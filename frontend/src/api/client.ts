@@ -190,6 +190,12 @@ export const financialApi = {
   delete: (id: string) => api.delete(`/financial/${id}`),
 };
 
+export const commissionsApi = {
+  getAll: (params?: { startDate?: string; endDate?: string; status?: string; userId?: string }) =>
+    api.get('/commissions', { params: params || {} }),
+  markAsPaid: (id: string) => api.patch(`/commissions/${id}/pay`),
+};
+
 export const subscriptionsApi = {
   getCurrent: () => api.get('/subscriptions/current'),
   getPlans: () => api.get('/subscriptions/plans'),

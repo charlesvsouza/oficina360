@@ -1,6 +1,6 @@
 # Manual do Usuário — SigmaAuto
 
-**Versão:** 1.0 — Maio/2026  
+**Versão:** 1.1 — Maio/2026  
 **Acesso:** [sigmaauto.com.br](https://sigmaauto.com.br)  
 **Suporte:** suporte@sigmaauto.com.br
 
@@ -13,13 +13,16 @@
 3. [Clientes](#3-clientes)
 4. [Veículos](#4-veículos)
 5. [Ordens de Serviço](#5-ordens-de-serviço)
-6. [Serviços](#6-serviços)
-7. [Estoque](#7-estoque)
-8. [Financeiro](#8-financeiro)
-9. [Usuários](#9-usuários)
-10. [Configurações e Assinatura](#10-configurações-e-assinatura)
-11. [Perfis de Acesso (Roles)](#11-perfis-de-acesso-roles)
-12. [Dúvidas Frequentes](#12-dúvidas-frequentes)
+6. [Kanban de Pátio](#6-kanban-de-pátio)
+7. [Checklist de Entrada e Saída](#7-checklist-de-entrada-e-saída)
+8. [WhatsApp Automático](#8-whatsapp-automático)
+9. [Serviços](#9-serviços)
+10. [Estoque](#10-estoque)
+11. [Financeiro](#11-financeiro)
+12. [Usuários](#12-usuários)
+13. [Configurações e Assinatura](#13-configurações-e-assinatura)
+14. [Perfis de Acesso (Roles)](#14-perfis-de-acesso-roles)
+15. [Dúvidas Frequentes](#15-dúvidas-frequentes)
 
 ---
 
@@ -161,7 +164,86 @@ Use o botão **"Imprimir"** dentro da OS para gerar uma versão para impressão.
 
 ---
 
-## 6. Serviços
+## 6. Kanban de Pátio
+
+> Disponível no plano **PRO** e **REDE**.
+
+O Kanban de Pátio é um painel visual que exibe todas as OS em andamento organizadas por status, ideal para ser projetado em uma TV da recepção ou do piso da oficina.
+
+### 6.1 Acessar o Kanban
+
+1. Clique em **Kanban** no menu lateral
+2. O board exibe colunas para cada status: **Aberta**, **Em Diagnóstico**, **Aguardando Aprovação**, **Em Execução**, **Pronto**, entre outros
+3. Cada cartão mostra: número da OS, veículo, cliente e tempo decorrido
+
+### 6.2 Modo TV (Fullscreen)
+
+1. Clique no botão **"Modo TV"** no canto superior direito
+2. O painel entra em tela cheia, ideal para monitores de piso de oficina
+3. Pressione **Esc** para sair do modo TV
+
+> Dica: atualize automaticamente mantendo a aba aberta. O Kanban reflete o estado atual das OS em tempo real.
+
+---
+
+## 7. Checklist de Entrada e Saída
+
+> Disponível no plano **PRO** e **REDE**.
+
+O Checklist registra o estado do veículo no momento da entrada e da saída, com fotos, protegendo juridicamente a oficina.
+
+### 7.1 Preencher o checklist de entrada
+
+1. Dentro de uma OS, clique na aba **"Checklist"**
+2. Para cada uma das **15 áreas** do veículo (para-choque, lataria, vidros, pneus etc.), selecione a condição:
+   - Bom • Regular • Ruim • Danificado • N/A
+3. Adicione **fotos** clicando na câmera de cada item (comprimidas automaticamente)
+4. Informe o **nível de combustível** (0 a 8 traços)
+5. Clique em **Salvar Checklist**
+
+### 7.2 Checklist de saída
+
+Repita o processo antes de entregar o veículo ao cliente. O sistema mantém o histórico de entrada e saída separados para comparação.
+
+> Dica legal: o checklist com fotos serve como evidência em caso de disputas sobre danos pré-existentes.
+
+---
+
+## 8. WhatsApp Automático
+
+> Disponível no plano **PRO** e **REDE**.
+
+O sistema envia mensagens WhatsApp automaticamente ao cliente em cada etapa importante da OS.
+
+### 8.1 Mensagens enviadas automaticamente
+
+| Evento | Mensagem enviada |
+|---|---|
+| Orçamento pronto | Link de aprovação enviado ao cliente |
+| OS aprovada | Confirmação de início dos trabalhos |
+| Pronto para entrega | Notificação com valor total |
+| Veículo entregue | Mensagem de agradecimento pós-serviço |
+| OS cancelada | Comunicado de cancelamento |
+
+As mensagens são enviadas para o **telefone cadastrado no cliente**. Certifique-se de que o número está correto e no formato com DDD.
+
+### 8.2 Configurar a conexão WhatsApp
+
+1. Clique em **WhatsApp** no menu lateral (visível para MASTER e ADMIN)
+2. Clique em **"Conectar WhatsApp"** para gerar o QR Code
+3. No celular, abra o WhatsApp → **Dispositivos conectados** → **Conectar dispositivo**
+4. Aponte a câmera para o QR Code exibido na tela
+5. Aguarde a confirmação de status **"Conectado"**
+
+### 8.3 Verificar o status da conexão
+
+A tela de WhatsApp exibe em tempo real se a conexão está **Ativa** ou **Desconectada**. Se desconectada, gere um novo QR Code.
+
+> Importante: o WhatsApp conectado deve permanecer no celular como um dispositivo vinculado. Não desconecte manualmente pelo celular.
+
+---
+
+## 9. Serviços
 
 O catálogo de serviços define os tipos de mão de obra que sua oficina realiza.
 
@@ -180,11 +262,11 @@ O catálogo de serviços define os tipos de mão de obra que sua oficina realiza
 
 ---
 
-## 7. Estoque
+## 10. Estoque
 
 Controle de peças e materiais utilizados nas OS.
 
-### 7.1 Cadastrar uma peça
+### 10.1 Cadastrar uma peça
 
 1. Clique em **Estoque** no menu lateral
 2. Clique em **"Nova Peça"**
@@ -195,21 +277,21 @@ Controle de peças e materiais utilizados nas OS.
    - **Preço de custo** e **preço de venda**
 4. Clique em **Salvar**
 
-### 7.2 Movimentações
+### 10.2 Movimentações
 
 Ao adicionar uma peça em uma OS, o estoque é debitado automaticamente. Você também pode registrar entradas manuais (compras, devoluções).
 
-### 7.3 Alerta de estoque baixo
+### 10.3 Alerta de estoque baixo
 
 O sistema exibe alertas quando a quantidade de uma peça estiver abaixo do mínimo configurado.
 
 ---
 
-## 8. Financeiro
+## 11. Financeiro
 
 Controle de receitas e despesas da oficina.
 
-### 8.1 Lançamentos
+### 11.1 Lançamentos
 
 1. Clique em **Financeiro** no menu lateral
 2. Clique em **"Novo Lançamento"**
@@ -223,21 +305,21 @@ Controle de receitas e despesas da oficina.
 
 > Pagamentos registrados em OS são lançados automaticamente como receita.
 
-### 8.2 Resumo mensal
+### 11.2 Resumo mensal
 
 O painel financeiro exibe o **total de receitas**, **total de despesas** e o **saldo do mês** com gráficos comparativos.
 
-### 8.3 Exportar relatório
+### 11.3 Exportar relatório
 
 Use o botão **"Imprimir"** para gerar um relatório financeiro do período selecionado.
 
 ---
 
-## 9. Usuários
+## 12. Usuários
 
 > Disponível apenas para perfis **MASTER** e **ADMIN**.
 
-### 9.1 Convidar um usuário
+### 12.1 Convidar um usuário
 
 1. Clique em **Usuários** no menu lateral
 2. Clique em **"Convidar Usuário"**
@@ -246,15 +328,15 @@ Use o botão **"Imprimir"** para gerar um relatório financeiro do período sele
 
 O usuário receberá um e-mail com um link para criar sua senha e acessar o sistema.
 
-### 9.2 Editar ou desativar
+### 12.2 Editar ou desativar
 
 Clique no usuário na lista para editar suas informações ou desativá-lo.
 
 ---
 
-## 10. Configurações e Assinatura
+## 13. Configurações e Assinatura
 
-### 10.1 Dados da oficina
+### 13.1 Dados da oficina
 
 1. Clique em **Configurações** no menu lateral
 2. Na aba **Empresa**, preencha:
@@ -264,12 +346,12 @@ Clique no usuário na lista para editar suas informações ou desativá-lo.
    - Telefone e e-mail
 3. Clique em **Salvar**
 
-### 10.2 Configurações operacionais
+### 13.2 Configurações operacionais
 
 - **Valor da hora de mão de obra** — usado como base para cálculo de OS
 - **Horas de diagnóstico** — tempo médio cobrado por diagnóstico
 
-### 10.3 Assinatura e plano
+### 13.3 Assinatura e plano
 
 Na aba **Assinatura** você visualiza seu plano atual e pode fazer **upgrade** para um plano superior:
 
@@ -282,7 +364,7 @@ Para fazer upgrade, clique no plano desejado e você será redirecionado para o 
 
 ---
 
-## 11. Perfis de Acesso (Roles)
+## 14. Perfis de Acesso (Roles)
 
 O sistema possui diferentes níveis de acesso para proteger informações sensíveis:
 
@@ -297,7 +379,7 @@ O sistema possui diferentes níveis de acesso para proteger informações sensí
 
 ---
 
-## 12. Dúvidas Frequentes
+## 15. Dúvidas Frequentes
 
 **Esqueci minha senha. O que faço?**  
 Na tela de login, clique em "Esqueci minha senha", informe seu e-mail e siga as instruções enviadas.
@@ -319,6 +401,15 @@ O downgrade fica disponível automaticamente após o vencimento do plano atual. 
 
 **Meus dados estão seguros?**  
 Sim. Todos os dados são armazenados em banco de dados isolado por empresa (multi-tenant), com conexões criptografadas e backups automáticos.
+
+**O WhatsApp não está enviando mensagens. O que fazer?**  
+Acesse **WhatsApp** no menu lateral e verifique se o status está como **"Conectado"**. Se aparecer desconectado, clique em **"Conectar WhatsApp"**, gere um novo QR Code e leia com o celular.
+
+**O Kanban de Pátio não aparece no menu. Por quê?**  
+O Kanban está disponível apenas nos planos **PRO** e **REDE**. Acesse **Configurações → Assinatura** para fazer upgrade.
+
+**Posso usar o Checklist sem tirar fotos?**  
+Sim. As fotos são opcionais. Você pode preencher apenas as condições de cada área do veículo e salvar sem adicionar imagens.
 
 ---
 

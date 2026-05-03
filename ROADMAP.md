@@ -108,9 +108,9 @@
 
 ---
 
-### 🚀 Sprint 2 — Fidelização e Relatórios
+### � Sprint 2 — Fidelização e Relatórios *(em andamento — iniciado em 03/05/2026)*
 
-- [ ] **Lembrete de Manutenção Preventiva** — WhatsApp automático por KM/data
+- [ ] **Lembrete de Manutenção Preventiva** — WhatsApp automático por KM/data *(próxima entrega)*
 - [ ] **DRE — Demonstrativo de Resultado** — Receita, CMV, Margem, EBITDA
 - [ ] **Comissão de Mecânicos** — % por serviço, relatório por funcionário
 - [ ] **NPS Automático** — pesquisa pós-entrega, dashboard de satisfação

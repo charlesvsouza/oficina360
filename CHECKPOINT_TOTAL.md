@@ -1,4 +1,4 @@
-# CHECKPOINT TOTAL — SigmaAuto (01/05/2026)
+# CHECKPOINT TOTAL — SigmaAuto (03/05/2026)
 
 ## Visão Geral do Projeto
 
@@ -162,7 +162,7 @@ FRONTEND_URL=https://sigmaauto.com.br
 NODE_ENV=production
 PORT=3000
 MERCADOPAGO_ACCESS_TOKEN=...
-EVOLUTION_API_URL=https://evolution-api-production-1c86a.up.railway.app
+EVOLUTION_API_URL=https://evolution-api-r2-production.up.railway.app
 EVOLUTION_API_KEY=SygmaEvolution@2026!
 EVOLUTION_INSTANCE=sygmaauto
 ```
@@ -204,11 +204,11 @@ Rota:  /admin/login
 3. ✅ **WhatsApp automático por evento de OS** — 5 templates via Evolution API
 4. ✅ **Tela de configuração WhatsApp** — `/whatsapp` com QR Code e status — **ONLINE**
 
-### Sprint 2 — Próximo
-5. **Financeiro avançado / DRE** — Demonstrativo de Resultado
-6. **Comissão de mecânicos** — % por serviço executado
-7. **Lembrete de manutenção preventiva** — retenção de clientes
-8. **Self-Service Checkout** — agendamento online público
-9. **Portal do cliente (PWA)** — acompanhamento em tempo real
-10. **Multi-unidades** — plano REDE / franquias
-11. **Emissão NF-e / NFS-e** — integração fiscal
+### 🔄 Sprint 2 — Em Andamento (iniciado em 03/05/2026)
+
+> **Pré-requisito validado:** WhatsApp com estado `open` confirmado + teste de envio bem-sucedido para 5521979330093 em 03/05/2026.
+
+5. **Lembrete de manutenção preventiva** — WhatsApp automático por KM/data *(próxima entrega)*
+6. **DRE — Demonstrativo de Resultado** — Receita, CMV, Margem, EBITDA
+7. **Comissão de mecânicos** — % por serviço, relatório por funcionário
+8. **NPS Automático** — pesquisa pós-entrega, dashboard de satisfação

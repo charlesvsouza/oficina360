@@ -1,151 +1,75 @@
 # WhatsApp — Evolution API: Diagnóstico e Configuração
 
-## Situação atual
+## Situação atual (Atualizado em 03/05/2026)
 
-O backend (Sygma Auto) está correto e pronto para receber o QR code via webhook.
-O problema principal é o servidor da Evolution API que não consegue iniciar a conexão com os servidores do WhatsApp. Além disso, identificamos que o backend não atualizava o webhook para instâncias já existentes, o que foi corrigido em 03/05/2026.
-O backend agora força a configuração do webhook e ativa a flag `base64: true` para garantir o recebimento do QR Code.
+O backend (Sygma Auto) está 100% funcional e resiliente. O problema persistente de "connecting" infinito foi identificado como uma falha de comunicação entre o servidor da Evolution API e o WhatsApp, não relacionada a recursos de hardware.
 
----
-
-## Sintoma
-
-`GET /instance/connect/{instance}` retorna sempre `{"count":0}` e nenhum evento webhook é disparado, mesmo após 40 segundos de polling.
-
-No `fetchInstances`, a instância aparece com `connectionStatus: "close"` e nunca transita para `"connecting"`.
+### O que foi corrigido no Backend:
+- **Reset Agressivo**: O sistema agora realiza um `DELETE` seguido de um `CREATE` toda vez que a instância é detectada em estado não-conectado (`close` ou `connecting` travado).
+- **Sincronização de Webhook**: O backend força a atualização do webhook e da flag `base64: true` em cada tentativa, garantindo a recepção do QR Code.
+- **Timeouts Otimizados**: Aumento nos tempos de espera para acomodar a lentidão de resposta da API.
 
 ---
 
-## Causa raiz
+## Diagnóstico Técnico
 
-O processo Baileys dentro da Evolution API não consegue estabelecer conexão com os servidores do WhatsApp. Possíveis causas:
+### 1. Recursos de Hardware (Railway Metrics)
+- **RAM Utilizada**: ~165 MB
+- **Limite Disponível**: 24 GB
+- **Conclusão**: O problema **NÃO é falta de memória**. O servidor tem recursos de sobra.
 
-| Causa | Como verificar |
-|---|---|
-| RAM insuficiente no servidor | Railway → serviço Evolution API → Metrics → Memory |
-| IP bloqueado pelo WhatsApp (rate-limit) | Ocorre após muitos ciclos de create/delete |
-| Falha de rede (Evolution API não alcança WhatsApp) | Logs da Evolution API |
-| Bug na versão da Evolution API em uso | Verificar versão e atualizar |
+### 2. Sintoma: Loop de "Connecting"
+`GET /instance/connect/{instance}` retorna `{"count":0}` e o webhook envia apenas eventos de `state: "connecting"` com `statusReason: 200`.
 
----
-
-## Como resolver
-
-### 1. Verificar logs da Evolution API
-
-Acesse no Railway o **serviço da Evolution API** (não o backend Sygma) → aba **Logs** e procure por:
-
-```
-Error: Connection Failure
-Timed out after
-ECONNREFUSED
-ENOTFOUND
-out of memory
-QR code timeout
-```
-
-### 2. Aguardar cooldown do IP
-
-Após muitos ciclos de connect/disconnect, o WhatsApp bloqueia temporariamente o IP.
-**Aguarde 30–60 minutos sem tentar gerar QR** e tente novamente.
-
-### 3. Reiniciar a Evolution API
-
-No Railway → serviço Evolution API → **Restart**. Isso limpa processos Baileys travados.
-
-### 4. Verificar memória
-
-O Baileys precisa de pelo menos **300–500 MB de RAM livre**. Se o plano do Railway estiver no limite, aumente o tier ou reinicie para liberar memória.
-
-### 5. Verificar versão da Evolution API
-
-A versão em uso retorna o seguinte formato em `fetchInstances`:
-
-```json
-{
-  "name": "sygmaauto",
-  "connectionStatus": "close",
-  "token": "XXXX-XXXX-XXXX",
-  "integration": "WHATSAPP-BAILEYS"
-}
-```
-
-Se a versão tiver bugs conhecidos, considere atualizar para a versão estável mais recente.
+### 3. Causa Raiz Provável
+- **Incompatibilidade de Versão**: A imagem da Evolution API pode estar usando uma versão do Baileys desatualizada em relação ao protocolo atual do WhatsApp.
+- **Bloqueio de IP (Rate Limit)**: O WhatsApp bloqueou temporariamente o IP do servidor Railway devido a múltiplas tentativas de conexão/reconexão.
 
 ---
 
-## Fluxo correto após o servidor corrigido
+## Plano de Ação para Resolução Definitiva
 
-Quando a Evolution API conseguir conectar ao WhatsApp, o fluxo será:
+### Passo 1: Atualização da Imagem
+No Railway, acesse as configurações do serviço da **Evolution API**:
+- Certifique-se de usar a tag `latest` para a imagem Docker.
+- Verifique a variável de ambiente `CONFIG_SESSION_PHONE_VERSION`. Tente atualizar para a versão mais recente (ex: `2.3000.x` ou superior).
+
+### Passo 2: Cooldown (Essencial)
+- **Não tente gerar o QR Code pelos próximos 60 minutos.**
+- O WhatsApp aplica bloqueios temporários que são renovados a cada nova tentativa falha. O descanso de 1 hora é necessário para "limpar" o IP.
+
+### Passo 3: Reinicialização Limpa
+Após o período de cooldown e a atualização da imagem:
+1. Faça um **Restart** no serviço da Evolution API no Railway.
+2. Acesse a tela de WhatsApp no sistema e solicite um novo QR Code.
+3. O sistema fará o `DELETE` e o `CREATE` automaticamente, gerando uma sessão virgem.
+
+---
+
+## Fluxo Técnico Atualizado
 
 ```
 Frontend → GET /whatsapp/qrcode
     ↓
-Backend verifica instância existente (não recria desnecessariamente)
+Backend verifica status da instância
     ↓
-Backend chama GET /instance/connect/{instance}
+Status !== 'open'? → DELETE instance → CREATE instance fresca (com webhook + base64)
     ↓
-Evolution API conecta ao WhatsApp (Baileys)
+Backend inicia polling (20x) chamando /instance/connect/{instance}
     ↓
-Evolution API dispara POST para https://sygmaauto-api-production.up.railway.app/whatsapp/qr-webhook
+Evolution API gera QR → Dispara Webhook OU Retorna no polling
     ↓
-Backend armazena QR em memória
+Backend armazena QR em memória (qrStore)
     ↓
-Backend retorna QR para o frontend
-    ↓
-Frontend exibe QR Code para o usuário escanear
+Frontend exibe QR Code
 ```
 
 ---
 
-## Variáveis de ambiente necessárias (backend Railway)
+## Variáveis de Ambiente Críticas (Backend Railway)
 
-| Variável | Valor | Descrição |
+| Variável | Valor Atual | Status |
 |---|---|---|
-| `EVOLUTION_API_URL` | `https://...` | URL do servidor da Evolution API |
-| `EVOLUTION_API_KEY` | `...` | Global API key da Evolution API |
-| `EVOLUTION_INSTANCE` | `sygmaauto` | Nome da instância |
-| `BACKEND_PUBLIC_URL` | `https://sygmaauto-api-production.up.railway.app` | URL pública do backend (para webhook) |
-
----
-
-## Endpoint de webhook (já implementado)
-
-```
-POST /whatsapp/qr-webhook
-```
-
-- Sem autenticação (público — necessário para a Evolution API chamar)
-- Recebe o payload de evento `QRCODE_UPDATED` da Evolution API
-- Armazena o QR em memória para ser servido via `GET /whatsapp/qrcode`
-
-### Payload esperado da Evolution API
-
-```json
-{
-  "event": "QRCODE_UPDATED",
-  "instance": "sygmaauto",
-  "data": {
-    "qrcode": {
-      "base64": "data:image/png;base64,...",
-      "count": 1
-    }
-  }
-}
-```
-
----
-
-## Teste manual do webhook
-
-Para verificar se o endpoint de webhook está acessível, execute:
-
-```bash
-curl -X POST https://sygmaauto-api-production.up.railway.app/whatsapp/qr-webhook \
-  -H "Content-Type: application/json" \
-  -d '{"event":"QRCODE_UPDATED","instance":"sygmaauto","data":{"qrcode":{"base64":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==","count":1}}}'
-```
-
-Resposta esperada: `{"received":true}`
-
-Se retornar 200, o webhook está funcionando. O QR ficará armazenado em memória por até 2 minutos.
+| `EVOLUTION_API_URL` | `https://...` | OK |
+| `EVOLUTION_API_KEY` | `...` | OK |
+| `BACKEND_PUBLIC_URL` | `https://sygmaauto-api-production.up.railway.app` | OK |

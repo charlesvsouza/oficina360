@@ -7,40 +7,60 @@
 const { execSync } = require('child_process');
 const { Client } = require('pg');
 
-async function terminateIdleConnections() {
+async function terminateAllAppConnections() {
   const url = process.env.DATABASE_URL;
   if (!url) {
     console.log('[release] DATABASE_URL not set, skipping terminate step.');
     return;
   }
 
+  // Strip connection_limit params so this pg client can always connect
+  const cleanUrl = url.split('?')[0];
+  const params = new URLSearchParams(url.includes('?') ? url.split('?')[1] : '');
+  params.delete('connection_limit');
+  params.delete('pool_timeout');
+  const finalUrl = params.toString() ? `${cleanUrl}?${params}` : cleanUrl;
+
   const client = new Client({
-    connectionString: url,
-    connectionTimeoutMillis: 10000,
+    connectionString: finalUrl,
+    connectionTimeoutMillis: 15000,
     ssl: url.includes('sslmode=require') ? { rejectUnauthorized: false } : false,
   });
 
   try {
     await client.connect();
+
+    // Show current connection count
+    const countRes = await client.query(
+      `SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid()`
+    );
+    console.log(`[release] Active connections before kill: ${countRes.rows[0].count}`);
+
+    // Kill ALL other connections to this database, regardless of state
     const result = await client.query(`
       SELECT pg_terminate_backend(pid)
       FROM pg_stat_activity
       WHERE datname = current_database()
         AND pid <> pg_backend_pid()
-        AND state IN ('idle', 'idle in transaction', 'idle in transaction (aborted)')
-        AND query_start < NOW() - INTERVAL '10 seconds'
     `);
-    console.log(`[release] Terminated ${result.rowCount} idle connection(s).`);
+    console.log(`[release] Terminated ${result.rowCount} connection(s).`);
+
+    // Wait for connections to fully close
+    await new Promise(r => setTimeout(r, 2000));
+
+    const afterRes = await client.query(
+      `SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid()`
+    );
+    console.log(`[release] Active connections after kill: ${afterRes.rows[0].count}`);
   } catch (err) {
-    // Non-fatal: if we can't terminate, still try to proceed
-    console.warn('[release] Could not terminate idle connections (non-fatal):', err.message);
+    console.warn('[release] Could not terminate connections (non-fatal):', err.message);
   } finally {
     try { await client.end(); } catch (_) {}
   }
 }
 
 async function main() {
-  await terminateIdleConnections();
+  await terminateAllAppConnections();
 
   console.log('[release] Running prisma db push...');
   execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });

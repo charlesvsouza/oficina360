@@ -1,6 +1,17 @@
-# Evolution API — Guia de Integração Limpa
+# Evolution API — Guia de Integração
 
-## 1. Variáveis de ambiente (Railway → Backend)
+## Status atual (2026-05-03)
+
+- **Código:** reescrito para Evolution API (commit `cef1c14`) — deploy feito no Railway.
+- **Tela do WhatsApp:** apareceu uma vez mas foi fechada antes de escanear.
+- **Próximo passo:** clicar em **Gerar QR Code** novamente em `sigmaauto.com.br/whatsapp`.
+
+> Se o QR aparecer, escanear com o celular e pronto.
+> Se não aparecer (erro ou timeout), seguir a **Seção 2 — Limpeza**.
+
+---
+
+## 1. Variáveis de ambiente obrigatórias (Railway → serviço backend)
 
 | Variável | Descrição | Exemplo |
 |---|---|---|
@@ -11,7 +22,7 @@
 
 ---
 
-## 2. Limpeza — faça ANTES de qualquer tentativa de conexão
+## 2. Limpeza — faça se o QR não aparecer
 
 ### Passo 1 — Deletar instância via API
 
@@ -54,7 +65,7 @@ Necessário para o WhatsApp liberar o IP após múltiplas tentativas anteriores.
 
 Verifique se as 4 variáveis da seção 1 estão configuradas corretamente.
 
-### Passo 2 — Verificar se o Evolution API responde
+### Passo 2 — Verificar se o Evolution API responde sem instâncias
 
 ```bash
 curl https://SEU_EVOLUTION_URL/instance/fetchInstances \
@@ -68,9 +79,10 @@ Resposta esperada: `[]` (array vazio, sem instâncias).
 Acesse `https://sigmaauto.com.br/whatsapp` e clique em **Gerar QR Code**.
 
 O backend vai:
-1. Criar a instância `sygmaauto` com webhook configurado
-2. Aguardar o QR Code chegar via webhook (até 40 segundos)
-3. Exibir o QR Code na tela
+1. Deletar a instância antiga (se existir)
+2. Criar instância `sygmaauto` com webhook configurado
+3. Aguardar o QR Code chegar via webhook (até 40 segundos)
+4. Exibir o QR Code na tela
 
 ### Passo 4 — Escanear o QR
 
@@ -134,12 +146,25 @@ curl https://SEU_EVOLUTION_URL/instance/connectionState/sygmaauto \
 
 ---
 
-## 6. Problemas conhecidos e soluções
+## 6. Arquivos relevantes no repositório
+
+| Arquivo | Responsabilidade |
+|---|---|
+| `backend/src/notifications/whatsapp-admin.service.ts` | Gerencia instância, armazena QR via webhook, expõe status/disconnect |
+| `backend/src/notifications/whatsapp.service.ts` | Envia mensagens WhatsApp para clientes |
+| `backend/src/whatsapp/whatsapp.controller.ts` | Endpoints autenticados: GET /status, GET /qrcode, POST /disconnect |
+| `backend/src/whatsapp/whatsapp-webhook.controller.ts` | Endpoint público: POST /whatsapp/qr-webhook (recebe QR da Evolution API) |
+| `backend/src/whatsapp/whatsapp.module.ts` | Registra controllers e providers do módulo |
+
+---
+
+## 7. Problemas conhecidos e soluções
 
 | Sintoma | Causa | Solução |
 |---|---|---|
-| `connectionStatus: close` permanente | Arquivos de sessão corrompidos | Passo 2 da limpeza + restart |
-| `{"count":0}` em /instance/connect | QR entregue via webhook, não via REST | Normal — aguardar webhook |
-| Webhook não chega | `BACKEND_PUBLIC_URL` errado ou sem `QRCODE_UPDATED` nos eventos | Verificar variável + usar `byEvents: false` |
-| `403 already in use` no create | Instância não foi deletada | DELETE antes do CREATE |
-| Loop de connecting sem QR | WhatsApp bloqueou IP temporariamente | Aguardar 30–60 min |
+| QR não aparece, timeout 40s | Baileys não gera QR — sessão corrompida ou IP bloqueado | Seção 2 completa + aguardar 30–60 min |
+| `connectionStatus: close` permanente | Arquivos de sessão corrompidos em disco | Passo 2 da limpeza + restart |
+| Webhook não chega | `BACKEND_PUBLIC_URL` errado | Verificar variável no Railway |
+| `403 already in use` no create | Instância não foi deletada | DELETE antes do CREATE (código já faz isso) |
+| Loop de connecting sem QR | WhatsApp bloqueou IP temporariamente | Aguardar 30–60 min antes de nova tentativa |
+| `{"received":true}` mas QR não aparece na tela | Evento chegou mas não era `QRCODE_UPDATED` | Checar log do backend — deve mostrar "QR armazenado via webhook" |

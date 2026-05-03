@@ -82,6 +82,7 @@ export class WhatsappAdminService {
       const instanceKey =
         current?.instance?.apikey ??
         current?.apikey ??
+        current?.hash ??
         current?.instance?.token ??
         current?.token ??
         null;
@@ -191,7 +192,7 @@ export class WhatsappAdminService {
         return null;
       });
 
-      this.logger.log(`create response: ${JSON.stringify(createRes?.data ?? {}).substring(0, 300)}`);
+      this.logger.log(`create response: ${JSON.stringify(createRes?.data ?? {}).substring(0, 600)}`);
 
       const qrFromCreate = await this.extractQrCode(createRes?.data);
       if (qrFromCreate) {
@@ -199,8 +200,8 @@ export class WhatsappAdminService {
         return { qrCode: qrFromCreate };
       }
 
-      // Busca apikey da instância recém-criada.
-      const instanceApiKey = await this.getInstanceApiKey();
+      // Usa o hash do create como apikey da instância (Evolution API v2).
+      const instanceApiKey = createRes?.data?.hash ?? await this.getInstanceApiKey();
 
       // Polling: tenta connect E fetchInstances (v2 retorna QR dentro do fetchInstances).
       const maxAttempts = 15;
@@ -237,7 +238,7 @@ export class WhatsappAdminService {
           });
 
           const raw = JSON.stringify(current ?? {});
-          this.logger.log(`fetchInstances (tentativa ${i}/${maxAttempts}): ${raw.substring(0, 300)}`);
+          this.logger.log(`fetchInstances (tentativa ${i}/${maxAttempts}): ${raw.substring(0, 600)}`);
 
           const qr = await this.extractQrCode(current) ?? await this.extractQrCode(current?.qrcode);
           if (qr) {

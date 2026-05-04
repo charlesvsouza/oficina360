@@ -162,6 +162,19 @@ async function main() {
     }
   }
 
+  const cleanFlag = (process.env.CLEAN_RESEED || '').trim().toLowerCase();
+  console.log(`[release] CLEAN_RESEED="${cleanFlag}"`);
+  if (cleanFlag === 'true' || cleanFlag === '1') {
+    console.log('[release] Iniciando limpeza de dados demo + resseed...');
+    try {
+      const { runCleanReseed } = require('./clean-reseed.js');
+      await runCleanReseed();
+      console.log('[release] Clean-reseed concluído com sucesso.');
+    } catch (err) {
+      console.error('[release] Erro no clean-reseed (non-fatal):', err.message);
+    }
+  }
+
   console.log('[release] Done.');
 }
 

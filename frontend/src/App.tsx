@@ -41,11 +41,13 @@ import { WhatsappPage } from './pages/WhatsappPage';
 import { SuperAdminPage } from './pages/SuperAdminPage';
 import { SuperAdminLoginPage } from './pages/SuperAdminLoginPage';
 import { ImpersonationBanner } from './components/ImpersonationBanner';
+import { SessionSecurity } from './components/SessionSecurity';
 
 export default function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <ImpersonationBanner />
+      <SessionSecurity />
       <Routes>
         {/* Landing comercial */}
         <Route path="/" element={<LandingPage />} />

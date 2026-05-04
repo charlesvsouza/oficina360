@@ -18,6 +18,7 @@ export function LoginPage() {
   const [searchParams] = useSearchParams();
   const { login } = useAuthStore();
   const pendingCheckoutPlan = sessionStorage.getItem('pendingCheckoutPlan');
+  const sessionExpired = searchParams.get('reason') === 'session-expired';
 
   useEffect(() => {
     if (!loading) {
@@ -147,6 +148,19 @@ export function LoginPage() {
               <p className="font-semibold mb-1">Checkout pendente</p>
               <p className="text-blue-200/90">
                 Faça login para continuar a assinatura do plano <strong>{pendingCheckoutPlan}</strong>.
+              </p>
+            </motion.div>
+          )}
+
+          {sessionExpired && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-amber-500/20 border border-amber-500/30 text-amber-100 p-4 rounded-xl text-sm mb-6"
+            >
+              <p className="font-semibold mb-1">Sessão encerrada por segurança</p>
+              <p className="text-amber-200/90">
+                Sua sessão expirou por inatividade ou tempo máximo de uso. Faça login novamente para continuar.
               </p>
             </motion.div>
           )}

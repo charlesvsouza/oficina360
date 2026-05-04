@@ -625,7 +625,21 @@ export class ServiceOrdersService {
       },
     });
 
-    return this.prisma.serviceOrder.delete({ where: { id } });
+    // Remove registros filhos em ordem para respeitar FK constraints
+    await this.prisma.$transaction(async (tx) => {
+      // 1. Comissões referenciam serviceOrder e serviceOrderItem
+      await tx.commission.deleteMany({ where: { serviceOrderId: id } });
+      // 2. Itens da O.S.
+      await tx.serviceOrderItem.deleteMany({ where: { serviceOrderId: id } });
+      // 3. Linha do tempo
+      await tx.serviceOrderTimeline.deleteMany({ where: { serviceOrderId: id } });
+      // 4. Checklists (itens e fotos cascadeiam via schema)
+      await tx.vehicleChecklist.deleteMany({ where: { serviceOrderId: id } });
+      // 5. Por fim, a O.S.
+      await tx.serviceOrder.delete({ where: { id } });
+    });
+
+    return { success: true, id };
   }
 
   async createDiagnosticOrder(tenantId: string, sourceOrderId: string, userId: string) {

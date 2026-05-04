@@ -589,7 +589,7 @@ export function SettingsPage() {
 
             <div className="p-5 space-y-3">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tema</p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {THEME_PRESETS.map((preset) => {
                   const active = themePreset === preset.id;
                   return (
@@ -600,12 +600,22 @@ export function SettingsPage() {
                       className={cn(
                         'text-left rounded-lg border p-3 transition-all',
                         active
-                          ? 'border-primary-500 bg-primary-50 shadow-sm'
-                          : 'border-slate-200 bg-white hover:border-slate-300'
+                          ? 'border-blue-500 bg-blue-50 shadow-sm ring-1 ring-blue-400'
+                          : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'
                       )}
                     >
-                      <p className={cn('text-xs font-bold uppercase tracking-wide', active ? 'text-primary-700' : 'text-slate-900')}>{preset.label}</p>
-                      <p className="text-[10px] text-slate-500 mt-1">{preset.description}</p>
+                      {/* Swatches */}
+                      <div className="flex gap-1 mb-2">
+                        {preset.swatches.map((color, i) => (
+                          <span
+                            key={i}
+                            className="block h-4 rounded-sm flex-1 border border-black/10"
+                            style={{ backgroundColor: color }}
+                          />
+                        ))}
+                      </div>
+                      <p className={cn('text-xs font-bold uppercase tracking-wide', active ? 'text-blue-700' : 'text-slate-900')}>{preset.label}</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5 leading-tight">{preset.description}</p>
                     </button>
                   );
                 })}

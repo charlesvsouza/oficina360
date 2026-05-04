@@ -71,4 +71,9 @@ export class UpdateTenantDto {
   @IsOptional()
   @IsNumber()
   diagnosticHours?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  defaultCommissionPercent?: number;
 }

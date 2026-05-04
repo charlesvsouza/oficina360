@@ -1,9 +1,10 @@
-export type ThemePresetId = 'lexgen-blue' | 'sunset-orange' | 'emerald-pro';
+export type ThemePresetId = 'lexgen-blue' | 'sunset-orange' | 'emerald-pro' | 'charcoal-dark';
 
 type ThemePreset = {
   id: ThemePresetId;
   label: string;
   description: string;
+  swatches: string[];  // preview de cores [sidebar, accent, surface]
   vars: Record<string, string>;
 };
 
@@ -14,6 +15,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     id: 'lexgen-blue',
     label: 'LexGen Blue',
     description: 'Tema corporativo azul com contraste de operacao.',
+    swatches: ['#0f172a', '#3b82f6', '#f8fafc'],
     vars: {
       '--sidebar-bg': '#0f172a',
       '--sidebar-active': '#1e293b',
@@ -32,6 +34,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     id: 'sunset-orange',
     label: 'Sunset Orange',
     description: 'Visual comercial com energia para vendas e atendimento.',
+    swatches: ['#1a1625', '#f97316', '#fffaf5'],
     vars: {
       '--sidebar-bg': '#1a1625',
       '--sidebar-active': '#2a2038',
@@ -50,6 +53,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     id: 'emerald-pro',
     label: 'Emerald Pro',
     description: 'Tema premium com foco em produtividade e leitura.',
+    swatches: ['#052e2b', '#10b981', '#f7fffc'],
     vars: {
       '--sidebar-bg': '#052e2b',
       '--sidebar-active': '#0f403b',
@@ -62,6 +66,25 @@ export const THEME_PRESETS: ThemePreset[] = [
       '--frame-accent': '#10b981',
       '--accent': '#10b981',
       '--accent-hover': '#059669',
+    },
+  },
+  {
+    id: 'charcoal-dark',
+    label: 'Charcoal Dark',
+    description: 'Modo escuro profissional para ambientes com baixa luz.',
+    swatches: ['#111827', '#6366f1', '#1f2937'],
+    vars: {
+      '--sidebar-bg': '#111827',
+      '--sidebar-active': '#1f2937',
+      '--sidebar-border': '#374151',
+      '--sidebar-accent': '#6366f1',
+      '--surface-bg': '#1f2937',
+      '--surface-border': '#374151',
+      '--header-bg': '#111827',
+      '--theme-glow-rgb': '99, 102, 241',
+      '--frame-accent': '#6366f1',
+      '--accent': '#6366f1',
+      '--accent-hover': '#4f46e5',
     },
   },
 ];

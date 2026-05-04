@@ -52,24 +52,21 @@ type AlertLevel = 'none' | 'warning' | 'danger';
 function getAlertLevel(os: any): { level: AlertLevel; reason: string } {
   const h = getStatusAgeHours(os);
 
-  // Sem orçamento há mais de 48h (ainda em entrada/diagnóstico)
-  if (['ABERTA', 'EM_DIAGNOSTICO'].includes(os.status) && h > 48) {
-    return { level: 'danger', reason: `Sem orçamento há ${Math.floor(h)}h` };
+  if (os.status === 'EM_DIAGNOSTICO') {
+    if (h > 48) return { level: 'danger', reason: `Diagnóstico atrasado (${Math.floor(h)}h)` };
+    if (h > 24) return { level: 'warning', reason: `Diagnóstico em atenção (${Math.floor(h)}h)` };
   }
 
-  // Sem autorização há mais de 72h
-  if (os.status === 'AGUARDANDO_APROVACAO' && h > 72) {
-    return { level: 'danger', reason: `Sem autorização há ${Math.floor(h)}h` };
-  }
-  if (os.status === 'AGUARDANDO_APROVACAO' && h > 48) {
-    return { level: 'warning', reason: `Aguardando aprovação há ${Math.floor(h)}h` };
+  if (os.status === 'EM_EXECUCAO') {
+    if (h > 72) return { level: 'danger', reason: `Serviço acima do SLA (${Math.floor(h)}h)` };
+    if (h > 48) return { level: 'warning', reason: `Serviço em execução há ${Math.floor(h)}h` };
   }
 
   // Aguardando peças — vencida a data prevista ou >48h sem data
   if (os.status === 'AGUARDANDO_PECAS') {
     if (os.expectedPartsDate && new Date(os.expectedPartsDate) < new Date()) {
       const overH = (Date.now() - new Date(os.expectedPartsDate).getTime()) / 3_600_000;
-      return { level: 'danger', reason: `Peças atrasadas ${Math.floor(overH)}h` };
+      return { level: 'danger', reason: `Chegada de peças atrasada (${Math.floor(overH)}h)` };
     }
     if (!os.expectedPartsDate && h > 48) {
       return { level: 'warning', reason: `Aguardando peças há ${Math.floor(h)}h` };
@@ -106,6 +103,7 @@ function ReceptionCard({ os, tvMode }: { os: any; tvMode: boolean }) {
   const idx = stepIndex(os.status);
   const meta = STATUS_META[os.status] ?? { label: os.status, dot: 'bg-slate-400', badge: 'bg-slate-700', text: 'text-white' };
   const { level, reason } = getAlertLevel(os);
+  const statusRefDate = os.statusChangedAt || os.updatedAt || os.createdAt;
 
   const alertBorder =
     level === 'danger'  ? 'border-red-500/70' :
@@ -113,9 +111,7 @@ function ReceptionCard({ os, tvMode }: { os: any; tvMode: boolean }) {
     'border-white/10';
 
   const alertPulse =
-    level === 'danger'  ? 'animate-pulse' :
-    level === 'warning' ? 'animate-pulse' :
-    '';
+    level === 'danger' ? 'animate-pulse' : '';
 
   return (
     <motion.div
@@ -151,8 +147,8 @@ function ReceptionCard({ os, tvMode }: { os: any; tvMode: boolean }) {
           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${meta.badge} ${meta.text}`}>
             {meta.label}
           </span>
-          <span className={`text-xs flex items-center gap-1 font-medium ${urgencyClass(os.createdAt)}`}>
-            <Clock size={10} /> {elapsed(os.createdAt)}
+          <span className={`text-xs flex items-center gap-1 font-medium ${urgencyClass(statusRefDate)}`}>
+            <Clock size={10} /> {elapsed(statusRefDate)}
           </span>
         </div>
       </div>

@@ -56,10 +56,7 @@ export class ChecklistService {
     }));
 
     if (existing) {
-      // Remove itens antigos (cascade apaga fotos)
-      await this.prisma.checklistItem.deleteMany({
-        where: { checklistId: existing.id },
-      });
+      await this.prisma.checklistItem.deleteMany({ where: { checklistId: existing.id } });
 
       return this.prisma.vehicleChecklist.update({
         where: { id: existing.id },
@@ -67,6 +64,8 @@ export class ChecklistService {
           fuelLevel: dto.fuelLevel ?? existing.fuelLevel,
           observations: dto.observations,
           completedBy: dto.completedBy,
+          ownerName: dto.ownerName,
+          ownerType: dto.ownerType ?? 'PROPRIETARIO',
           completedAt: new Date(),
           items: { create: itemsData },
         },
@@ -82,6 +81,8 @@ export class ChecklistService {
         fuelLevel: dto.fuelLevel ?? 0,
         observations: dto.observations,
         completedBy: dto.completedBy,
+        ownerName: dto.ownerName,
+        ownerType: dto.ownerType ?? 'PROPRIETARIO',
         completedAt: new Date(),
         items: { create: itemsData },
       },

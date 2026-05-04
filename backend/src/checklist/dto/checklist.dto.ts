@@ -44,6 +44,14 @@ export class UpsertChecklistDto {
   completedBy?: string;
 
   @IsOptional()
+  @IsString()
+  ownerName?: string;
+
+  @IsOptional()
+  @IsString()
+  ownerType?: string; // PROPRIETARIO | DELEGADO
+
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ChecklistItemDto)

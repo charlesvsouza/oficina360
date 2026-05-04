@@ -96,7 +96,7 @@ export function Layout() {
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Sidebar - Desktop */}
-      <aside className="hidden lg:flex flex-col w-64 bg-gradient-to-b from-midnight-950 to-midnight-900 h-screen fixed left-0 top-0 z-30 overflow-hidden">
+      <aside className="app-sidebar hidden lg:flex flex-col w-64 h-screen fixed left-0 top-0 z-30 overflow-hidden">
         {/* Logo */}
         <div className="px-4 py-3 border-b border-white/10">
           <div className="flex items-center gap-2.5">
@@ -131,17 +131,17 @@ export function Layout() {
                     key={item.to}
                     to={item.to}
                     className={({ isActive }) =>
-                      `flex items-center gap-2.5 px-2.5 py-[6px] rounded-lg transition-all ${
+                      `sidebar-nav-link flex items-center gap-2.5 rounded-lg transition-all ${
                         isActive
-                          ? 'bg-primary-500/20 text-primary-400 font-medium'
-                          : 'text-slate-400 hover:text-white hover:bg-white/5'
+                          ? 'sidebar-nav-link-active font-medium'
+                          : 'text-slate-300 hover:text-white'
                       }`
                     }
                   >
                     <item.icon className="w-4 h-4 shrink-0" />
-                    <span className="text-[13px] leading-tight">{item.label}</span>
+                    <span className="sidebar-nav-label leading-tight">{item.label}</span>
                     {item.premium && planName === 'START' && (
-                      <span className="ml-auto text-[10px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-400">PRO</span>
+                      <span className="sidebar-pro-badge ml-auto text-[10px] px-1.5 py-0.5 rounded">PRO</span>
                     )}
                   </NavLink>
                 ))}
@@ -182,7 +182,7 @@ export function Layout() {
       )}
 
       {/* Mobile sidebar */}
-      <div className={`fixed inset-y-0 left-0 w-64 bg-gradient-to-b from-midnight-950 to-midnight-900 z-50 transform transition-transform lg:hidden ${
+      <div className={`app-sidebar fixed inset-y-0 left-0 w-64 z-50 transform transition-transform lg:hidden ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         <div className="p-5 border-b border-white/10 flex items-center justify-between">
@@ -243,7 +243,7 @@ export function Layout() {
       </div>
 
       {/* Main content */}
-      <main className="flex-1 lg:ml-64">
+      <main className="app-main-frame flex-1 lg:ml-64">
         {/* Header mobile */}
         <header className="lg:hidden bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between sticky top-0 z-20">
           <button onClick={() => setSidebarOpen(true)} className="p-2 -ml-2 text-slate-600">
@@ -259,7 +259,7 @@ export function Layout() {
         </header>
 
         {/* Header desktop */}
-        <header className="hidden lg:flex items-center justify-between px-8 py-4 bg-white/80 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-10">
+        <header className="app-shell-header hidden lg:flex items-center justify-between px-8 py-4 border-b border-slate-200 sticky top-0 z-10">
           <div>
             <h2 className="text-lg font-semibold text-slate-900">
               {tenant?.name || 'Minha Oficina'}

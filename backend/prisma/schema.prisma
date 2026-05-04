@@ -489,7 +489,9 @@ model VehicleChecklist {
   fuelLevel      Int       @default(0) // 0-8 (oitavos do tanque)
   observations   String?
   completedAt    DateTime?
-  completedBy    String?   // nome do responsável
+  completedBy    String?   // nome do responsável pela vistoria (mecânico/recepcionista)
+  ownerName      String?   // nome de quem entregou/retirou o veículo
+  ownerType      String?   @default("PROPRIETARIO") // PROPRIETARIO | DELEGADO
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 

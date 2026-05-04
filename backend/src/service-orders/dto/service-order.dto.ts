@@ -1,6 +1,6 @@
-import { IsNotEmpty, IsOptional, IsString, IsEnum, IsInt, IsArray, ValidateNested, Min, IsNumber, IsBoolean } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsEnum, IsArray, ValidateNested, Min, IsNumber, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 
 export class CreateOrUpdateItemDto {
   @ApiProperty({ required: false })
@@ -25,8 +25,9 @@ export class CreateOrUpdateItemDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsInt()
-  @Min(1)
+  @Transform(({ value }) => (value !== undefined && value !== null ? Number(value) : value))
+  @IsNumber()
+  @Min(0.01)
   quantity?: number;
 
   @ApiProperty()
@@ -68,8 +69,9 @@ export class UpdateServiceOrderItemDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
+  @Transform(({ value }) => (value !== undefined && value !== null ? Number(value) : value))
   @IsNumber()
-  @Min(1)
+  @Min(0.01)
   quantity?: number;
 
   @ApiProperty({ required: false, enum: ['service', 'part', 'labor'] })

@@ -3,7 +3,7 @@ import { ArrowRight, CheckCircle, CheckCircle2, ChevronRight, CircleSlash } from
 import { Link, useNavigate } from 'react-router-dom';
 import { MarketingShell } from '../components/marketing/MarketingShell';
 import { EcgPulse } from '../components/marketing/EcgPulse';
-import { features, plans, planCapabilities, quickLinks, type Plan } from '../data/marketingContent';
+import { features, plans, planCapabilities, quickLinks, retificaPlans, type Plan } from '../data/marketingContent';
 import { useAuthStore } from '../store/authStore';
 
 export function LandingPage() {
@@ -258,6 +258,53 @@ export function LandingPage() {
               </button>
             </motion.article>
           ))}
+        </div>
+
+        <div className="mt-12 rounded-3xl border border-[#ff7b2f]/20 bg-[#ff7b2f]/6 p-6 md:p-8">
+          <div className="max-w-3xl">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-[#ffb182] font-bold">Linha especializada</p>
+            <h3 className="mt-2 text-2xl md:text-3xl font-black text-white">Modo Retífica de Motores</h3>
+            <p className="mt-3 text-sm text-white/65 leading-relaxed">
+              Para operacoes que precisam receber tanto veiculos completos quanto motores avulsos, o Sigma Auto passa a ter uma familia dedicada de planos.
+              Ela preserva toda a operacao da oficina e adiciona o trilho especializado de retifica.
+            </p>
+          </div>
+
+          <div className="mt-6 grid gap-5 md:grid-cols-2">
+            {retificaPlans.map((plan, index) => (
+              <motion.article
+                key={plan.name}
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="rounded-3xl border border-white/10 bg-[#0c1220]/60 p-6"
+              >
+                <p className="text-xs uppercase tracking-widest text-[#ffb182]">{plan.label}</p>
+                <div className="mt-2 flex items-end gap-1">
+                  <p className="text-4xl font-black text-white">{plan.price}</p>
+                  <p className="text-sm text-white/40 mb-1">{plan.period}</p>
+                </div>
+                <p className="mt-3 text-sm text-white/60 leading-relaxed">{plan.description}</p>
+
+                <ul className="mt-5 space-y-2.5 text-sm">
+                  {plan.highlights.map((feature) => (
+                    <li key={feature} className="flex items-center gap-2.5">
+                      <CheckCircle2 size={15} className="text-[#ff7b2f] flex-shrink-0" />
+                      <span className="text-white/80">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <button
+                  onClick={() => startPlanCheckout(plan.name)}
+                  className="mt-6 h-11 w-full rounded-xl bg-[#ff7b2f] text-white hover:bg-[#f06820] shadow-[0_0_20px_rgba(255,123,47,0.28)] text-sm font-black transition-all inline-flex items-center justify-center gap-2"
+                >
+                  Ver modalidade Retifica
+                </button>
+              </motion.article>
+            ))}
+          </div>
         </div>
 
         <div className="mt-10 rounded-3xl border border-white/10 bg-white/4 p-5 md:p-7">

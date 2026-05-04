@@ -22,16 +22,21 @@ import {
   Gauge,
   FileText,
   Award,
+  Cog,
 } from 'lucide-react';
 import { useState } from 'react';
-import { canAccessFeature, featureLabel, getFeatureMinPlan, getFeatureUpgradeMessage, type PlanFeatureKey } from '../lib/planAccess';
+import { canAccessFeature, canAccessRetificaMode, featureLabel, getFeatureMinPlan, getFeatureUpgradeMessage, getPlanLabel, type PlanFeatureKey } from '../lib/planAccess';
 
 export function Layout() {
   const { user, tenant, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [upgradeModal, setUpgradeModal] = useState<{ feature: PlanFeatureKey } | null>(null);
+  const [upgradeModal, setUpgradeModal] = useState<
+    | { kind: 'feature'; feature: PlanFeatureKey }
+    | { kind: 'retifica' }
+    | null
+  >(null);
   const canViewUsers = ['MASTER', 'ADMIN'].includes(user?.role ?? '');
 
   const handleLogout = () => {
@@ -47,6 +52,7 @@ export function Layout() {
     label: string;
     premium: boolean;
     feature?: PlanFeatureKey;
+    retificaMode?: boolean;
   };
 
   const adminItems: NavItem[] = [
@@ -72,6 +78,7 @@ export function Layout() {
       items: [
         { to: '/services', icon: Wrench, label: 'Serviços', premium: false },
         { to: '/inventory', icon: Package, label: 'Estoque', premium: false },
+        { to: '/retifica', icon: Cog, label: 'Modo Retífica', premium: true, retificaMode: true },
         { to: '/whatsapp', icon: MessageCircle, label: 'WhatsApp', premium: true, feature: 'WHATSAPP' },
       ],
     },
@@ -120,7 +127,7 @@ export function Layout() {
                 planName === 'PRO' ? 'bg-purple-500/20 text-purple-300' :
                 'bg-amber-500/20 text-amber-300'
               }`}>
-                {planName}
+                {getPlanLabel(planName)}
               </span>
             </div>
           </div>
@@ -138,11 +145,25 @@ export function Layout() {
               <div className="space-y-px">
                 {group.items.map((item) => {
                   const blockedByPlan = item.feature ? !canAccessFeature(planName, item.feature) : false;
+                  const blockedByRetificaMode = item.retificaMode ? !canAccessRetificaMode(planName) : false;
+                  if (blockedByRetificaMode) {
+                    return (
+                      <button
+                        key={item.to}
+                        onClick={() => setUpgradeModal({ kind: 'retifica' })}
+                        className="sidebar-nav-link flex items-center gap-2.5 rounded-lg transition-all opacity-60 text-slate-300 hover:text-white hover:opacity-80 w-full text-left"
+                      >
+                        <item.icon className="w-4 h-4 shrink-0" />
+                        <span className="sidebar-nav-label leading-tight">{item.label}</span>
+                        <span className="sidebar-pro-badge ml-auto text-[10px] px-1.5 py-0.5 rounded">RET</span>
+                      </button>
+                    );
+                  }
                   if (blockedByPlan) {
                     return (
                       <button
                         key={item.to}
-                        onClick={() => setUpgradeModal({ feature: item.feature! })}
+                        onClick={() => setUpgradeModal({ kind: 'feature', feature: item.feature! })}
                         className="sidebar-nav-link flex items-center gap-2.5 rounded-lg transition-all opacity-60 text-slate-300 hover:text-white hover:opacity-80 w-full text-left"
                       >
                         <item.icon className="w-4 h-4 shrink-0" />
@@ -231,11 +252,25 @@ export function Layout() {
               <div className="space-y-0.5">
                 {group.items.map((item) => {
                   const blockedByPlan = item.feature ? !canAccessFeature(planName, item.feature) : false;
+                  const blockedByRetificaMode = item.retificaMode ? !canAccessRetificaMode(planName) : false;
+                  if (blockedByRetificaMode) {
+                    return (
+                      <button
+                        key={item.to}
+                        onClick={() => { setSidebarOpen(false); setUpgradeModal({ kind: 'retifica' }); }}
+                        className="flex items-center gap-3 px-3.5 py-2.5 rounded-lg transition-all opacity-60 text-slate-400 hover:text-white hover:bg-white/5 hover:opacity-80 w-full text-left"
+                      >
+                        <item.icon className="w-5 h-5" />
+                        <span className="text-sm">{item.label}</span>
+                        <span className="ml-auto text-xs bg-slate-800 px-1.5 py-0.5 rounded text-slate-400">RET</span>
+                      </button>
+                    );
+                  }
                   if (blockedByPlan) {
                     return (
                       <button
                         key={item.to}
-                        onClick={() => { setSidebarOpen(false); setUpgradeModal({ feature: item.feature! }); }}
+                        onClick={() => { setSidebarOpen(false); setUpgradeModal({ kind: 'feature', feature: item.feature! }); }}
                         className="flex items-center gap-3 px-3.5 py-2.5 rounded-lg transition-all opacity-60 text-slate-400 hover:text-white hover:bg-white/5 hover:opacity-80 w-full text-left"
                       >
                         <item.icon className="w-5 h-5" />
@@ -349,12 +384,14 @@ export function Layout() {
                 <Award className="w-5 h-5 text-amber-600" />
               </div>
               <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Recurso Premium</p>
-                <h3 className="font-bold text-slate-900">{featureLabel(upgradeModal.feature)}</h3>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{upgradeModal.kind === 'retifica' ? 'Modo Especializado' : 'Recurso Premium'}</p>
+                <h3 className="font-bold text-slate-900">{upgradeModal.kind === 'retifica' ? 'Modo Retífica de Motores' : featureLabel(upgradeModal.feature)}</h3>
               </div>
             </div>
             <p className="text-sm text-slate-600 mb-5">
-              {getFeatureUpgradeMessage(upgradeModal.feature)}
+              {upgradeModal.kind === 'retifica'
+                ? 'Disponível somente nos planos Modo Retífica Pro e Modo Retífica Rede. Esse modo libera operação híbrida oficina + retífica, incluindo abertura com motor avulso e fluxo técnico especializado.'
+                : getFeatureUpgradeMessage(upgradeModal.feature)}
             </p>
             <div className="flex gap-3">
               <button

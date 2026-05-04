@@ -28,6 +28,15 @@ export type Plan = {
   featured?: boolean;
 };
 
+export type RetificaPlan = {
+  name: 'RETIFICA_PRO' | 'RETIFICA_REDE';
+  label: string;
+  price: string;
+  period: string;
+  description: string;
+  highlights: string[];
+};
+
 export type PlanCapability = {
   feature: string;
   start: string;
@@ -78,6 +87,25 @@ export const plans: Plan[] = [
     period: '/mes',
     description: 'Para grupos de oficinas com governanca, escala e padronizacao entre unidades.',
     highlights: ['Tudo do PRO', 'Multiunidade e consolidado', 'Usuarios ilimitados', 'Prioridade no suporte'],
+  },
+];
+
+export const retificaPlans: RetificaPlan[] = [
+  {
+    name: 'RETIFICA_PRO',
+    label: 'Modo Retifica Pro',
+    price: 'R$ 499',
+    period: '/mes',
+    description: 'Para retificas ou oficinas especializadas que precisam operar com veiculo e motor avulso no mesmo ambiente.',
+    highlights: ['Tudo do Pro', 'Entrada com motor avulso', 'Operacao oficina + retifica', 'Fluxo tecnico especializado'],
+  },
+  {
+    name: 'RETIFICA_REDE',
+    label: 'Modo Retifica Rede',
+    price: 'R$ 899',
+    period: '/mes',
+    description: 'Para grupos com varias unidades, governanca tecnica e operacao integrada de retifica em rede.',
+    highlights: ['Tudo do Rede', 'Retifica multiunidade', 'Padronizacao de operacao', 'Gestao centralizada'],
   },
 ];
 

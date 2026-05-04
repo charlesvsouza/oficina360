@@ -3,6 +3,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { PublicOnlyRoute } from './components/PublicOnlyRoute';
 import { SuperAdminRoute } from './components/SuperAdminRoute';
 import { PlanFeatureRoute } from './components/PlanFeatureRoute';
+import { RetificaModeRoute } from './components/RetificaModeRoute';
 import { Layout } from './components/Layout';
 import { InitialSplash } from './pages/InitialSplash';
 import { LandingPage } from './pages/LandingPage';
@@ -40,6 +41,7 @@ import { KanbanRecepcaoPage } from './pages/KanbanRecepcaoPage';
 import { WhatsappPage } from './pages/WhatsappPage';
 import { SuperAdminPage } from './pages/SuperAdminPage';
 import { SuperAdminLoginPage } from './pages/SuperAdminLoginPage';
+import { RetificaMotoresPage } from './pages/RetificaMotoresPage';
 import { ImpersonationBanner } from './components/ImpersonationBanner';
 import { SessionSecurity } from './components/SessionSecurity';
 
@@ -91,6 +93,7 @@ export default function App() {
             <Route path="/service-orders" element={<ServiceOrdersPage />} />
             <Route path="/services" element={<ServicesPage />} />
             <Route path="/inventory" element={<InventoryPage />} />
+            <Route path="/retifica" element={<RetificaModeRoute><RetificaMotoresPage /></RetificaModeRoute>} />
             <Route path="/financial" element={<FinancialPage />} />
             <Route path="/dre" element={<PlanFeatureRoute feature="DRE_KPI_RELATORIOS"><DREPage /></PlanFeatureRoute>} />
             <Route path="/kpis" element={<PlanFeatureRoute feature="DRE_KPI_RELATORIOS"><KPIsPage /></PlanFeatureRoute>} />

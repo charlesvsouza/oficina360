@@ -4,8 +4,9 @@ import { serviceOrdersApi } from '../api/client';
 import { useAuthStore } from '../store/authStore';
 import {
   RefreshCw, Maximize2, Minimize2, Loader2,
-  Cog, User, Clock, AlertCircle, Tv2, AlertTriangle, Timer, Package,
+  Cog, User, Clock, AlertCircle, Tv2, AlertTriangle, Timer, Package, Ruler,
 } from 'lucide-react';
+import { MetrologiaModal, type MetrologiaData } from '../components/MetrologiaModal';
 
 // ─── Colunas do fluxo de retífica ─────────────────────────────────────────────
 const KANBAN_COLUMNS = [
@@ -92,6 +93,13 @@ function RetificaCard({
   const { level, reason } = getAlertLevel(os);
   const statusRefDate = os.statusChangedAt || os.updatedAt || os.createdAt;
 
+  // Verifica se já possui ficha de metrologia salva
+  let hasMetrologia = false;
+  try {
+    const parsed = os.notes ? JSON.parse(os.notes) : null;
+    hasMetrologia = !!parsed?.metrologia;
+  } catch { /* notes não é JSON */ }
+
   const alertBorder =
     level === 'danger'  ? 'border-red-500/70' :
     level === 'warning' ? 'border-amber-400/70' :
@@ -156,12 +164,19 @@ function RetificaCard({
         <p className="text-slate-500 truncate leading-tight">{os.complaint}</p>
       )}
 
-      {/* Badge motor avulso */}
-      {isMotorAvulso && (
-        <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-400">
-          <Package size={9} /> Motor avulso
-        </span>
-      )}
+      {/* Badges */}
+      <div className="flex flex-wrap gap-1">
+        {isMotorAvulso && (
+          <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-400">
+            <Package size={9} /> Motor avulso
+          </span>
+        )}
+        {hasMetrologia && (
+          <span className="inline-flex items-center gap-1 rounded-md bg-blue-500/10 px-2 py-0.5 text-[10px] font-bold text-blue-400">
+            <Ruler size={9} /> Metrologia OK
+          </span>
+        )}
+      </div>
 
       {/* Avançar */}
       {next && (
@@ -180,13 +195,16 @@ function RetificaCard({
 // ─── Página ───────────────────────────────────────────────────────────────────
 export function KanbanRetificaPage() {
   const { tenant } = useAuthStore();
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders]   = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError]     = useState<string | null>(null);
   const [advancing, setAdvancing] = useState<string | null>(null);
-  const [tvMode, setTvMode] = useState(false);
+  const [tvMode, setTvMode]   = useState(false);
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Modal de metrologia
+  const [metrologiaTarget, setMetrologiaTarget] = useState<{ id: string; number: string; notes: string | null } | null>(null);
 
   const load = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -214,6 +232,12 @@ export function KanbanRetificaPage() {
   }, []);
 
   const handleAdvance = async (id: string, nextStatus: string) => {
+    // Intercepta avanço para METROLOGIA — abre modal antes
+    if (nextStatus === 'METROLOGIA') {
+      const os = orders.find((o) => o.id === id);
+      setMetrologiaTarget({ id, number: id.slice(-6).toUpperCase(), notes: os?.notes ?? null });
+      return;
+    }
     setAdvancing(id);
     try {
       await serviceOrdersApi.updateStatus(id, { status: nextStatus });
@@ -223,6 +247,19 @@ export function KanbanRetificaPage() {
     } finally {
       setAdvancing(null);
     }
+  };
+
+  const handleMetrologiaSave = async (data: MetrologiaData) => {
+    if (!metrologiaTarget) return;
+    const { id, notes } = metrologiaTarget;
+    // Mescla com notes existente (se já for JSON) ou cria novo
+    let existing: Record<string, unknown> = {};
+    try { if (notes) existing = JSON.parse(notes); } catch { /* ignore */ }
+    const merged = JSON.stringify({ ...existing, metrologia: data });
+    await serviceOrdersApi.update(id, { notes: merged });
+    await serviceOrdersApi.updateStatus(id, { status: 'METROLOGIA' });
+    setMetrologiaTarget(null);
+    await load(true);
   };
 
   const totalActive = orders.length;
@@ -338,6 +375,20 @@ export function KanbanRetificaPage() {
           <Cog size={40} className="opacity-30" />
           <p className="text-sm">Nenhum motor em fluxo de retífica no momento.</p>
         </div>
+      )}
+
+      {/* Modal de Metrologia */}
+      {metrologiaTarget && (
+        <MetrologiaModal
+          osId={metrologiaTarget.id}
+          osNumber={metrologiaTarget.number}
+          onSave={handleMetrologiaSave}
+          onCancel={() => setMetrologiaTarget(null)}
+          initialData={(() => {
+            try { return metrologiaTarget.notes ? JSON.parse(metrologiaTarget.notes)?.metrologia ?? null : null; }
+            catch { return null; }
+          })()}
+        />
       )}
     </div>
   );

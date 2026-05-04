@@ -24,7 +24,7 @@ import {
   Award,
 } from 'lucide-react';
 import { useState } from 'react';
-  import { canAccessFeature, featureLabel, getFeatureMinPlan, featureLabel, getFeatureMinPlan, type PlanFeatureKey } from '../lib/planAccess';
+import { canAccessFeature, featureLabel, getFeatureMinPlan, type PlanFeatureKey } from '../lib/planAccess';
 
 export function Layout() {
   const { user, tenant, logout } = useAuthStore();

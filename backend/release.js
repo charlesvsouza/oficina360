@@ -123,6 +123,14 @@ async function ensureMissingTables(url) {
       ALTER TABLE service_orders ADD COLUMN IF NOT EXISTS "expectedPartsDate" TIMESTAMPTZ;
       ALTER TABLE service_orders ADD COLUMN IF NOT EXISTS "purchaseOrderNumber" TEXT;
     `);
+    // Colunas do tenant restauradas (defaultCommissionPercent foi removido em hotfix antigo)
+    await client.query(`
+      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS "defaultCommissionPercent" DOUBLE PRECISION DEFAULT 0;
+    `);
+    // vehicleId opcional na ServiceOrder (Modo Retífica — motor avulso)
+    await client.query(`
+      ALTER TABLE service_orders ALTER COLUMN "vehicleId" DROP NOT NULL;
+    `);
     console.log('[release] ensureMissingTables: OK');
   } catch (err) {
     console.warn('[release] ensureMissingTables error (non-fatal):', err.message);

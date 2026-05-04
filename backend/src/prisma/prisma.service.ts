@@ -55,6 +55,21 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       await this.$executeRawUnsafe(`
         ALTER TABLE "ServiceOrderItem" ADD COLUMN IF NOT EXISTS "assignedUserId" TEXT
       `);
+      await this.$executeRawUnsafe(`
+        ALTER TABLE service_orders ADD COLUMN IF NOT EXISTS "statusChangedAt" TIMESTAMPTZ
+      `);
+      await this.$executeRawUnsafe(`
+        ALTER TABLE service_orders ADD COLUMN IF NOT EXISTS "partsReserved" BOOLEAN NOT NULL DEFAULT false
+      `);
+      await this.$executeRawUnsafe(`
+        ALTER TABLE service_orders ADD COLUMN IF NOT EXISTS "partsCheckedAt" TIMESTAMPTZ
+      `);
+      await this.$executeRawUnsafe(`
+        ALTER TABLE service_orders ADD COLUMN IF NOT EXISTS "expectedPartsDate" TIMESTAMPTZ
+      `);
+      await this.$executeRawUnsafe(`
+        ALTER TABLE service_orders ADD COLUMN IF NOT EXISTS "purchaseOrderNumber" TEXT
+      `);
     } catch (err) {
       console.error('[prisma] applyMissingMigrations error:', err.message);
     }

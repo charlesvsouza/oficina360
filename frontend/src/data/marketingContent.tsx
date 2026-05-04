@@ -28,6 +28,13 @@ export type Plan = {
   featured?: boolean;
 };
 
+export type PlanCapability = {
+  feature: string;
+  start: string;
+  pro: string;
+  rede: string;
+};
+
 export type IconCard = {
   icon: LucideIcon;
   title: string;
@@ -52,16 +59,16 @@ export const plans: Plan[] = [
     label: 'Start',
     price: 'R$ 149',
     period: '/mes',
-    description: 'Para oficinas iniciando com controle total da operacao.',
-    highlights: ['Ordens de servico ilimitadas', 'Cadastro de clientes e veiculos', 'Relatorios basicos'],
+    description: 'Para oficinas iniciando com o fluxo essencial do dia a dia.',
+    highlights: ['Ate 50 O.S./mes', 'Cadastro de clientes e veiculos', 'Ate 3 usuarios'],
   },
   {
     name: 'PRO',
     label: 'Pro',
     price: 'R$ 299',
     period: '/mes',
-    description: 'Aceleracao com financeiro, estoque e produtividade em tempo real.',
-    highlights: ['Financeiro completo', 'Controle de estoque', 'Indicadores operacionais', 'Multi-usuario'],
+    description: 'Aceleracao com operacao completa, visao gerencial e produtividade.',
+    highlights: ['O.S. ilimitadas', 'Financeiro, estoque e checklist', 'Kanban e KPI em tempo real', 'Ate 10 usuarios'],
     featured: true,
   },
   {
@@ -69,9 +76,23 @@ export const plans: Plan[] = [
     label: 'Rede',
     price: 'R$ 599',
     period: '/mes',
-    description: 'Para grupos de oficinas com governanca, escala e padronizacao.',
-    highlights: ['Multiplas unidades', 'Dashboard consolidado', 'Permissoes avancadas', 'Suporte prioritario'],
+    description: 'Para grupos de oficinas com governanca, escala e padronizacao entre unidades.',
+    highlights: ['Tudo do PRO', 'Multiunidade e consolidado', 'Usuarios ilimitados', 'Prioridade no suporte'],
   },
+];
+
+export const planCapabilities: PlanCapability[] = [
+  { feature: 'Ordens de Servico por mes', start: '50', pro: 'Ilimitado', rede: 'Ilimitado' },
+  { feature: 'Usuarios inclusos', start: '3', pro: '10', rede: 'Ilimitado' },
+  { feature: 'Clientes e Veiculos', start: 'Sim', pro: 'Sim', rede: 'Sim' },
+  { feature: 'Financeiro e Fluxo de Caixa', start: 'Nao', pro: 'Sim', rede: 'Sim' },
+  { feature: 'Estoque e Reserva de Pecas', start: 'Nao', pro: 'Sim', rede: 'Sim' },
+  { feature: 'Checklist Entrada/Saida', start: 'Nao', pro: 'Sim', rede: 'Sim' },
+  { feature: 'Kanban Patio + Recepcao TV', start: 'Nao', pro: 'Sim', rede: 'Sim' },
+  { feature: 'DRE, KPI e Relatorios', start: 'Nao', pro: 'Sim', rede: 'Sim' },
+  { feature: 'Comissoes e Ranking tecnico', start: 'Nao', pro: 'Sim', rede: 'Sim' },
+  { feature: 'Multiunidade', start: 'Nao', pro: 'Nao', rede: 'Sim' },
+  { feature: 'WhatsApp automatico', start: 'Nao', pro: 'Sim', rede: 'Sim' },
 ];
 
 export const features: IconCard[] = [

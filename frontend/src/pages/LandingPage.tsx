@@ -1,9 +1,9 @@
 import { motion } from 'framer-motion';
-import { ArrowRight, CheckCircle2, ChevronRight } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ChevronRight, CircleSlash } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MarketingShell } from '../components/marketing/MarketingShell';
 import { EcgPulse } from '../components/marketing/EcgPulse';
-import { features, plans, quickLinks, type Plan } from '../data/marketingContent';
+import { features, plans, planCapabilities, quickLinks, type Plan } from '../data/marketingContent';
 import { useAuthStore } from '../store/authStore';
 
 export function LandingPage() {
@@ -207,7 +207,7 @@ export function LandingPage() {
         <div className="text-center mb-12">
           <p className="text-xs uppercase tracking-[0.25em] text-[#ff7b2f]/70 font-bold mb-3">Planos</p>
           <h2 className="text-3xl md:text-4xl font-black">Escolha e inicie sua assinatura</h2>
-          <p className="mt-3 text-white/45 text-sm">Sem conta? você conclui o pagamento e recebe convite de ativação no e-mail.</p>
+          <p className="mt-3 text-white/45 text-sm">Sem conta? voce conclui o pagamento e recebe convite de ativacao no e-mail.</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-5">
@@ -258,6 +258,51 @@ export function LandingPage() {
               </button>
             </motion.article>
           ))}
+        </div>
+
+        <div className="mt-10 rounded-3xl border border-white/10 bg-white/4 p-5 md:p-7">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-5">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.2em] text-[#ff7b2f]/75 font-bold">Comparativo por pacote</p>
+              <h3 className="mt-1 text-xl md:text-2xl font-black text-white">Funcoes liberadas em cada plano</h3>
+            </div>
+            <p className="text-xs text-white/45 max-w-xl">Tabela comercial para facilitar a escolha do pacote ideal por porte de oficina e maturidade da operacao.</p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[680px] text-sm border-collapse">
+              <thead>
+                <tr className="text-left border-b border-white/10">
+                  <th className="py-2.5 pr-3 text-white/70 font-bold">Funcionalidade</th>
+                  <th className="py-2.5 px-3 text-white font-black">Start</th>
+                  <th className="py-2.5 px-3 text-[#ffb182] font-black">Pro</th>
+                  <th className="py-2.5 px-3 text-[#ffd6ba] font-black">Rede</th>
+                </tr>
+              </thead>
+              <tbody>
+                {planCapabilities.map((row) => {
+                  const renderCell = (value: string) => {
+                    const enabled = value === 'Sim' || value === 'Ilimitado';
+                    return (
+                      <span className={`inline-flex items-center gap-1.5 ${enabled ? 'text-emerald-300' : 'text-white/60'}`}>
+                        {enabled ? <CheckCircle2 size={13} className="shrink-0" /> : <CircleSlash size={13} className="shrink-0" />}
+                        {value}
+                      </span>
+                    );
+                  };
+
+                  return (
+                    <tr key={row.feature} className="border-b border-white/5 last:border-b-0">
+                      <td className="py-2.5 pr-3 text-white/80">{row.feature}</td>
+                      <td className="py-2.5 px-3">{renderCell(row.start)}</td>
+                      <td className="py-2.5 px-3">{renderCell(row.pro)}</td>
+                      <td className="py-2.5 px-3">{renderCell(row.rede)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
     </MarketingShell>

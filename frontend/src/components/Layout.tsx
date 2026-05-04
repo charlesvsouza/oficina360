@@ -98,13 +98,13 @@ export function Layout() {
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex flex-col w-64 bg-gradient-to-b from-midnight-950 to-midnight-900 h-screen fixed left-0 top-0 z-30 overflow-hidden">
         {/* Logo */}
-        <div className="p-5 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/30">
-              <Wrench className="w-6 h-6 text-white" />
+        <div className="px-4 py-3 border-b border-white/10">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/30 shrink-0">
+              <Wrench className="w-5 h-5 text-white" />
             </div>
             <div>
-               <h1 className="font-bold text-white text-lg leading-tight">Sigma Auto</h1>
+               <h1 className="font-bold text-white text-base leading-tight">Sigma Auto</h1>
               <span className={`text-xs px-2 py-0.5 rounded-full ${
                 planName === 'START' ? 'bg-slate-700 text-slate-300' :
                 planName === 'PRO' ? 'bg-purple-500/20 text-purple-300' :
@@ -117,31 +117,31 @@ export function Layout() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 min-h-0 p-4 overflow-y-auto">
+        <nav className="flex-1 min-h-0 px-3 py-2.5 overflow-hidden">
           {navGroups.map((group, gi) => (
-            <div key={gi} className={gi > 0 ? 'mt-3 pt-3 border-t border-white/5' : ''}>
+            <div key={gi} className={gi > 0 ? 'mt-2 pt-2 border-t border-white/5' : ''}>
               {group.label && (
-                <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest px-3 mb-1.5">
+                <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest px-2.5 mb-1">
                   {group.label}
                 </p>
               )}
-              <div className="space-y-0.5">
+              <div className="space-y-px">
                 {group.items.map((item) => (
                   <NavLink
                     key={item.to}
                     to={item.to}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 px-3.5 py-2.5 rounded-lg transition-all ${
+                      `flex items-center gap-2.5 px-2.5 py-[6px] rounded-lg transition-all ${
                         isActive
                           ? 'bg-primary-500/20 text-primary-400 font-medium'
                           : 'text-slate-400 hover:text-white hover:bg-white/5'
                       }`
                     }
                   >
-                    <item.icon className="w-5 h-5" />
-                    <span className="text-sm">{item.label}</span>
+                    <item.icon className="w-4 h-4 shrink-0" />
+                    <span className="text-[13px] leading-tight">{item.label}</span>
                     {item.premium && planName === 'START' && (
-                      <span className="ml-auto text-xs bg-slate-800 px-1.5 py-0.5 rounded text-slate-400">PRO</span>
+                      <span className="ml-auto text-[10px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-400">PRO</span>
                     )}
                   </NavLink>
                 ))}
@@ -151,24 +151,24 @@ export function Layout() {
         </nav>
 
         {/* User section */}
-        <div className="p-4 border-t border-white/10 shrink-0">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-slate-600 to-slate-700 rounded-full flex items-center justify-center">
-              <span className="text-sm font-medium text-white">
+        <div className="px-3 py-2.5 border-t border-white/10 shrink-0">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-slate-600 to-slate-700 rounded-full flex items-center justify-center shrink-0">
+              <span className="text-xs font-medium text-white">
                 {user?.name?.charAt(0).toUpperCase()}
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">{user?.name}</p>
-              <p className="text-xs text-slate-400 truncate">{user?.email}</p>
+              <p className="text-xs font-medium text-white truncate">{user?.name}</p>
+              <p className="text-[11px] text-slate-400 truncate">{user?.email}</p>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all"
+            className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all"
           >
             <LogOut className="w-4 h-4" />
-            <span className="text-sm">Sair</span>
+            <span className="text-xs">Sair</span>
           </button>
         </div>
       </aside>

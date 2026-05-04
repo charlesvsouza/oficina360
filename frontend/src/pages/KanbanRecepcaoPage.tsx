@@ -216,7 +216,11 @@ export function KanbanRecepcaoPage() {
   const [tvMode, setTvMode] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [filterKey, setFilterKey] = useState<string>('TODOS');
+  const [autoView, setAutoView] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoViewIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const ROTATION_KEYS = SUMMARY_GROUPS.map((g) => g.key);
 
   const load = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -238,6 +242,34 @@ export function KanbanRecepcaoPage() {
     intervalRef.current = setInterval(() => load(true), 60_000);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, []);
+
+  useEffect(() => {
+    if (!autoView) {
+      if (autoViewIntervalRef.current) {
+        clearInterval(autoViewIntervalRef.current);
+        autoViewIntervalRef.current = null;
+      }
+      return;
+    }
+
+    // Ao ativar, começa na primeira perspectiva para manter previsibilidade visual.
+    setFilterKey(ROTATION_KEYS[0]);
+
+    autoViewIntervalRef.current = setInterval(() => {
+      setFilterKey((prev) => {
+        const currentIndex = ROTATION_KEYS.indexOf(prev);
+        const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % ROTATION_KEYS.length : 0;
+        return ROTATION_KEYS[nextIndex];
+      });
+    }, 120_000);
+
+    return () => {
+      if (autoViewIntervalRef.current) {
+        clearInterval(autoViewIntervalRef.current);
+        autoViewIntervalRef.current = null;
+      }
+    };
+  }, [autoView]);
 
   const displayed = filterKey === 'TODOS'
     ? orders
@@ -270,6 +302,14 @@ export function KanbanRecepcaoPage() {
             className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+          </button>
+          <button
+            onClick={() => setAutoView((v) => !v)}
+            className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all ${autoView ? 'bg-cyan-500/20 text-cyan-300' : 'bg-white/5 text-slate-400 hover:text-white'}`}
+            title="Alterna automaticamente entre as 4 perspectivas a cada 2 minutos"
+          >
+            <RefreshCw size={14} className={autoView ? 'animate-spin' : ''} />
+            {autoView ? 'Rotação 2min: ON' : 'Rotação 2min: OFF'}
           </button>
           <button
             onClick={() => setTvMode(v => !v)}

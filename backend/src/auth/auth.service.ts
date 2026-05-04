@@ -103,7 +103,29 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
+    const storedHash = String(user.passwordHash || '').trim();
+    let isPasswordValid = false;
+
+    // Compatibilidade com bases antigas: se o hash não for bcrypt, valida como texto puro e migra.
+    if (storedHash.startsWith('$2')) {
+      try {
+        isPasswordValid = await bcrypt.compare(dto.password, storedHash);
+      } catch {
+        throw new UnauthorizedException('Invalid credentials');
+      }
+    } else {
+      isPasswordValid = dto.password === storedHash;
+      if (isPasswordValid) {
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            passwordHash: await bcrypt.hash(dto.password, 10),
+            passwordUpdatedAt: new Date(),
+          },
+        });
+      }
+    }
+
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }

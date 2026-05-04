@@ -188,6 +188,19 @@ async function main() {
     }
   }
 
+  const bootstrapFlag = (process.env.RUN_BOOTSTRAP || '').trim().toLowerCase();
+  console.log(`[release] RUN_BOOTSTRAP="${bootstrapFlag}"`);
+  if (bootstrapFlag === 'true' || bootstrapFlag === '1') {
+    console.log('[release] Iniciando bootstrap de usuários essenciais...');
+    try {
+      const { main: runBootstrap } = require('./bootstrap-users.js');
+      await runBootstrap();
+      console.log('[release] Bootstrap de usuários concluído com sucesso.');
+    } catch (err) {
+      console.error('[release] Erro no bootstrap-users (non-fatal):', err.message);
+    }
+  }
+
   console.log('[release] Done.');
 }
 

@@ -5,10 +5,26 @@ import { useAuthStore } from '../store/authStore';
 const LAST_ACTIVITY_KEY = 'oficina360-last-activity-at';
 const SESSION_STARTED_AT_KEY = 'oficina360-session-started-at';
 
-// Encerra a sessao em 30 min sem atividade do usuario.
-const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000;
-// Limite maximo de sessao ativa mesmo com uso continuo.
-const ABSOLUTE_SESSION_TIMEOUT_MS = 12 * 60 * 60 * 1000;
+const DEFAULT_INACTIVITY_TIMEOUT_MINUTES = 30;
+const DEFAULT_ABSOLUTE_SESSION_TIMEOUT_HOURS = 12;
+
+function getPositiveNumber(raw: string | undefined, fallback: number): number {
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+// Configuravel por ambiente (Vercel/.env):
+// - VITE_SESSION_INACTIVITY_TIMEOUT_MINUTES
+// - VITE_SESSION_MAX_DURATION_HOURS
+const INACTIVITY_TIMEOUT_MS =
+  getPositiveNumber(import.meta.env.VITE_SESSION_INACTIVITY_TIMEOUT_MINUTES, DEFAULT_INACTIVITY_TIMEOUT_MINUTES) *
+  60 *
+  1000;
+const ABSOLUTE_SESSION_TIMEOUT_MS =
+  getPositiveNumber(import.meta.env.VITE_SESSION_MAX_DURATION_HOURS, DEFAULT_ABSOLUTE_SESSION_TIMEOUT_HOURS) *
+  60 *
+  60 *
+  1000;
 
 export function SessionSecurity() {
   const navigate = useNavigate();

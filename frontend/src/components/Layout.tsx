@@ -87,6 +87,7 @@ export function Layout() {
       items: [
         { to: '/kanban', icon: Tv2, label: 'Kanban de Pátio', premium: true, feature: 'KANBAN_PATIO' },
         { to: '/kanban-recepcao', icon: Monitor, label: 'Recepção / TV', premium: true, feature: 'KANBAN_RECEPCAO' },
+        { to: '/kanban-retifica', icon: Cog, label: 'Kanban Retífica', premium: true, retificaMode: true },
       ],
     },
     {

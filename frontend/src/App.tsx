@@ -38,6 +38,7 @@ import { UsersPage } from './pages/UsersPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { KanbanPage } from './pages/KanbanPage';
 import { KanbanRecepcaoPage } from './pages/KanbanRecepcaoPage';
+import { KanbanRetificaPage } from './pages/KanbanRetificaPage';
 import { WhatsappPage } from './pages/WhatsappPage';
 import { SuperAdminPage } from './pages/SuperAdminPage';
 import { SuperAdminLoginPage } from './pages/SuperAdminLoginPage';
@@ -108,6 +109,7 @@ export default function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="/kanban" element={<PlanFeatureRoute feature="KANBAN_PATIO"><KanbanPage /></PlanFeatureRoute>} />
           <Route path="/kanban-recepcao" element={<PlanFeatureRoute feature="KANBAN_RECEPCAO"><KanbanRecepcaoPage /></PlanFeatureRoute>} />
+          <Route path="/kanban-retifica" element={<RetificaModeRoute><KanbanRetificaPage /></RetificaModeRoute>} />
         </Route>
         
         <Route path="*" element={<Navigate to="/" replace />} />

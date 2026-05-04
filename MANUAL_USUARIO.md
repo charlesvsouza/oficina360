@@ -411,7 +411,7 @@ Use o botão **"Imprimir"** para gerar um relatório financeiro do período sele
 
 > Disponível no plano **PRO** e **REDE**.
 
-O módulo de Relatórios Gerenciais oferece 4 tipos de análise com pré-visualização em PDF (modal A4) e impressão direta via navegador. Todos os relatórios incluem cabeçalho com dados da oficina e rodapé com assinatura.
+O módulo de Relatórios Gerenciais oferece **6 tipos de análise** com pré-visualização em PDF (modal A4) e impressão direta via navegador. Todos os relatórios incluem cabeçalho com dados da oficina e rodapé com assinatura.
 
 ### 13.1 Acessar os relatórios
 
@@ -430,23 +430,55 @@ Visão geral das Ordens de Serviço em um intervalo de datas. Inclui:
 - Top clientes por faturamento
 - Breakdown por status
 
-#### DRE / Resultado Mensal
-Demonstração de Resultado do Exercício consolidada. Inclui:
+#### DRE — Mensal
+Demonstração de Resultado do Exercício de um mês específico. Inclui:
 - Receita bruta, CMV (custo das mercadorias vendidas), margem bruta
 - EBITDA e resultado líquido
 - Histórico comparativo dos últimos 6 meses
+- Detalhamento de despesas por categoria
+
+#### DRE — Anual
+Consolidação de todos os 12 meses de um ano. Inclui:
+- Tabela de evolução mensal: receita, despesa, EBITDA e resultado mês a mês
+- KPIs totalizados do ano: receita bruta, receita líquida, margem bruta, EBITDA
+- Despesas por categoria acumuladas no ano
+
+#### Indicadores KPI
+Painel gerencial com múltiplos horizontes temporais em um único relatório. Inclui comparativo entre:
+- **Mês atual** — resultado do mês em curso
+- **Trimestre** — últimos 3 meses
+- **Semestre** — últimos 6 meses
+- **Semestre anterior** — 6 meses anteriores ao semestre atual (análise histórica)
+- **Anual** — ano corrente completo
+
+Para cada período, exibe: Receita Bruta, Receita Líquida, Margem Bruta (%), EBITDA (%), OS Entregues e Ticket Médio.
+
+> **BI:** Os mesmos KPIs financeiros estão disponíveis em tempo real na tela de Indicadores para consulta rápida sem necessidade de gerar relatório.
 
 #### Relatório de Comissões por Período
 Análise das comissões da equipe técnica. Inclui:
 - Ranking de colaboradores por valor de comissão
 - Totais pendentes e pagos por colaborador
-- Filtro por período e status de pagamento
+- Filtro por período e área de atuação
 
 #### Projeção de Pedido de Compra
 Análise de giro e necessidade de reposição do estoque. Inclui:
 - Giro de estoque dos últimos 90 dias por item
 - Classificação de urgência: **CRÍTICO** / **URGENTE** / **ATENÇÃO**
 - Quantidade sugerida de compra e custo estimado total
+
+---
+
+## 13A. DRE — Página Dedicada
+
+Além do módulo de Relatórios, o sistema possui uma página exclusiva do DRE acessível pelo menu lateral.
+
+### Recursos da página DRE
+
+- **Seletor de mês e ano** via dropdowns — navegue diretamente para qualquer mês/ano sem clicar repetidamente
+- **Botão ‹ ›** para navegar mês a mês rapidamente
+- **Impressão direta**: botão "Imprimir" gera o DRE completo em formato A4 incluindo KPIs, tabela estrutural, despesas por categoria e histórico dos últimos 6 meses
+- **Gráfico de barras** com comparativo dos últimos 6 meses (receita vs. despesa)
 
 ---
 

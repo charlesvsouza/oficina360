@@ -129,34 +129,30 @@
     - Backend: `GET /inventory/purchase-projection`
   - Visualização inline (modal preview A4) + impressão `window.print()` com CSS dedicado
   - Layout consistente com FinancialPage e ServiceOrdersPage (mesma filosofia visual)
+- [x] **DRE — Melhorias v2** *(implementado em 03/05/2026)*
+  - [x] Bug fix: impressão do DRE exibia preview vazio — `#dre-print` div não estava no DOM
+  - [x] Seletor de mês **e** ano via dropdowns (antes: apenas chevrons)
+  - [x] Relatório **DRE Anual** — consolidação de todos os 12 meses → endpoint `GET /financial/dre-anual?year=`
+  - [x] Relatório **Indicadores KPI** — 5 períodos em paralelo: mês atual, trimestre, semestre, semestre anterior, anual → endpoint `GET /financial/indicadores`
+  - [x] KPIs por período: Receita Bruta, Receita Líquida, Margem Bruta (%), EBITDA (%), OS Entregues, Ticket Médio
+  - [x] Disponíveis como relatório imprimível em `/reports` (2 novos tipos: DRE Anual + Indicadores KPI)
 - [ ] **Lembrete de Manutenção Preventiva** — WhatsApp automático por KM/data
 - [ ] **NPS Automático** — pesquisa pós-entrega, dashboard de satisfação
 
 ---
 
-### ⚠️ Bloqueio Atual — Tabelas de Comissão não Criadas em Produção
+### ⚠️ Bloqueios Resolvidos — Tabelas de Comissão e Colunas de OS
 
-**Problema:** As tabelas `commission_rates` e `commissions` existem no `schema.prisma` mas não são criadas no banco de produção (Railway PostgreSQL).
+**Problema 1:** Tabelas `commission_rates` e `commissions` não criadas em produção.
+**Problema 2:** Colunas `statusChangedAt`, `partsReserved`, etc. não existiam no banco → `Internal server error` ao criar O.S.
 
-**Tentativas realizadas (03/05/2026):**
+**Solução definitiva (03/05/2026):**
+- `PrismaService.applyMissingMigrations()`: cada `ALTER TABLE` em `try/catch` independente — falha isolada não bloqueia as demais
+- Correção do nome da tabela: `"ServiceOrderItem"` → `service_order_items` (reflete o `@@map` do schema Prisma)
+- `release.js`: mesma correção aplicada
+- **Resultado:** todas as colunas e tabelas são garantidas automaticamente no startup do app e no release
 
-| # | Tentativa | Resultado |
-|---|---|---|
-| 1 | `SEED_DEMO=true` env var + `release.js` rodando seed no deploy | Env var não chegou ou seed silenciosamente falhou |
-| 2 | Endpoint `POST /management/seed-demo` HTTP (key: `sygma-seed-2026`) | 500 — `commission_rates` table does not exist |
-| 3 | Bust cache Dockerfile (timestamp `20260503g`) para forçar `prisma generate` + `prisma db push` | Tabelas ainda não criadas |
-| 4 | `release.js`: `ensureMissingTables()` via raw SQL (`CREATE TABLE IF NOT EXISTS`) antes do `prisma db push` | Tabelas ainda não criadas — função pode estar falhando silenciosamente |
-| 5 | `PrismaService.onModuleInit()`: `$executeRawUnsafe` para criar tabelas no boot do app | Tabelas ainda não criadas |
-
-**Diagnóstico provável:**
-- O `railway.toml` tem `releaseCommand = "node release.js"` mas pode não estar sendo executado no Railway
-- O `prisma db push` pode estar rodando com schema cacheado (sem os novos modelos)
-- O `PrismaService.onModuleInit()` pode estar falhando antes de logar o erro
-
-**Próximos passos para desbloquear:**
-1. Verificar nos logs do Railway se o `releaseCommand` aparece sendo executado
-2. Verificar se `[prisma] applyMissingMigrations: OK` aparece nos logs do app
-3. Como alternativa definitiva: executar o SQL diretamente via Railway Database → Query console
+**Status:** ✅ Resolvido (commit `17dfa4d`)
 
 ---
 

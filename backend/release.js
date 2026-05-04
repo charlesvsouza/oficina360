@@ -113,7 +113,7 @@ async function ensureMissingTables(url) {
       );
     `);
     await client.query(`
-      ALTER TABLE "ServiceOrderItem" ADD COLUMN IF NOT EXISTS "assignedUserId" TEXT;
+      ALTER TABLE service_order_items ADD COLUMN IF NOT EXISTS "assignedUserId" TEXT;
     `);
     // Campos adicionados na feature de alertas + reserva de peças
     await client.query(`

@@ -170,9 +170,8 @@ export class ServiceOrdersService {
     const customer = await this.prisma.customer.findFirst({ where: { id: dto.customerId, tenantId } });
     if (!customer) throw new NotFoundException('Cliente não encontrado');
 
-    let vehicle = null;
     if (dto.vehicleId) {
-      vehicle = await this.prisma.vehicle.findFirst({ where: { id: dto.vehicleId, tenantId } });
+      const vehicle = await this.prisma.vehicle.findFirst({ where: { id: dto.vehicleId, tenantId } });
       if (!vehicle) throw new NotFoundException('Veículo não encontrado');
     }
 
@@ -218,7 +217,7 @@ export class ServiceOrdersService {
       data: {
         tenantId,
         customerId: dto.customerId,
-        vehicleId: dto.vehicleId ?? null,
+        vehicleId: dto.vehicleId || undefined,
         orderType: requestedOrderType === 'RETIFICA_MOTOR' ? 'RETIFICA_MOTOR' : 'ORCAMENTO',
         status: 'ABERTA',
         statusChangedAt: new Date(),

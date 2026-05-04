@@ -3,13 +3,14 @@ import { ArrowRight, CheckCircle, CheckCircle2, ChevronRight, CircleSlash } from
 import { Link, useNavigate } from 'react-router-dom';
 import { MarketingShell } from '../components/marketing/MarketingShell';
 import { EcgPulse } from '../components/marketing/EcgPulse';
+import { type PlanName } from '../lib/planAccess';
 import { features, plans, planCapabilities, quickLinks, retificaPlans, type Plan } from '../data/marketingContent';
 import { useAuthStore } from '../store/authStore';
 
 export function LandingPage() {
   const navigate = useNavigate();
 
-  const startPlanCheckout = (planName: Plan['name']) => {
+  const startPlanCheckout = (planName: PlanName) => {
     navigate(`/planos?plan=${planName}`);
   };
 

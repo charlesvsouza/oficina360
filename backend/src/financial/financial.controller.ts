@@ -43,6 +43,25 @@ export class FinancialController {
     );
   }
 
+  @Get('dre-anual')
+  @ApiOperation({ summary: 'DRE consolidado anual' })
+  async getDREAnual(
+    @Tenant() tenant: { tenantId: string },
+    @Query('year') year?: string,
+  ) {
+    const now = new Date();
+    return this.financialService.getDREAnual(
+      tenant.tenantId,
+      year ? parseInt(year) : now.getFullYear(),
+    );
+  }
+
+  @Get('indicadores')
+  @ApiOperation({ summary: 'KPIs financeiros: mês atual, trimestre, semestre, semestre anterior, anual' })
+  async getIndicadores(@Tenant() tenant: { tenantId: string }) {
+    return this.financialService.getIndicadores(tenant.tenantId);
+  }
+
   @Get('os-report')
   @ApiOperation({ summary: 'Relatório de Ordens de Serviço por período' })
   async getOSReport(

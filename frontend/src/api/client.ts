@@ -205,6 +205,10 @@ export const reportsApi = {
     api.get('/financial/os-report', { params: params || {} }),
   getDRE: (year: number, month: number) =>
     api.get('/financial/dre', { params: { year, month } }),
+  getDREAnual: (year: number) =>
+    api.get('/financial/dre-anual', { params: { year } }),
+  getIndicadores: () =>
+    api.get('/financial/indicadores'),
   getCommissions: (params?: { startDate?: string; endDate?: string; workshopArea?: string }) =>
     api.get('/commissions', { params: params || {} }),
   getPurchaseProjection: () =>

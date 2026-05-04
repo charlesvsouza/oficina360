@@ -59,7 +59,7 @@ const STATUS_LABEL: Record<string, string> = {
   FATURADO: 'Faturado', ENTREGUE: 'Entregue', CANCELADO: 'Cancelado',
 };
 
-type ReportType = 'os' | 'dre' | 'commissions' | 'purchase';
+type ReportType = 'os' | 'dre' | 'dre-anual' | 'indicadores' | 'commissions' | 'purchase';
 
 const REPORT_TYPES = [
   {
@@ -72,9 +72,23 @@ const REPORT_TYPES = [
   {
     id: 'dre' as ReportType,
     icon: BarChart3,
-    label: 'DRE — Resultado',
+    label: 'DRE — Mensal',
     desc: 'Receita bruta, CMV, margem bruta, despesas e EBITDA do mês.',
     color: 'emerald',
+  },
+  {
+    id: 'dre-anual' as ReportType,
+    icon: TrendingUp,
+    label: 'DRE — Anual',
+    desc: 'Consolidação anual mês a mês: receita, EBITDA e resultado.',
+    color: 'emerald',
+  },
+  {
+    id: 'indicadores' as ReportType,
+    icon: Activity,
+    label: 'Indicadores KPI',
+    desc: 'Mês atual, trimestre, semestre, semestre anterior e anual.',
+    color: 'blue',
   },
   {
     id: 'commissions' as ReportType,
@@ -100,9 +114,7 @@ const COLOR_MAP: Record<string, string> = {
 };
 const ICON_BG: Record<string, string> = {
   blue: 'bg-blue-600', emerald: 'bg-emerald-600', purple: 'bg-purple-600', amber: 'bg-amber-600',
-};
-
-export function ReportsPage() {
+};export function ReportsPage() {
   const today = new Date().toISOString().split('T')[0];
   const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
   const now = new Date();
@@ -122,6 +134,7 @@ export function ReportsPage() {
   /* DRE filters */
   const [dreYear,  setDreYear]  = useState(now.getFullYear());
   const [dreMonth, setDreMonth] = useState(now.getMonth() + 1);
+  const [dreAnualYear, setDreAnualYear] = useState(now.getFullYear());
 
   /* Commissions filters */
   const [commStart, setCommStart] = useState(firstOfMonth);
@@ -139,6 +152,10 @@ export function ReportsPage() {
           ? reportsApi.getOSReport({ startDate: osStart, endDate: osEnd, status: osStatus || undefined })
           : type === 'dre'
           ? reportsApi.getDRE(dreYear, dreMonth)
+          : type === 'dre-anual'
+          ? reportsApi.getDREAnual(dreAnualYear)
+          : type === 'indicadores'
+          ? reportsApi.getIndicadores()
           : type === 'commissions'
           ? reportsApi.getCommissions({ startDate: commStart, endDate: commEnd, workshopArea: commArea || undefined })
           : reportsApi.getPurchaseProjection(),
@@ -297,6 +314,115 @@ export function ReportsPage() {
     );
   };
 
+  /* ─── DRE Anual print template ─────────────────────────────────────────── */
+  const DREAnualPrintDoc = () => {
+    if (!reportData) return null;
+    const { dre, periodo, meses = [], detalhes } = reportData;
+    return (
+      <div className="rpt">
+        <ReportHeader title={`DRE Anual — ${periodo.label}`} />
+        <hr />
+        <div className="kpi-grid">
+          {[
+            ['Receita Bruta', dre.receitaBruta],
+            ['Receita Líquida', dre.receitaLiquida],
+            ['Margem Bruta', dre.margemBruta],
+            ['EBITDA', dre.ebitda],
+          ].map(([l, v]: any) => (
+            <div key={l} className="kpi">
+              <div className="kpi-label">{l}</div>
+              <div className="kpi-value" style={{ color: v >= 0 ? '#16a34a' : '#dc2626' }}>
+                R$ {fmtBR(Math.abs(v))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <table>
+          <thead>
+            <tr className="hdr"><td colSpan={5}>EVOLUÇÃO MENSAL — {periodo.label?.toUpperCase()}</td></tr>
+            <tr className="sub-hdr">
+              <td>Mês</td>
+              <td style={{ textAlign: 'right' }}>Receita</td>
+              <td style={{ textAlign: 'right' }}>Despesa</td>
+              <td style={{ textAlign: 'right' }}>EBITDA</td>
+              <td style={{ textAlign: 'right' }}>Resultado</td>
+            </tr>
+          </thead>
+          <tbody>
+            {meses.map((m: any) => (
+              <tr key={m.mesNum}>
+                <td style={{ fontWeight: 'bold' }}>{m.mes}</td>
+                <td style={{ textAlign: 'right', color: '#16a34a' }}>R$ {fmtBR(m.receita)}</td>
+                <td style={{ textAlign: 'right', color: '#dc2626' }}>R$ {fmtBR(m.despesa)}</td>
+                <td style={{ textAlign: 'right', fontWeight: 'bold', color: m.ebitda >= 0 ? '#16a34a' : '#dc2626' }}>R$ {fmtBR(m.ebitda)}</td>
+                <td style={{ textAlign: 'right', fontWeight: 'bold', color: m.resultado >= 0 ? '#16a34a' : '#dc2626' }}>R$ {fmtBR(m.resultado)}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="total-row">
+              <td style={{ fontWeight: 'bold' }}>TOTAL {periodo.label}</td>
+              <td style={{ textAlign: 'right', fontWeight: 900, color: '#16a34a' }}>R$ {fmtBR(dre.receitaBruta)}</td>
+              <td style={{ textAlign: 'right', fontWeight: 900, color: '#dc2626' }}>R$ {fmtBR(dre.despesasOperacionais)}</td>
+              <td style={{ textAlign: 'right', fontWeight: 900, color: dre.ebitda >= 0 ? '#16a34a' : '#dc2626' }}>R$ {fmtBR(dre.ebitda)}</td>
+              <td style={{ textAlign: 'right', fontWeight: 900, color: dre.resultadoLiquido >= 0 ? '#16a34a' : '#dc2626' }}>R$ {fmtBR(dre.resultadoLiquido)}</td>
+            </tr>
+          </tfoot>
+        </table>
+        {detalhes && Object.keys(detalhes.despesasPorCategoria ?? {}).length > 0 && (
+          <table style={{ marginTop: 8, maxWidth: 360 }}>
+            <thead><tr className="hdr"><td colSpan={2}>DESPESAS POR CATEGORIA — {periodo.label}</td></tr></thead>
+            <tbody>{Object.entries(detalhes.despesasPorCategoria).map(([cat, val]: any) => (
+              <tr key={cat}><td>{cat}</td><td style={{ textAlign: 'right' }}>R$ {fmtBR(val)}</td></tr>
+            ))}</tbody>
+          </table>
+        )}
+        <PrintFooter />
+      </div>
+    );
+  };
+
+  /* ─── Indicadores KPI print template ────────────────────────────────────── */
+  const IndicadoresPrintDoc = () => {
+    if (!reportData) return null;
+    const { periodos, geradoEm } = reportData;
+    const keys = ['mesAtual', 'trimestre', 'semestre', 'semestreAnterior', 'anual'] as const;
+    return (
+      <div className="rpt">
+        <ReportHeader title="Indicadores Financeiros — KPI" />
+        <hr />
+        {keys.map((key) => {
+          const p = periodos[key];
+          return (
+            <table key={key} style={{ marginBottom: 10 }}>
+              <thead><tr className="hdr"><td colSpan={6}>{p.label?.toUpperCase()}</td></tr>
+                <tr className="sub-hdr">
+                  <td>Receita Bruta</td><td>Rec. Líquida</td><td>Margem Bruta</td>
+                  <td>EBITDA</td><td>OS Entregues</td><td>Ticket Médio</td>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style={{ color: '#16a34a', fontWeight: 'bold' }}>R$ {fmtBR(p.receitaBruta)}</td>
+                  <td>R$ {fmtBR(p.receitaLiquida)}</td>
+                  <td style={{ color: p.margemBruta >= 0 ? '#16a34a' : '#dc2626', fontWeight: 'bold' }}>
+                    R$ {fmtBR(p.margemBruta)} ({p.margemBrutaPerc.toFixed(1)}%)
+                  </td>
+                  <td style={{ color: p.ebitda >= 0 ? '#16a34a' : '#dc2626', fontWeight: 'bold' }}>
+                    R$ {fmtBR(p.ebitda)} ({p.ebitdaPerc.toFixed(1)}%)
+                  </td>
+                  <td style={{ textAlign: 'center' }}>{p.osEntregues}</td>
+                  <td>R$ {fmtBR(p.ticketMedio)}</td>
+                </tr>
+              </tbody>
+            </table>
+          );
+        })}
+        <PrintFooter />
+      </div>
+    );
+  };
+
   /* ─── Commissions print template ────────────────────────────────────────── */
   const CommissionsPrintDoc = () => {
     if (!reportData) return null;
@@ -413,6 +539,8 @@ export function ReportsPage() {
     if (!reportData || !tenant) return null;
     if (type === 'os') return <OSPrintDoc />;
     if (type === 'dre') return <DREPrintDoc />;
+    if (type === 'dre-anual') return <DREAnualPrintDoc />;
+    if (type === 'indicadores') return <IndicadoresPrintDoc />;
     if (type === 'commissions') return <CommissionsPrintDoc />;
     return <PurchasePrintDoc />;
   };
@@ -556,8 +684,89 @@ export function ReportsPage() {
       );
     }
 
+    if (type === 'dre-anual') {
+      const { dre, periodo, meses = [] } = reportData;
+      return (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { label: 'Receita Bruta', value: fmt(dre.receitaBruta) },
+              { label: 'Margem Bruta', value: fmt(dre.margemBruta) },
+              { label: 'EBITDA', value: fmt(dre.ebitda) },
+              { label: 'Resultado Líquido', value: fmt(dre.resultadoLiquido) },
+            ].map((k) => (
+              <div key={k.label} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{k.label}</p>
+                <p className="text-2xl font-black text-slate-900">{k.value}</p>
+              </div>
+            ))}
+          </div>
+          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/40">
+              <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">Evolução Mensal — {periodo.label}</h4>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="bg-slate-50 text-slate-400 text-[9px] font-black uppercase tracking-widest border-b border-slate-100">
+                  <th className="px-6 py-4 text-left">Mês</th>
+                  <th className="px-6 py-4 text-right">Receita</th>
+                  <th className="px-6 py-4 text-right">Despesa</th>
+                  <th className="px-6 py-4 text-right">EBITDA</th>
+                  <th className="px-6 py-4 text-right">Resultado</th>
+                </tr></thead>
+                <tbody className="divide-y divide-slate-50">
+                  {meses.map((m: any) => (
+                    <tr key={m.mesNum} className="hover:bg-slate-50">
+                      <td className="px-6 py-3 font-bold text-slate-700">{m.mes}</td>
+                      <td className="px-6 py-3 text-right text-emerald-600 font-bold">{fmt(m.receita)}</td>
+                      <td className="px-6 py-3 text-right text-red-500">{fmt(m.despesa)}</td>
+                      <td className={cn('px-6 py-3 text-right font-bold', m.ebitda >= 0 ? 'text-emerald-600' : 'text-red-500')}>{fmt(m.ebitda)}</td>
+                      <td className={cn('px-6 py-3 text-right font-black', m.resultado >= 0 ? 'text-emerald-600' : 'text-red-500')}>{fmt(m.resultado)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (type === 'indicadores') {
+      const { periodos } = reportData;
+      const keys = ['mesAtual', 'trimestre', 'semestre', 'semestreAnterior', 'anual'] as const;
+      return (
+        <div className="space-y-6">
+          {keys.map((key) => {
+            const p = periodos[key];
+            return (
+              <div key={key} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-6 py-3 bg-slate-900 flex items-center justify-between">
+                  <span className="text-xs font-black text-white uppercase tracking-widest">{p.label}</span>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-0 divide-x divide-slate-100">
+                  {[
+                    { label: 'Receita Bruta', value: fmt(p.receitaBruta) },
+                    { label: 'Margem Bruta', value: `${fmt(p.margemBruta)} (${p.margemBrutaPerc.toFixed(1)}%)` },
+                    { label: 'EBITDA', value: `${fmt(p.ebitda)} (${p.ebitdaPerc.toFixed(1)}%)` },
+                    { label: 'OS Entregues', value: String(p.osEntregues) },
+                    { label: 'Ticket Médio', value: fmt(p.ticketMedio) },
+                  ].map((k) => (
+                    <div key={k.label} className="p-4">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{k.label}</p>
+                      <p className="text-sm font-black text-slate-900">{k.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
     if (type === 'commissions') {
-      const { totals, leadership, data = [] } = reportData;
+      const { totals, leadership } = reportData;
       return (
         <div className="space-y-6">
           <div className="grid grid-cols-3 gap-4">
@@ -772,10 +981,26 @@ export function ReportsPage() {
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ano</label>
                 <select value={dreYear} onChange={(e) => setDreYear(Number(e.target.value))}
                   className="h-11 px-4 rounded-xl border border-slate-200 bg-slate-50 text-sm font-bold focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none">
-                  {[now.getFullYear() - 1, now.getFullYear()].map((y) => <option key={y} value={y}>{y}</option>)}
+                  {[now.getFullYear() - 2, now.getFullYear() - 1, now.getFullYear()].map((y) => <option key={y} value={y}>{y}</option>)}
                 </select>
               </div>
             </>
+          )}
+
+          {type === 'dre-anual' && (
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ano</label>
+              <select value={dreAnualYear} onChange={(e) => setDreAnualYear(Number(e.target.value))}
+                className="h-11 px-4 rounded-xl border border-slate-200 bg-slate-50 text-sm font-bold focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none">
+                {[now.getFullYear() - 2, now.getFullYear() - 1, now.getFullYear()].map((y) => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </div>
+          )}
+
+          {type === 'indicadores' && (
+            <p className="text-sm text-slate-500 font-medium">
+              KPIs automáticos: <strong>mês atual, trimestre, semestre, semestre anterior e anual</strong>. Gerado em tempo real.
+            </p>
           )}
 
           {type === 'commissions' && (

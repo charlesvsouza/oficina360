@@ -275,4 +275,163 @@ export class FinancialService {
       historico,
     };
   }
+
+  /** Agrega DRE de todos os meses de um ano */
+  async getDREAnual(tenantId: string, year: number) {
+    const DEDUCAO_PERCENTUAL = 0.08;
+    const meses: Array<{
+      mes: string; mesNum: number;
+      receita: number; despesa: number; resultado: number; cmv: number; ebitda: number;
+    }> = [];
+
+    let totalReceitaBruta = 0, totalCmv = 0, totalDespesas = 0;
+    const despesasPorCat: Record<string, number> = {};
+    let totalOs = 0;
+
+    for (let m = 1; m <= 12; m++) {
+      const start = new Date(year, m - 1, 1);
+      const end = new Date(year, m, 0, 23, 59, 59);
+
+      const [txs, orders] = await Promise.all([
+        this.prisma.financialTransaction.findMany({ where: { tenantId, date: { gte: start, lte: end } } }),
+        this.prisma.serviceOrder.findMany({
+          where: { tenantId, status: 'ENTREGUE', updatedAt: { gte: start, lte: end } },
+          include: { items: { include: { part: true } } },
+        }),
+      ]);
+
+      const receitaOS = orders.reduce((s, o) => s + Number(o.totalCost ?? 0), 0);
+      const receitaManual = txs.filter((t) => t.type === 'INCOME').reduce((s, t) => s + Number(t.amount), 0);
+      const receita = receitaOS + receitaManual;
+      const cmvMes = orders.reduce((s, o) =>
+        s + o.items.reduce((si, i) => si + Number(i.part?.costPrice ?? 0) * Number(i.quantity ?? 1), 0), 0);
+      const despesa = txs.filter((t) => t.type === 'EXPENSE').reduce((s, t) => s + Number(t.amount), 0);
+      const ebitdaMes = (receita - receita * DEDUCAO_PERCENTUAL) - cmvMes - despesa;
+
+      txs.filter((t) => t.type === 'EXPENSE').forEach((t) => {
+        const cat = t.category || 'Outros';
+        despesasPorCat[cat] = (despesasPorCat[cat] ?? 0) + Number(t.amount);
+      });
+
+      totalReceitaBruta += receita;
+      totalCmv += cmvMes;
+      totalDespesas += despesa;
+      totalOs += orders.length;
+
+      meses.push({
+        mes: start.toLocaleDateString('pt-BR', { month: 'short' }),
+        mesNum: m,
+        receita, despesa,
+        resultado: receita - despesa,
+        cmv: cmvMes,
+        ebitda: ebitdaMes,
+      });
+    }
+
+    const deducoes = totalReceitaBruta * DEDUCAO_PERCENTUAL;
+    const receitaLiquida = totalReceitaBruta - deducoes;
+    const margemBruta = receitaLiquida - totalCmv;
+    const ebitda = margemBruta - totalDespesas;
+
+    return {
+      periodo: { ano: year, label: `Ano ${year}` },
+      dre: {
+        receitaBruta: totalReceitaBruta,
+        deducoes,
+        receitaLiquida,
+        cmv: totalCmv,
+        margemBruta,
+        margemBrutaPerc: receitaLiquida > 0 ? (margemBruta / receitaLiquida) * 100 : 0,
+        despesasOperacionais: totalDespesas,
+        ebitda,
+        ebitdaPerc: receitaLiquida > 0 ? (ebitda / receitaLiquida) * 100 : 0,
+        resultadoLiquido: ebitda,
+      },
+      detalhes: { osEntregues: totalOs, despesasPorCategoria: despesasPorCat },
+      meses,
+    };
+  }
+
+  /** KPIs financeiros para múltiplos períodos (BI) */
+  async getIndicadores(tenantId: string) {
+    const now = new Date();
+    const DEDUCAO = 0.08;
+
+    const calcPeriodo = async (start: Date, end: Date) => {
+      const [txs, orders] = await Promise.all([
+        this.prisma.financialTransaction.findMany({ where: { tenantId, date: { gte: start, lte: end } } }),
+        this.prisma.serviceOrder.findMany({
+          where: { tenantId, status: 'ENTREGUE', updatedAt: { gte: start, lte: end } },
+          include: { items: { include: { part: true } } },
+        }),
+      ]);
+      const receitaBruta = orders.reduce((s, o) => s + Number(o.totalCost ?? 0), 0)
+        + txs.filter((t) => t.type === 'INCOME').reduce((s, t) => s + Number(t.amount), 0);
+      const cmv = orders.reduce((s, o) =>
+        s + o.items.reduce((si, i) => si + Number(i.part?.costPrice ?? 0) * Number(i.quantity ?? 1), 0), 0);
+      const despesas = txs.filter((t) => t.type === 'EXPENSE').reduce((s, t) => s + Number(t.amount), 0);
+      const receitaLiquida = receitaBruta - receitaBruta * DEDUCAO;
+      const margemBruta = receitaLiquida - cmv;
+      const ebitda = margemBruta - despesas;
+      const osAbertas = await this.prisma.serviceOrder.count({
+        where: { tenantId, status: { notIn: ['ENTREGUE', 'CANCELADO'] } },
+      });
+      return {
+        receitaBruta,
+        receitaLiquida,
+        cmv,
+        margemBruta,
+        margemBrutaPerc: receitaLiquida > 0 ? (margemBruta / receitaLiquida) * 100 : 0,
+        despesas,
+        ebitda,
+        ebitdaPerc: receitaLiquida > 0 ? (ebitda / receitaLiquida) * 100 : 0,
+        resultado: ebitda,
+        osEntregues: orders.length,
+        osAbertas,
+        ticketMedio: orders.length > 0 ? orders.reduce((s, o) => s + Number(o.totalCost ?? 0), 0) / orders.length : 0,
+      };
+    };
+
+    // Mês atual
+    const mesAtualStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const mesAtualEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    // Trimestre atual (últimos 3 meses)
+    const trimestreStart = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+    const trimestreEnd   = mesAtualEnd;
+
+    // Semestre atual (últimos 6 meses)
+    const semestreStart = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    const semestreEnd   = mesAtualEnd;
+
+    // Semestre anterior (6 meses atrás)
+    const semAntStart = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+    const semAntEnd   = new Date(now.getFullYear(), now.getMonth() - 6, 0, 23, 59, 59);
+
+    // Ano atual
+    const anoStart = new Date(now.getFullYear(), 0, 1);
+    const anoEnd   = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+
+    const [mesAtual, trimestre, semestre, semestreAnterior, anual] = await Promise.all([
+      calcPeriodo(mesAtualStart, mesAtualEnd),
+      calcPeriodo(trimestreStart, trimestreEnd),
+      calcPeriodo(semestreStart, semestreEnd),
+      calcPeriodo(semAntStart, semAntEnd),
+      calcPeriodo(anoStart, anoEnd),
+    ]);
+
+    return {
+      geradoEm: now.toISOString(),
+      periodos: {
+        mesAtual: { label: now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }), ...mesAtual },
+        trimestre: { label: `Últimos 3 meses`, ...trimestre },
+        semestre: { label: `Últimos 6 meses`, ...semestre },
+        semestreAnterior: {
+          label: `${semAntStart.toLocaleDateString('pt-BR', { month: 'short' })}–${semAntEnd.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })}`,
+          ...semestreAnterior,
+        },
+        anual: { label: `Ano ${now.getFullYear()}`, ...anual },
+      },
+    };
+  }
 }

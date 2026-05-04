@@ -17,17 +17,22 @@ const fmt = (v: number) =>
 const pct = (v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`;
 
 const DRE_PRINT_STYLE = `
-@media screen { #dre-print { display: none; } }
+@media screen { #dre-print { display: none !important; } }
 @media print {
   body * { visibility: hidden; }
   #dre-print, #dre-print * { visibility: visible; }
-  #dre-print { position: absolute; left: 0; top: 0; width: 100%; background: white; padding: 20px; }
+  #dre-print { position: absolute; left: 0; top: 0; width: 100%; background: white; padding: 20px; font-family: Arial, sans-serif; font-size: 10pt; color: #111; }
   @page { size: A4; margin: 12mm 14mm; }
-  table { width: 100%; border-collapse: collapse; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
   td, th { border: 1px solid #ccc; padding: 6px 10px; font-size: 10pt; }
-  .hdr { background: #1e293b !important; color: #fff !important; font-weight: bold; }
-  .pos { color: #16a34a; font-weight: bold; }
-  .neg { color: #dc2626; font-weight: bold; }
+  .hdr td { background: #1e293b !important; color: #fff !important; font-weight: bold; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .total-row td { background: #f0fdf4 !important; font-weight: bold; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pos { color: #16a34a !important; font-weight: bold; }
+  .neg { color: #dc2626 !important; font-weight: bold; }
+  .kpi-grid { display: flex; gap: 8px; margin-bottom: 12px; }
+  .kpi { flex: 1; border: 1px solid #ccc; padding: 8px 10px; text-align: center; }
+  .kpi-label { font-size: 7.5pt; color: #555; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 2px; }
+  .kpi-value { font-size: 14pt; font-weight: 900; }
 }
 `;
 
@@ -110,11 +115,19 @@ export function DREPage() {
 
   const handlePrint = () => {
     const style = document.createElement('style');
+    style.id = 'dre-print-style';
     style.textContent = DRE_PRINT_STYLE;
     document.head.appendChild(style);
     window.print();
-    setTimeout(() => document.head.removeChild(style), 1000);
+    setTimeout(() => {
+      const el = document.getElementById('dre-print-style');
+      if (el) document.head.removeChild(el);
+    }, 1000);
   };
+
+  const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const currentYear = now.getFullYear();
+  const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
   const dre = data?.dre;
   const historico = data?.historico ?? [];
@@ -122,23 +135,131 @@ export function DREPage() {
 
   return (
     <div className="space-y-6">
+      {/* Hidden print div — must always be in DOM for window.print() to work */}
+      <div id="dre-print">
+        <h2 style={{ textAlign: 'center', fontSize: '16pt', marginBottom: 4, fontFamily: 'Arial, sans-serif' }}>
+          Demonstrativo de Resultado do Exercício — DRE
+        </h2>
+        <p style={{ textAlign: 'center', marginBottom: 16, color: '#555', fontSize: '11pt', fontFamily: 'Arial, sans-serif' }}>
+          {new Date(year, month - 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+        </p>
+        {dre && detalhes && (
+          <>
+            <div className="kpi-grid">
+              {[
+                ['Receita Bruta', dre.receitaBruta],
+                ['Receita Líquida', dre.receitaLiquida],
+                ['Margem Bruta', dre.margemBruta],
+                ['EBITDA', dre.ebitda],
+              ].map(([label, val]) => (
+                <div key={label as string} className="kpi">
+                  <div className="kpi-label">{label}</div>
+                  <div className="kpi-value" style={{ color: (val as number) >= 0 ? '#16a34a' : '#dc2626' }}>
+                    {fmt(val as number)}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <table>
+              <thead>
+                <tr className="hdr"><td colSpan={2}>ESTRUTURA DO DRE</td></tr>
+              </thead>
+              <tbody>
+                {([
+                  { label: '(+) Receita Bruta', val: dre.receitaBruta },
+                  { label: '    Receita de OS (serviços)', val: detalhes.receitaBrutaOS, indent: true },
+                  { label: '    Receita Manual (lançamentos)', val: detalhes.receitaManual, indent: true },
+                  { label: '(-) Deduções (impostos estimados ~8%)', val: -dre.deducoes },
+                  { label: '(=) Receita Líquida', val: dre.receitaLiquida, bold: true },
+                  { label: '(-) CMV — Custo das Peças Utilizadas', val: -dre.cmv },
+                  { label: '(=) Margem Bruta', val: dre.margemBruta, bold: true },
+                  { label: '(-) Total de Despesas Operacionais', val: -dre.despesasOperacionais },
+                  { label: '(=) EBITDA', val: dre.ebitda, bold: true },
+                  { label: '(=) Resultado Líquido do Período', val: dre.resultadoLiquido, bold: true },
+                ] as Array<{ label: string; val: number; bold?: boolean; indent?: boolean }>).map((r) => (
+                  <tr key={r.label} style={{ background: r.bold ? '#f8fafc' : 'transparent' }}>
+                    <td style={{ fontWeight: r.bold ? 'bold' : 'normal', paddingLeft: r.indent ? 24 : undefined }}>
+                      {r.label.trim()}
+                    </td>
+                    <td style={{ textAlign: 'right', fontWeight: r.bold ? 'bold' : 'normal', color: r.val >= 0 ? '#16a34a' : '#dc2626' }}>
+                      {fmt(Math.abs(r.val))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {Object.keys(detalhes.despesasPorCategoria).length > 0 && (
+              <table style={{ marginTop: 8, maxWidth: 360 }}>
+                <thead><tr className="hdr"><td colSpan={2}>DESPESAS POR CATEGORIA</td></tr></thead>
+                <tbody>
+                  {Object.entries(detalhes.despesasPorCategoria as Record<string, number>).map(([cat, val]) => (
+                    <tr key={cat}><td>{cat}</td><td style={{ textAlign: 'right' }}>{fmt(val)}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            {historico.length > 0 && (
+              <table style={{ marginTop: 8 }}>
+                <thead>
+                  <tr className="hdr"><td colSpan={4}>HISTÓRICO MENSAL (últimos 6 meses)</td></tr>
+                  <tr style={{ background: '#f1f5f9', fontWeight: 'bold' }}>
+                    <td>Mês</td><td style={{ textAlign: 'right' }}>Receita</td>
+                    <td style={{ textAlign: 'right' }}>Despesa</td><td style={{ textAlign: 'right' }}>Resultado</td>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historico.map((h: any) => (
+                    <tr key={h.mes}>
+                      <td>{h.mes}</td>
+                      <td style={{ textAlign: 'right', color: '#16a34a' }}>{fmt(h.receita)}</td>
+                      <td style={{ textAlign: 'right', color: '#dc2626' }}>{fmt(h.despesa)}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 'bold', color: h.resultado >= 0 ? '#16a34a' : '#dc2626' }}>{fmt(h.resultado)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            <p style={{ fontSize: '8pt', color: '#888', marginTop: 12 }}>
+              * Estimativas para fins gerenciais. Consulte seu contador para o DRE oficial. — Gerado em {new Date().toLocaleString('pt-BR')}
+            </p>
+          </>
+        )}
+      </div>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">DRE</h1>
           <p className="text-slate-500 font-medium">Demonstrativo de Resultado do Exercício</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Seletores de mês e ano */}
           <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-2xl px-2 py-1.5 shadow-sm">
             <button onClick={prevMonth} className="p-1.5 hover:bg-slate-100 rounded-xl transition-colors">
               <ChevronLeft className="w-4 h-4 text-slate-600" />
             </button>
-            <span className="text-sm font-bold text-slate-800 min-w-[130px] text-center capitalize">
-              {new Date(year, month - 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
-            </span>
+            <select
+              value={month}
+              onChange={(e) => setMonth(Number(e.target.value))}
+              className="text-sm font-bold text-slate-800 bg-transparent border-none outline-none cursor-pointer"
+            >
+              {MONTHS.map((m, i) => (
+                <option key={i + 1} value={i + 1}
+                  disabled={year === currentYear && i + 1 > now.getMonth() + 1}>
+                  {m}
+                </option>
+              ))}
+            </select>
+            <select
+              value={year}
+              onChange={(e) => setYear(Number(e.target.value))}
+              className="text-sm font-bold text-slate-800 bg-transparent border-none outline-none cursor-pointer"
+            >
+              {years.map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
             <button
               onClick={nextMonth}
-              disabled={year === now.getFullYear() && month === now.getMonth() + 1}
+              disabled={year === currentYear && month === now.getMonth() + 1}
               className="p-1.5 hover:bg-slate-100 rounded-xl transition-colors disabled:opacity-30"
             >
               <ChevronRight className="w-4 h-4 text-slate-600" />
@@ -208,28 +329,19 @@ export function DREPage() {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <tbody>
-                    {/* Receita */}
                     <tr className="bg-slate-900 text-white">
                       <td colSpan={2} className="py-2 px-4 text-xs font-bold uppercase tracking-wider">Receita</td>
                     </tr>
                     <DRERow label="(+) Receita Bruta" value={dre.receitaBruta} />
                     <DRERow label="Receita de OS (serviços)" value={detalhes.receitaBrutaOS} indent={1} />
                     <DRERow label="Receita Manual (lançamentos)" value={detalhes.receitaManual} indent={1} />
-                    <DRERow
-                      label="(-) Deduções (impostos estimados ~8%)"
-                      value={-dre.deducoes}
-                      note="Estimativa simplificada. Configure sua alíquota real em Configurações."
-                    />
+                    <DRERow label="(-) Deduções (impostos estimados ~8%)" value={-dre.deducoes} note="Estimativa simplificada." />
                     <DRERow label="(=) Receita Líquida" value={dre.receitaLiquida} highlight />
-
-                    {/* CMV */}
                     <tr className="bg-slate-900 text-white">
                       <td colSpan={2} className="py-2 px-4 text-xs font-bold uppercase tracking-wider">Custo dos Produtos</td>
                     </tr>
                     <DRERow label="(-) CMV — Custo das Peças Utilizadas" value={-dre.cmv} note="Custo de compra das peças usadas nas OS entregues." />
                     <DRERow label="(=) Margem Bruta" value={dre.margemBruta} highlight />
-
-                    {/* Despesas */}
                     <tr className="bg-slate-900 text-white">
                       <td colSpan={2} className="py-2 px-4 text-xs font-bold uppercase tracking-wider">Despesas Operacionais</td>
                     </tr>
@@ -238,8 +350,6 @@ export function DREPage() {
                       <DRERow key={cat} label={cat} value={-(val as number)} indent={1} />
                     ))}
                     <DRERow label="(=) EBITDA" value={dre.ebitda} highlight />
-
-                    {/* Resultado */}
                     <tr className="bg-slate-900 text-white">
                       <td colSpan={2} className="py-2 px-4 text-xs font-bold uppercase tracking-wider">Resultado</td>
                     </tr>
@@ -294,50 +404,6 @@ export function DREPage() {
           </div>
         </motion.div>
       )}
-
-      {/* Print version */}
-      <div id="dre-print" style={{ display: 'none' }}>
-        <h2 style={{ textAlign: 'center', fontSize: '16pt', marginBottom: 4 }}>
-          Demonstrativo de Resultado do Exercício — DRE
-        </h2>
-        <p style={{ textAlign: 'center', marginBottom: 16, color: '#555', fontSize: '11pt' }}>
-          {new Date(year, month - 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
-        </p>
-        {dre && (
-          <table>
-            <thead>
-              <tr className="hdr">
-                <th style={{ textAlign: 'left' }}>Descrição</th>
-                <th style={{ textAlign: 'right' }}>Valor (R$)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                ['(+) Receita Bruta', dre.receitaBruta],
-                ['   Receita de OS', detalhes.receitaBrutaOS],
-                ['   Receita Manual', detalhes.receitaManual],
-                ['(-) Deduções (~8%)', -dre.deducoes],
-                ['(=) Receita Líquida', dre.receitaLiquida],
-                ['(-) CMV — Custo das Peças', -dre.cmv],
-                ['(=) Margem Bruta', dre.margemBruta],
-                ['(-) Despesas Operacionais', -dre.despesasOperacionais],
-                ['(=) EBITDA', dre.ebitda],
-                ['(=) Resultado Líquido', dre.resultadoLiquido],
-              ].map(([label, val]) => (
-                <tr key={label as string}>
-                  <td>{label}</td>
-                  <td style={{ textAlign: 'right' }} className={(val as number) >= 0 ? 'pos' : 'neg'}>
-                    {fmt(val as number)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        <p style={{ fontSize: '8pt', color: '#888', marginTop: 12 }}>
-          * Estimativas para fins gerenciais. Consulte seu contador para o DRE oficial.
-        </p>
-      </div>
     </div>
   );
 }

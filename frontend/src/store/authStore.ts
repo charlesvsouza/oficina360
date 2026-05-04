@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { jwtDecode } from 'jwt-decode';
 
 interface User {
@@ -95,6 +95,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'oficina360-auth',
+      storage: createJSONStorage(() => sessionStorage),
       onRehydrateStorage: () => (state) => {
         if (!state?.accessToken || !state.user) return;
         try {

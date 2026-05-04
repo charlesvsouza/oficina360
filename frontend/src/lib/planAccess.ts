@@ -17,11 +17,11 @@ const PLAN_LEVEL: Record<PlanName, number> = {
 
 const FEATURE_MIN_PLAN: Record<PlanFeatureKey, PlanName> = {
   WHATSAPP: 'PRO',
-  KANBAN_PATIO: 'REDE',
-  KANBAN_RECEPCAO: 'REDE',
+  KANBAN_PATIO: 'PRO',
+  KANBAN_RECEPCAO: 'PRO',
   CHECKLIST: 'PRO',
-  DRE_KPI_RELATORIOS: 'REDE',
-  COMISSOES: 'REDE',
+  DRE_KPI_RELATORIOS: 'PRO',
+  COMISSOES: 'PRO',
   MULTIUNIDADE: 'REDE',
 };
 
@@ -48,4 +48,8 @@ export function featureLabel(feature: PlanFeatureKey): string {
     MULTIUNIDADE: 'Multiunidade',
   };
   return labels[feature];
+}
+
+export function getFeatureMinPlan(feature: PlanFeatureKey): PlanName {
+  return FEATURE_MIN_PLAN[feature];
 }

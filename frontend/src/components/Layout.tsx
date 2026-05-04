@@ -24,13 +24,14 @@ import {
   Award,
 } from 'lucide-react';
 import { useState } from 'react';
-import { canAccessFeature, type PlanFeatureKey } from '../lib/planAccess';
+  import { canAccessFeature, featureLabel, getFeatureMinPlan, featureLabel, getFeatureMinPlan, type PlanFeatureKey } from '../lib/planAccess';
 
 export function Layout() {
   const { user, tenant, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [upgradeModal, setUpgradeModal] = useState<{ label: string; requiredPlan: string } | null>(null);
   const canViewUsers = ['MASTER', 'ADMIN'].includes(user?.role ?? '');
 
   const handleLogout = () => {
@@ -137,14 +138,25 @@ export function Layout() {
               <div className="space-y-px">
                 {group.items.map((item) => {
                   const blockedByPlan = item.feature ? !canAccessFeature(planName, item.feature) : false;
+                  if (blockedByPlan) {
+                    return (
+                      <button
+                        key={item.to}
+                        onClick={() => setUpgradeModal({ label: featureLabel(item.feature!), requiredPlan: getFeatureMinPlan(item.feature!) })}
+                        className="sidebar-nav-link flex items-center gap-2.5 rounded-lg transition-all opacity-60 text-slate-300 hover:text-white hover:opacity-80 w-full text-left"
+                      >
+                        <item.icon className="w-4 h-4 shrink-0" />
+                        <span className="sidebar-nav-label leading-tight">{item.label}</span>
+                        <span className="sidebar-pro-badge ml-auto text-[10px] px-1.5 py-0.5 rounded">{getFeatureMinPlan(item.feature!)}</span>
+                      </button>
+                    );
+                  }
                   return (
                   <NavLink
                     key={item.to}
-                    to={blockedByPlan ? '/settings' : item.to}
+                    to={item.to}
                     className={({ isActive }) =>
                       `sidebar-nav-link flex items-center gap-2.5 rounded-lg transition-all ${
-                        blockedByPlan ? 'opacity-70' : ''
-                      } ${
                         isActive
                           ? 'sidebar-nav-link-active font-medium'
                           : 'text-slate-300 hover:text-white'
@@ -153,9 +165,6 @@ export function Layout() {
                   >
                     <item.icon className="w-4 h-4 shrink-0" />
                     <span className="sidebar-nav-label leading-tight">{item.label}</span>
-                    {blockedByPlan && (
-                      <span className="sidebar-pro-badge ml-auto text-[10px] px-1.5 py-0.5 rounded">PRO</span>
-                    )}
                   </NavLink>
                 );
               })}
@@ -222,15 +231,26 @@ export function Layout() {
               <div className="space-y-0.5">
                 {group.items.map((item) => {
                   const blockedByPlan = item.feature ? !canAccessFeature(planName, item.feature) : false;
+                  if (blockedByPlan) {
+                    return (
+                      <button
+                        key={item.to}
+                        onClick={() => { setSidebarOpen(false); setUpgradeModal({ label: featureLabel(item.feature!), requiredPlan: getFeatureMinPlan(item.feature!) }); }}
+                        className="flex items-center gap-3 px-3.5 py-2.5 rounded-lg transition-all opacity-60 text-slate-400 hover:text-white hover:bg-white/5 hover:opacity-80 w-full text-left"
+                      >
+                        <item.icon className="w-5 h-5" />
+                        <span className="text-sm">{item.label}</span>
+                        <span className="ml-auto text-xs bg-slate-800 px-1.5 py-0.5 rounded text-slate-400">{getFeatureMinPlan(item.feature!)}</span>
+                      </button>
+                    );
+                  }
                   return (
                   <NavLink
                     key={item.to}
-                    to={blockedByPlan ? '/settings' : item.to}
+                    to={item.to}
                     onClick={() => setSidebarOpen(false)}
                     className={({ isActive }) =>
                       `flex items-center gap-3 px-3.5 py-2.5 rounded-lg transition-all ${
-                        blockedByPlan ? 'opacity-70' : ''
-                      } ${
                         isActive
                           ? 'bg-primary-500/20 text-primary-400 font-medium'
                           : 'text-slate-400 hover:text-white hover:bg-white/5'
@@ -239,9 +259,6 @@ export function Layout() {
                   >
                     <item.icon className="w-5 h-5" />
                     <span className="text-sm">{item.label}</span>
-                    {blockedByPlan && (
-                      <span className="ml-auto text-xs bg-slate-800 px-1.5 py-0.5 rounded text-slate-400">PRO</span>
-                    )}
                   </NavLink>
                 );
               })}
@@ -316,6 +333,48 @@ export function Layout() {
           <Outlet />
         </div>
       </main>
+
+      {/* Modal de upgrade de plano */}
+      {upgradeModal && (
+        <div
+          className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4"
+          onClick={() => setUpgradeModal(null)}
+        >
+          <div
+            className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
+                <Award className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Recurso Premium</p>
+                <h3 className="font-bold text-slate-900">{upgradeModal.label}</h3>
+              </div>
+            </div>
+            <p className="text-sm text-slate-600 mb-5">
+              Este recurso está disponível a partir do plano{' '}
+              <span className="font-bold text-slate-900">{upgradeModal.requiredPlan}</span>.
+              Faça upgrade para desbloquear {upgradeModal.label} e outros recursos avançados.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setUpgradeModal(null); navigate('/settings'); }}
+                className="flex-1 btn btn-primary text-sm py-2.5"
+              >
+                Ver Planos
+              </button>
+              <button
+                onClick={() => setUpgradeModal(null)}
+                className="flex-1 btn text-sm py-2.5 bg-slate-100 text-slate-700 hover:bg-slate-200"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

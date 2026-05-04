@@ -175,6 +175,19 @@ async function main() {
     }
   }
 
+  const repairFlag = (process.env.REPAIR_LOGINS || '').trim().toLowerCase();
+  console.log(`[release] REPAIR_LOGINS="${repairFlag}"`);
+  if (repairFlag === 'true' || repairFlag === '1') {
+    console.log('[release] Iniciando reparo de credenciais...');
+    try {
+      const { runRepairLogins } = require('./repair-logins.js');
+      await runRepairLogins();
+      console.log('[release] Reparo de credenciais concluído com sucesso.');
+    } catch (err) {
+      console.error('[release] Erro no repair-logins (non-fatal):', err.message);
+    }
+  }
+
   console.log('[release] Done.');
 }
 

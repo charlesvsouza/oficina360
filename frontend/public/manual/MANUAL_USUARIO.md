@@ -134,6 +134,10 @@ A OS é o coração do sistema. Ela registra todo o trabalho realizado em um ve�
 | **ENTREGUE** | Veículo entregue ao cliente |
 | **CANCELADA** | OS cancelada |
 
+**Onde alterar o status:**
+- Dentro da O.S., no quadro **Dados do Veículo** (badge de status no topo do card).
+- O badge abre a lista de transições permitidas conforme perfil de acesso.
+
 ### 5.3 Adicionar serviços e peças
 
 Dentro da OS aberta:
@@ -197,6 +201,12 @@ Quando os serviços estiverem concluídos:
 
 Use o botão **"Imprimir"** dentro da OS para gerar uma versão para impressão.
 
+### 5.9 Ações de edição da O.S.
+
+- **Fechar**: retorna para a listagem sem salvar alterações pendentes.
+- **Salvar alterações**: grava os dados da O.S. sem sair da tela.
+- **Atualizar O.S.**: permanece disponível no quadro de totais/resumo para recalcular valores.
+
 ---
 
 ## 6. Kanban de Pátio
@@ -219,19 +229,20 @@ O Kanban de Pátio é um painel visual que exibe todas as OS em andamento organi
 
 > Dica: atualize automaticamente mantendo a aba aberta. O Kanban reflete o estado atual das OS em tempo real.
 
-### 6.3 Alertas visuais automáticos
+### 6.3 Alertas visuais automáticos (SLA por etapa)
 
-O sistema monitora o tempo de permanência de cada OS em seu status atual e exibe alertas coloridos diretamente nos cartões:
+O sistema monitora o tempo de permanência de cada OS no status atual e exibe alertas coloridos diretamente nos cartões:
 
 | Situação | Visual | Critério |
 |---|---|---|
-| Sem orçamento | Borda **vermelha pulsante** | ABERTA ou EM DIAGNÓSTICO há mais de **48h** |
-| Aguardando aprovação (aviso) | Borda **âmbar pulsante** | AGUARDANDO APROVAÇÃO entre **48h e 72h** |
-| Aguardando aprovação (crítico) | Borda **vermelha pulsante** | AGUARDANDO APROVAÇÃO há mais de **72h** |
-| Peças com data prevista vencida | Borda **vermelha pulsante** | AGUARDANDO PEÇAS com data prevista ultrapassada |
-| Aguardando peças (aviso) | Borda **âmbar pulsante** | AGUARDANDO PEÇAS há mais de **48h** sem data prevista |
+| Diagnóstico em atenção | Borda **âmbar** + badge de alerta | EM DIAGNÓSTICO há mais de **24h** |
+| Diagnóstico atrasado | Card **vermelho pulsante** | EM DIAGNÓSTICO há mais de **48h** |
+| Execução em atenção | Borda **âmbar** + badge de alerta | EM EXECUÇÃO há mais de **48h** |
+| Execução atrasada | Card **vermelho pulsante** | EM EXECUÇÃO há mais de **72h** |
+| Peças aguardando (sem previsão) | Borda **âmbar** + badge de alerta | AGUARDANDO PEÇAS há mais de **48h** sem data prevista |
+| Chegada de peças atrasada | Card **vermelho pulsante** | AGUARDANDO PEÇAS com data prevista vencida |
 
-Um badge descritivo aparece no topo do cartão com o motivo e o tempo decorrido (ex: *"Sem autorização há 78h"*).
+Um badge descritivo aparece no topo do cartão com o motivo e o tempo decorrido (ex: *"Diagnóstico atrasado (52h)"*).
 
 Na faixa superior do painel, o contador **"X alertas ativos"** (em vermelho pulsante) mostra o total de OS que requerem atenção imediata.
 

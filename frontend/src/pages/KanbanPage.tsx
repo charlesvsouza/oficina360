@@ -5,7 +5,7 @@ import { serviceOrdersApi } from '../api/client';
 import { useAuthStore } from '../store/authStore';
 import {
   RefreshCw, Maximize2, Minimize2, Loader2,
-  Car, User, Clock, AlertCircle, Tv2,
+  Car, User, Clock, AlertCircle, Tv2, AlertTriangle, Timer,
 } from 'lucide-react';
 
 // ─── Status visíveis no Kanban (exclui estados terminais) ────────────────────
@@ -41,6 +41,39 @@ function elapsed(date: string) {
   return `${m}m`;
 }
 
+function getStatusAgeHours(os: any): number {
+  const ref = os.statusChangedAt || os.updatedAt || os.createdAt;
+  return (Date.now() - new Date(ref).getTime()) / 3_600_000;
+}
+
+type AlertLevel = 'none' | 'warning' | 'danger';
+
+function getAlertLevel(os: any): { level: AlertLevel; reason: string } {
+  const h = getStatusAgeHours(os);
+
+  if (os.status === 'EM_DIAGNOSTICO') {
+    if (h > 48) return { level: 'danger', reason: `Diagnóstico atrasado (${Math.floor(h)}h)` };
+    if (h > 24) return { level: 'warning', reason: `Diagnóstico em atenção (${Math.floor(h)}h)` };
+  }
+
+  if (os.status === 'EM_EXECUCAO') {
+    if (h > 72) return { level: 'danger', reason: `Serviço acima do SLA (${Math.floor(h)}h)` };
+    if (h > 48) return { level: 'warning', reason: `Serviço em execução há ${Math.floor(h)}h` };
+  }
+
+  if (os.status === 'AGUARDANDO_PECAS') {
+    if (os.expectedPartsDate && new Date(os.expectedPartsDate) < new Date()) {
+      const overH = (Date.now() - new Date(os.expectedPartsDate).getTime()) / 3_600_000;
+      return { level: 'danger', reason: `Chegada de peças atrasada (${Math.floor(overH)}h)` };
+    }
+    if (!os.expectedPartsDate && h > 48) {
+      return { level: 'warning', reason: `Aguardando peças há ${Math.floor(h)}h` };
+    }
+  }
+
+  return { level: 'none', reason: '' };
+}
+
 function urgencyColor(date: string) {
   const h = (Date.now() - new Date(date).getTime()) / 3_600_000;
   if (h > 48) return 'text-red-400';
@@ -62,6 +95,15 @@ function KanbanCard({
 }) {
   const next = NEXT_STATUS[os.status];
   const isAdv = advancing === os.id;
+  const { level, reason } = getAlertLevel(os);
+  const statusRefDate = os.statusChangedAt || os.updatedAt || os.createdAt;
+
+  const alertBorder =
+    level === 'danger' ? 'border-red-500/70' :
+    level === 'warning' ? 'border-amber-400/70' :
+    'border-white/10';
+
+  const alertPulse = level === 'danger' ? 'animate-pulse' : '';
 
   return (
     <motion.div
@@ -69,16 +111,25 @@ function KanbanCard({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className={`bg-slate-800/60 border border-white/10 rounded-xl p-3 space-y-2 hover:border-white/20 transition-all ${tvMode ? 'text-sm' : 'text-xs'}`}
+      className={`bg-slate-800/60 border-2 ${alertBorder} ${alertPulse} rounded-xl p-3 space-y-2 hover:border-white/20 transition-all ${tvMode ? 'text-sm' : 'text-xs'}`}
     >
+      {level !== 'none' && (
+        <div className={`flex items-center gap-1.5 rounded-lg px-2 py-1 text-[10px] font-black ${
+          level === 'danger' ? 'bg-red-500/20 text-red-300' : 'bg-amber-500/20 text-amber-300'
+        }`}>
+          {level === 'danger' ? <AlertTriangle size={11} className="shrink-0" /> : <Timer size={11} className="shrink-0" />}
+          <span className="truncate">{reason}</span>
+        </div>
+      )}
+
       {/* Número da OS + tempo */}
       <div className="flex items-center justify-between">
         <span className={`font-black text-white ${tvMode ? 'text-base' : 'text-sm'}`}>
           #{os.id.slice(-6).toUpperCase()}
         </span>
-        <span className={`flex items-center gap-1 font-semibold ${urgencyColor(os.createdAt)}`}>
+        <span className={`flex items-center gap-1 font-semibold ${urgencyColor(statusRefDate)}`}>
           <Clock size={tvMode ? 14 : 11} />
-          {elapsed(os.createdAt)}
+          {elapsed(statusRefDate)}
         </span>
       </div>
 
@@ -176,6 +227,7 @@ export function KanbanPage() {
     );
 
   const totalActive = orders.length;
+  const activeAlerts = orders.filter((o) => getAlertLevel(o).level !== 'none').length;
 
   return (
     <div className={`min-h-screen flex flex-col ${tvMode ? 'bg-slate-950' : 'bg-slate-950'}`}>
@@ -190,6 +242,11 @@ export function KanbanPage() {
             <p className="text-slate-500 text-xs">
               {tenant?.name} · {totalActive} OS ativas · atualizado {lastRefresh.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
             </p>
+            {activeAlerts > 0 && (
+              <p className="text-red-300 text-[11px] font-bold mt-0.5 animate-pulse">
+                {activeAlerts} alerta{activeAlerts !== 1 ? 's' : ''} de prazo ativo{activeAlerts !== 1 ? 's' : ''}
+              </p>
+            )}
           </div>
         </div>
 

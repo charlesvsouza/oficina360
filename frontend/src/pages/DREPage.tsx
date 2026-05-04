@@ -16,6 +16,12 @@ const fmt = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const pct = (v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`;
 
+const KPI_COLOR_CLASS: Record<string, string> = {
+  emerald: 'text-emerald-600',
+  blue: 'text-blue-600',
+  red: 'text-red-600',
+};
+
 const DRE_PRINT_STYLE = `
 @media screen { #dre-print { display: none !important; } }
 @media print {
@@ -113,17 +119,7 @@ export function DREPage() {
     else setMonth(m => m + 1);
   };
 
-  const handlePrint = () => {
-    const style = document.createElement('style');
-    style.id = 'dre-print-style';
-    style.textContent = DRE_PRINT_STYLE;
-    document.head.appendChild(style);
-    window.print();
-    setTimeout(() => {
-      const el = document.getElementById('dre-print-style');
-      if (el) document.head.removeChild(el);
-    }, 1000);
-  };
+  const handlePrint = () => window.print();
 
   const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const currentYear = now.getFullYear();
@@ -135,6 +131,8 @@ export function DREPage() {
 
   return (
     <div className="space-y-6">
+      <style>{DRE_PRINT_STYLE}</style>
+
       {/* Hidden print div — must always be in DOM for window.print() to work */}
       <div id="dre-print">
         <h2 style={{ textAlign: 'center', fontSize: '16pt', marginBottom: 4, fontFamily: 'Arial, sans-serif' }}>
@@ -296,7 +294,7 @@ export function DREPage() {
               { label: 'EBITDA', value: dre.ebitda, icon: dre.ebitda >= 0 ? TrendingUp : TrendingDown, color: dre.ebitda >= 0 ? 'emerald' : 'red' },
             ].map((card) => (
               <div key={card.label} className={`bg-white rounded-3xl border border-slate-200 shadow-sm p-5`}>
-                <div className={`flex items-center gap-2 text-${card.color}-600 mb-2`}>
+                <div className={`flex items-center gap-2 ${KPI_COLOR_CLASS[card.color] ?? 'text-slate-600'} mb-2`}>
                   <card.icon className="w-4 h-4" />
                   <span className="text-xs font-bold uppercase tracking-wider">{card.label}</span>
                 </div>

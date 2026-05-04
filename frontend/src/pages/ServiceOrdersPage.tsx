@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { serviceOrdersApi, customersApi, vehiclesApi, servicesApi, inventoryApi, tenantsApi, usersApi } from '../api/client';
+import { useNavigate } from 'react-router-dom';
+import { serviceOrdersApi, customersApi, vehiclesApi, servicesApi, inventoryApi, tenantsApi, usersApi, checklistApi } from '../api/client';
 import {
   ClipboardList, Plus, Search, Car, User, XCircle,
   Wrench, Package, FileText, Trash2, Layout, X,
@@ -124,6 +125,7 @@ function fmtBR(v: number | string | undefined, dec = 2) {
 
 export function ServiceOrdersPage() {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const canManageStock = ['MASTER', 'ADMIN', 'MECANICO', 'PRODUTIVO'].includes(user?.role ?? '');
   const canDelete = user?.role === 'MASTER';
   const canChangeStatus = ['MASTER', 'ADMIN', 'GERENTE', 'CHEFE_OFICINA'].includes(user?.role ?? '');
@@ -162,6 +164,7 @@ export function ServiceOrdersPage() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [checklistModal, setChecklistModal] = useState<'ENTRADA' | 'SAIDA' | null>(null);
+    const [checklistFlags, setChecklistFlags] = useState<{ ENTRADA: boolean; SAIDA: boolean }>({ ENTRADA: false, SAIDA: false });
   const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
   const [deleteReason, setDeleteReason] = useState('');
   const [deleting, setDeleting] = useState(false);
@@ -238,6 +241,14 @@ export function ServiceOrdersPage() {
         reserveStock: Boolean(o.reserveStock),
       });
       setPendingQtyByItem({});
+          // Carrega status dos checklists
+          checklistApi.get(order.id).then((cr) => {
+            const data = Array.isArray(cr.data) ? cr.data : [];
+            setChecklistFlags({
+              ENTRADA: data.some((c: any) => c.type === 'ENTRADA'),
+              SAIDA: data.some((c: any) => c.type === 'SAIDA'),
+            });
+          }).catch(() => {});
     } catch (err) {
       console.error(err);
     }
@@ -941,57 +952,8 @@ export function ServiceOrdersPage() {
                   <FileText size={24} />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2 mb-0.5">
+                  <div className="mb-0.5">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">OS</span>
-                    <div className="relative" ref={statusDropdownRef}>
-                      {canChangeStatus ? (
-                        <button
-                          onClick={() => setShowStatusDropdown((v) => !v)}
-                          title="Clique para alterar o status"
-                          className={cn(
-                            'text-[9px] px-2 py-0.5 rounded-md font-black flex items-center gap-1 transition-all hover:ring-2 hover:ring-offset-1 hover:ring-slate-300 cursor-pointer',
-                            statusConfig[selectedOrder.status]?.color
-                          )}
-                        >
-                          {statusConfig[selectedOrder.status]?.label ?? selectedOrder.status}
-                          <ChevronDown size={9} className={cn('transition-transform', showStatusDropdown && 'rotate-180')} />
-                        </button>
-                      ) : (
-                        <span className={cn('text-[9px] px-2 py-0.5 rounded-md font-black', statusConfig[selectedOrder.status]?.color)}>
-                          {statusConfig[selectedOrder.status]?.label ?? selectedOrder.status}
-                        </span>
-                      )}
-
-                      {showStatusDropdown && (
-                        <div className="absolute top-full left-0 mt-1.5 z-50 bg-white border border-slate-200 rounded-2xl shadow-2xl p-1.5 min-w-[210px]">
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-3 py-1.5 border-b border-slate-100 mb-1">
-                            Alterar Status
-                          </p>
-                          {Object.entries(statusConfig)
-                            .filter(([key]) => key !== selectedOrder.status && key !== 'ORCAMENTO')
-                            .map(([key, cfg]) => {
-                              const isNegative = key === 'CANCELADO' || key === 'REPROVADO';
-                              return (
-                                <button
-                                  key={key}
-                                  onClick={async () => {
-                                    setShowStatusDropdown(false);
-                                    if (isNegative && !confirm(`Confirmar mudança para: ${cfg.label}?`)) return;
-                                    await changeStatus(key, true);
-                                  }}
-                                  className={cn(
-                                    'w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all hover:bg-slate-50 text-left',
-                                    isNegative ? 'text-red-600 hover:bg-red-50' : 'text-slate-700'
-                                  )}
-                                >
-                                  <span className={cn('w-2 h-2 rounded-full flex-shrink-0', cfg.color.split(' ')[0])} />
-                                  {cfg.label}
-                                </button>
-                              );
-                            })}
-                        </div>
-                      )}
-                    </div>
                   </div>
                   <h1 className="text-xl font-black text-slate-900 tracking-tight uppercase">
                     #{selectedOrder.id.slice(0, 8).toUpperCase()}
@@ -1000,46 +962,45 @@ export function ServiceOrdersPage() {
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={recalculateTotals}
-                  disabled={syncingTotals}
-                  className="h-10 px-4 rounded-xl text-xs font-bold flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50 transition-all disabled:opacity-60"
-                >
-                  {syncingTotals ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
-                  Atualizar O.S.
-                  {pendingChangesCount > 0 && (
-                    <span className="ml-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-black text-amber-700">
-                      {pendingChangesCount}
-                    </span>
-                  )}
-                </button>
-                <button
                   onClick={openPrintPreview}
                   className="h-10 px-4 rounded-xl text-xs font-bold flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50 transition-all"
                 >
                   <Printer size={15} /> Visualizar / Imprimir OS
                 </button>
-                {/* Botões de Checklist */}
+                {/* Botões de Checklist — verde quando já preenchido */}
                 <button
                   onClick={() => setChecklistModal('ENTRADA')}
-                  className="h-10 px-4 rounded-xl text-xs font-bold flex items-center gap-2 border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-all"
-                  title="Checklist de entrada do veículo"
+                  className={cn(
+                    'h-10 px-4 rounded-xl text-xs font-bold flex items-center gap-2 border transition-all',
+                    checklistFlags.ENTRADA
+                      ? 'border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                      : 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100',
+                  )}
+                  title={checklistFlags.ENTRADA ? 'Checklist de entrada preenchido — clique para editar' : 'Preencher checklist de entrada'}
                 >
-                  <ClipboardCheck size={15} /> Entrada
+                  <ClipboardCheck size={15} />
+                  Entrada
+                  {checklistFlags.ENTRADA && <span className="w-2 h-2 rounded-full bg-emerald-500 ml-0.5 shrink-0" />}
                 </button>
                 <button
                   onClick={() => setChecklistModal('SAIDA')}
-                  className="h-10 px-4 rounded-xl text-xs font-bold flex items-center gap-2 border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 transition-all"
-                  title="Checklist de saída do veículo"
+                  className={cn(
+                    'h-10 px-4 rounded-xl text-xs font-bold flex items-center gap-2 border transition-all',
+                    checklistFlags.SAIDA
+                      ? 'border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                      : 'border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100',
+                  )}
+                  title={checklistFlags.SAIDA ? 'Checklist de saída preenchido — clique para editar' : 'Preencher checklist de saída'}
                 >
-                  <ClipboardCheck size={15} /> Saída
+                  <ClipboardCheck size={15} />
+                  Saída
+                  {checklistFlags.SAIDA && <span className="w-2 h-2 rounded-full bg-emerald-500 ml-0.5 shrink-0" />}
                 </button>
                 <button
-                  onClick={() => saveDetails(true)}
-                  disabled={isClosed}
+                  onClick={() => navigate('/service-orders')}
                   className="h-10 px-4 rounded-xl text-xs font-bold flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                  title={isClosed ? 'OS finalizada não pode ser editada' : undefined}
                 >
-                  <X size={15} /> Salvar e sair
+                  <X size={15} /> Fechar
                 </button>
                 <button
                   onClick={() => saveDetails(false)}
@@ -1047,7 +1008,7 @@ export function ServiceOrdersPage() {
                   className="h-10 px-5 rounded-xl text-xs font-bold flex items-center gap-2 bg-slate-900 text-white hover:bg-slate-800 transition-all shadow-lg disabled:opacity-40 disabled:cursor-not-allowed"
                   title={isClosed ? 'OS finalizada não pode ser editada' : undefined}
                 >
-                  <Save size={15} /> Salvar
+                  <Save size={15} /> Salvar alterações
                 </button>
                 {canDelete && (
                   <button
@@ -1145,9 +1106,60 @@ export function ServiceOrdersPage() {
                 </div>
 
                 <div className="bg-slate-900 rounded-2xl p-5 text-white shadow-xl">
-                  <h3 className="text-[10px] font-black text-primary-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <Car size={13} /> Dados do Veículo
-                  </h3>
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <h3 className="text-[10px] font-black text-primary-400 uppercase tracking-widest flex items-center gap-2">
+                      <Car size={13} /> Dados do Veículo
+                    </h3>
+                    <div className="relative" ref={statusDropdownRef}>
+                      {canChangeStatus ? (
+                        <button
+                          onClick={() => setShowStatusDropdown((v) => !v)}
+                          title="Clique para alterar o status"
+                          className={cn(
+                            'text-[9px] px-2 py-0.5 rounded-md font-black flex items-center gap-1 transition-all hover:ring-2 hover:ring-offset-1 hover:ring-slate-300 cursor-pointer',
+                            statusConfig[selectedOrder.status]?.color
+                          )}
+                        >
+                          {statusConfig[selectedOrder.status]?.label ?? selectedOrder.status}
+                          <ChevronDown size={9} className={cn('transition-transform', showStatusDropdown && 'rotate-180')} />
+                        </button>
+                      ) : (
+                        <span className={cn('text-[9px] px-2 py-0.5 rounded-md font-black', statusConfig[selectedOrder.status]?.color)}>
+                          {statusConfig[selectedOrder.status]?.label ?? selectedOrder.status}
+                        </span>
+                      )}
+
+                      {showStatusDropdown && (
+                        <div className="absolute top-full right-0 mt-1.5 z-50 bg-white border border-slate-200 rounded-2xl shadow-2xl p-1.5 min-w-[210px]">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-3 py-1.5 border-b border-slate-100 mb-1">
+                            Alterar Status
+                          </p>
+                          {Object.entries(statusConfig)
+                            .filter(([key]) => key !== selectedOrder.status && key !== 'ORCAMENTO')
+                            .map(([key, cfg]) => {
+                              const isNegative = key === 'CANCELADO' || key === 'REPROVADO';
+                              return (
+                                <button
+                                  key={key}
+                                  onClick={async () => {
+                                    setShowStatusDropdown(false);
+                                    if (isNegative && !confirm(`Confirmar mudança para: ${cfg.label}?`)) return;
+                                    await changeStatus(key, true);
+                                  }}
+                                  className={cn(
+                                    'w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all hover:bg-slate-50 text-left',
+                                    isNegative ? 'text-red-600 hover:bg-red-50' : 'text-slate-700'
+                                  )}
+                                >
+                                  <span className={cn('w-2 h-2 rounded-full flex-shrink-0', cfg.color.split(' ')[0])} />
+                                  {cfg.label}
+                                </button>
+                              );
+                            })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   <div className="grid grid-cols-3 gap-4">
                     <div className="col-span-2">
                       <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Veículo</p>
@@ -1972,6 +1984,10 @@ export function ServiceOrdersPage() {
           orderNumber={selectedOrder.orderNumber}
           type={checklistModal}
           onClose={() => setChecklistModal(null)}
+          onSaved={() => {
+            setChecklistFlags((prev) => ({ ...prev, [checklistModal]: true }));
+            setChecklistModal(null);
+          }}
         />
       )}
 

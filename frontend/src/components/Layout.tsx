@@ -1,4 +1,4 @@
-import { NavLink, useNavigate, Outlet } from 'react-router-dom';
+import { NavLink, useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import {
   LayoutDashboard,
@@ -21,6 +21,7 @@ import {
   Bell,
   Tv2,
   Monitor,
+  PanelsTopLeft,
   MessageCircle,
   BarChart3,
   FileText,
@@ -30,7 +31,9 @@ import { useState } from 'react';
 export function Layout() {
   const { user, tenant, logout } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [viewModeOpen, setViewModeOpen] = useState(true);
   const canViewUsers = ['MASTER', 'ADMIN'].includes(user?.role ?? '');
 
   const handleLogout = () => {
@@ -47,8 +50,6 @@ export function Layout() {
     { to: '/vehicles', icon: Car, label: 'Veículos' },
 
     { to: '/service-orders', icon: ClipboardList, label: 'Ordens de Serviço' },
-    { to: '/kanban', icon: Tv2, label: 'Kanban de Pátio', premium: true },
-    { to: '/kanban-recepcao', icon: Monitor, label: 'Painel Recepção', premium: true },
     { to: '/whatsapp', icon: MessageCircle, label: 'WhatsApp', premium: true },
     { to: '/services', icon: Wrench, label: 'Serviços' },
     {
@@ -82,6 +83,11 @@ export function Layout() {
     },
     { to: '/settings', icon: Settings, label: 'Configurações' },
   ];
+  const viewModeItems = [
+    { to: '/kanban', icon: Tv2, label: 'Kanban de Pátio', premium: true },
+    { to: '/kanban-recepcao', icon: Monitor, label: 'Painel Recepção', premium: true },
+  ];
+  const isViewModeActive = viewModeItems.some((item) => location.pathname === item.to);
 
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-slate-50 to-slate-100">
@@ -127,6 +133,46 @@ export function Layout() {
               )}
             </NavLink>
           ))}
+
+          <div className="pt-2 mt-2 border-t border-white/5">
+            <button
+              type="button"
+              onClick={() => setViewModeOpen((value) => !value)}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg transition-all ${
+                isViewModeActive
+                  ? 'bg-primary-500/10 text-primary-300'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <PanelsTopLeft className="w-5 h-5" />
+              <span className="text-sm">Modo de exibição</span>
+              <ChevronDown className={`w-4 h-4 ml-auto transition-transform ${viewModeOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {viewModeOpen && (
+              <div className="mt-1 ml-4 pl-3 border-l border-white/10 space-y-1">
+                {viewModeItems.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
+                        isActive
+                          ? 'bg-primary-500/20 text-primary-400 font-medium'
+                          : 'text-slate-400 hover:text-white hover:bg-white/5'
+                      }`
+                    }
+                  >
+                    <item.icon className="w-4 h-4" />
+                    <span className="text-sm">{item.label}</span>
+                    {item.premium && planName === 'START' && (
+                      <span className="ml-auto text-xs bg-slate-800 px-1.5 py-0.5 rounded text-slate-400">PRO</span>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </div>
         </nav>
 
         {/* User section */}
@@ -194,6 +240,47 @@ export function Layout() {
               <span className="text-sm">{item.label}</span>
             </NavLink>
           ))}
+
+          <div className="pt-2 mt-2 border-t border-white/5">
+            <button
+              type="button"
+              onClick={() => setViewModeOpen((value) => !value)}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg transition-all ${
+                isViewModeActive
+                  ? 'bg-primary-500/10 text-primary-300'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <PanelsTopLeft className="w-5 h-5" />
+              <span className="text-sm">Modo de exibição</span>
+              <ChevronDown className={`w-4 h-4 ml-auto transition-transform ${viewModeOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {viewModeOpen && (
+              <div className="mt-1 ml-4 pl-3 border-l border-white/10 space-y-1">
+                {viewModeItems.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    onClick={() => setSidebarOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
+                        isActive
+                          ? 'bg-primary-500/20 text-primary-400 font-medium'
+                          : 'text-slate-400 hover:text-white hover:bg-white/5'
+                      }`
+                    }
+                  >
+                    <item.icon className="w-4 h-4" />
+                    <span className="text-sm">{item.label}</span>
+                    {item.premium && planName === 'START' && (
+                      <span className="ml-auto text-xs bg-slate-800 px-1.5 py-0.5 rounded text-slate-400">PRO</span>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </div>
         </nav>
 
         <div className="p-4 border-t border-white/10">

@@ -101,10 +101,10 @@ export class CreateOrcamentoDto {
   @IsString()
   customerId: string;
 
-  @ApiProperty()
-  @IsNotEmpty()
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsString()
-  vehicleId: string;
+  vehicleId?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
@@ -155,10 +155,10 @@ export class CreateOrcamentoDto {
 }
 
 export class CreateServiceOrderDto extends CreateOrcamentoDto {
-  @ApiProperty({ enum: ['ORDEM_SERVICO', 'ORCAMENTO'] })
+  @ApiProperty({ enum: ['ORDEM_SERVICO', 'ORCAMENTO', 'RETIFICA_MOTOR'] })
   @IsOptional()
-  @IsEnum(['ORDEM_SERVICO', 'ORCAMENTO'])
-  orderType?: 'ORDEM_SERVICO' | 'ORCAMENTO';
+  @IsEnum(['ORDEM_SERVICO', 'ORCAMENTO', 'RETIFICA_MOTOR'])
+  orderType?: 'ORDEM_SERVICO' | 'ORCAMENTO' | 'RETIFICA_MOTOR';
 }
 
 export class UpdateOrcamentoDto {

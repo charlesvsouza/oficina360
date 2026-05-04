@@ -298,7 +298,7 @@ model ServiceOrder {
   id              String            @id @default(uuid())
   tenantId        String
   customerId     String
-  vehicleId      String
+  vehicleId      String?
   orderType      String         @default("ORCAMENTO")
   status         String         @default("ORCAMENTO")
   complaint      String?
@@ -364,7 +364,7 @@ model ServiceOrder {
 
   tenant      Tenant                 @relation(fields: [tenantId], references: [id])
   customer    Customer               @relation(fields: [customerId], references: [id])
-  vehicle     Vehicle                @relation(fields: [vehicleId], references: [id])
+  vehicle     Vehicle?               @relation(fields: [vehicleId], references: [id])
   items       ServiceOrderItem[]
   timeline    ServiceOrderTimeline[]
   checklists  VehicleChecklist[]

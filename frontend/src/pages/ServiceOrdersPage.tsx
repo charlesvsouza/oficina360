@@ -12,7 +12,7 @@ import { cn } from '../lib/utils';
 import { useAuthStore } from '../store/authStore';
 import { ImportOSModal } from '../components/ImportOSModal';
 import { ChecklistModal } from '../components/ChecklistModal';
-import { canAccessFeature } from '../lib/planAccess';
+import { canAccessFeature, canAccessRetificaMode } from '../lib/planAccess';
 
 const statusConfig: Record<string, { label: string; color: string; icon?: string }> = {
   ABERTA:               { label: 'Aberta',                color: 'bg-slate-100 text-slate-700' },
@@ -129,6 +129,7 @@ export function ServiceOrdersPage() {
   const navigate = useNavigate();
   const planName = tenant?.subscription?.plan?.name || 'START';
   const canUseChecklist = canAccessFeature(planName, 'CHECKLIST');
+  const canUseRetificaMode = canAccessRetificaMode(planName);
   const canManageStock = ['MASTER', 'ADMIN', 'MECANICO', 'PRODUTIVO'].includes(user?.role ?? '');
   const canDelete = user?.role === 'MASTER';
   const canChangeStatus = ['MASTER', 'ADMIN', 'GERENTE', 'CHEFE_OFICINA'].includes(user?.role ?? '');
@@ -147,7 +148,17 @@ export function ServiceOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  const [newOrder, setNewOrder] = useState({ customerId: '', vehicleId: '', complaint: '', kmEntrada: 0, reserveStock: false, orderType: 'ORCAMENTO' });
+  const [newOrder, setNewOrder] = useState({
+    customerId: '',
+    vehicleId: '',
+    complaint: '',
+    kmEntrada: 0,
+    reserveStock: false,
+    orderType: 'ORCAMENTO',
+    equipmentBrand: '',
+    equipmentModel: '',
+    serialNumber: '',
+  });
 
   const [edit, setEdit] = useState({
     complaint: '', diagnosis: '', technicalReport: '',
@@ -176,6 +187,14 @@ export function ServiceOrdersPage() {
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const isReprovado = selectedOrder?.status === 'REPROVADO';
   const isClosed = CLOSED_STATUSES.includes(selectedOrder?.status ?? '');
+  const isRetificaOrder = selectedOrder?.orderType === 'RETIFICA_MOTOR';
+
+  const getOrderAssetLabel = (order: any) => {
+    if (order?.vehicle) {
+      return `${order.vehicle.plate || 'Sem placa'} · ${order.vehicle.model || 'Veículo'}`;
+    }
+    return `${order?.equipmentBrand || 'Motor'} ${order?.equipmentModel || 'Avulso'}${order?.serialNumber ? ` · Série ${order.serialNumber}` : ''}`.trim();
+  };
 
   // ─── Reserva de Peças ────────────────────────────────────────────────────
   const [showReserveParts, setShowReserveParts] = useState(false);
@@ -922,7 +941,7 @@ export function ServiceOrdersPage() {
                 </div>
                 <p className="font-bold text-slate-900 text-sm truncate leading-none mb-1">{order.customer?.name}</p>
                 <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider mb-2">
-                  {order.vehicle?.plate} · {order.vehicle?.model}
+                  {getOrderAssetLabel(order)}
                 </p>
                 <div className="flex justify-between items-center">
                   <span className={cn('text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md', st.color)}>
@@ -1176,15 +1195,15 @@ export function ServiceOrdersPage() {
                   <div className="grid grid-cols-3 gap-4">
                     <div className="col-span-2">
                       <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Veículo</p>
-                      <p className="font-black text-white">{selectedOrder.vehicle?.brand} {selectedOrder.vehicle?.model}</p>
+                      <p className="font-black text-white">{selectedOrder.vehicle ? `${selectedOrder.vehicle?.brand || ''} ${selectedOrder.vehicle?.model || ''}` : `${selectedOrder.equipmentBrand || 'Motor'} ${selectedOrder.equipmentModel || 'Avulso'}`}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Placa</p>
-                      <p className="font-mono font-black text-primary-400">{selectedOrder.vehicle?.plate}</p>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">{selectedOrder.vehicle ? 'Placa' : 'Série / ID'}</p>
+                      <p className="font-mono font-black text-primary-400">{selectedOrder.vehicle?.plate || selectedOrder.serialNumber || '—'}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Ano / Cor</p>
-                      <p className="font-bold text-white text-sm">{selectedOrder.vehicle?.year || '—'} / {selectedOrder.vehicle?.color || '—'}</p>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">{selectedOrder.vehicle ? 'Ano / Cor' : 'Tipo de entrada'}</p>
+                      <p className="font-bold text-white text-sm">{selectedOrder.vehicle ? `${selectedOrder.vehicle?.year || '—'} / ${selectedOrder.vehicle?.color || '—'}` : 'Motor avulso'}</p>
                     </div>
                     <div>
                       <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">KM Atual</p>
@@ -1892,9 +1911,17 @@ export function ServiceOrdersPage() {
               <form className="space-y-5" onSubmit={async (e) => {
                 e.preventDefault();
                 try {
-                  const res = await serviceOrdersApi.create(newOrder);
+                  const payload = {
+                    ...newOrder,
+                    vehicleId: newOrder.vehicleId || undefined,
+                    kmEntrada: newOrder.vehicleId ? newOrder.kmEntrada : undefined,
+                    equipmentBrand: newOrder.orderType === 'RETIFICA_MOTOR' ? (newOrder.equipmentBrand || undefined) : undefined,
+                    equipmentModel: newOrder.orderType === 'RETIFICA_MOTOR' ? (newOrder.equipmentModel || undefined) : undefined,
+                    serialNumber: newOrder.orderType === 'RETIFICA_MOTOR' ? (newOrder.serialNumber || undefined) : undefined,
+                  };
+                  const res = await serviceOrdersApi.create(payload);
                   setShowCreateModal(false);
-                  setNewOrder({ customerId: '', vehicleId: '', complaint: '', kmEntrada: 0, reserveStock: false, orderType: 'ORCAMENTO' });
+                  setNewOrder({ customerId: '', vehicleId: '', complaint: '', kmEntrada: 0, reserveStock: false, orderType: 'ORCAMENTO', equipmentBrand: '', equipmentModel: '', serialNumber: '' });
                   loadOrders();
                   selectOrder(res.data);
                 } catch (err: any) { alert('Erro ao criar OS: ' + (err?.response?.data?.message || err?.message || 'Verifique os dados.')); }
@@ -1904,6 +1931,7 @@ export function ServiceOrdersPage() {
                   {[
                     { value: 'ORCAMENTO', label: '📋 Orçamento', desc: 'Aguarda aprovação do cliente' },
                     { value: 'ORDEM_SERVICO', label: '🔧 Ordem de Serviço', desc: 'Serviço já autorizado' },
+                    ...(canUseRetificaMode ? [{ value: 'RETIFICA_MOTOR', label: '⚙️ Retífica', desc: 'Motor avulso ou fluxo técnico especializado' }] : []),
                   ].map(({ value, label, desc }) => (
                     <button
                       key={value}
@@ -1929,9 +1957,9 @@ export function ServiceOrdersPage() {
                   </select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Veículo *</label>
-                  <select className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white text-sm font-bold focus:ring-4 focus:ring-slate-900/5 transition-all" value={newOrder.vehicleId} onChange={(e) => setNewOrder({ ...newOrder, vehicleId: e.target.value })} required>
-                    <option value="">Selecione um veículo...</option>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Veículo {newOrder.orderType === 'RETIFICA_MOTOR' ? '(opcional)' : '*'}</label>
+                  <select className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white text-sm font-bold focus:ring-4 focus:ring-slate-900/5 transition-all" value={newOrder.vehicleId} onChange={(e) => setNewOrder({ ...newOrder, vehicleId: e.target.value })} required={newOrder.orderType !== 'RETIFICA_MOTOR'}>
+                    <option value="">{newOrder.orderType === 'RETIFICA_MOTOR' ? 'Motor avulso / sem veículo' : 'Selecione um veículo...'}</option>
                     {vehicles.filter((v) => v.customerId === newOrder.customerId).map((v) => <option key={v.id} value={v.id}>{v.plate} — {v.brand} {v.model}</option>)}
                   </select>
                   {/* Aviso de OSs abertas para o veículo selecionado */}
@@ -1954,6 +1982,22 @@ export function ServiceOrdersPage() {
                     );
                   })()}
                 </div>
+                {newOrder.orderType === 'RETIFICA_MOTOR' && !newOrder.vehicleId && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Marca do motor</label>
+                      <input value={newOrder.equipmentBrand} onChange={(e) => setNewOrder({ ...newOrder, equipmentBrand: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white text-sm font-bold focus:ring-4 focus:ring-slate-900/5 transition-all" placeholder="Ex: VW" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Modelo / família</label>
+                      <input value={newOrder.equipmentModel} onChange={(e) => setNewOrder({ ...newOrder, equipmentModel: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white text-sm font-bold focus:ring-4 focus:ring-slate-900/5 transition-all" placeholder="Ex: AP 1.8" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Nº de série</label>
+                      <input value={newOrder.serialNumber} onChange={(e) => setNewOrder({ ...newOrder, serialNumber: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white text-sm font-bold focus:ring-4 focus:ring-slate-900/5 transition-all" placeholder="Opcional" />
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">KM Entrada</label>
                   <input type="number" className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white text-sm font-bold focus:ring-4 focus:ring-slate-900/5 transition-all" value={newOrder.kmEntrada} onChange={(e) => setNewOrder({ ...newOrder, kmEntrada: Number(e.target.value) })} />

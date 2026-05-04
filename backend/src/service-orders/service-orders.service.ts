@@ -145,12 +145,23 @@ export class ServiceOrdersService {
   }
 
   async createOrcamento(tenantId: string, dto: CreateOrcamentoDto, userId: string) {
-    // Valida cliente e veículo
+    // Valida cliente e, quando informado, o veículo
     const customer = await this.prisma.customer.findFirst({ where: { id: dto.customerId, tenantId } });
     if (!customer) throw new NotFoundException('Cliente não encontrado');
 
-    const vehicle = await this.prisma.vehicle.findFirst({ where: { id: dto.vehicleId, tenantId } });
-    if (!vehicle) throw new NotFoundException('Veículo não encontrado');
+    let vehicle = null;
+    if (dto.vehicleId) {
+      vehicle = await this.prisma.vehicle.findFirst({ where: { id: dto.vehicleId, tenantId } });
+      if (!vehicle) throw new NotFoundException('Veículo não encontrado');
+    }
+
+    const requestedOrderType = (dto as CreateServiceOrderDto).orderType;
+    if (requestedOrderType === 'RETIFICA_MOTOR' && !dto.vehicleId) {
+      const hasMotorIdentification = Boolean(dto.equipmentBrand || dto.equipmentModel || dto.serialNumber || dto.complaint);
+      if (!hasMotorIdentification) {
+        throw new BadRequestException('Para retífica com motor avulso, informe ao menos marca/modelo, número de série ou descrição do problema');
+      }
+    }
 
     const approvalToken = uuidv4();
     const approvalTokenExpires = new Date();
@@ -186,8 +197,8 @@ export class ServiceOrdersService {
       data: {
         tenantId,
         customerId: dto.customerId,
-        vehicleId: dto.vehicleId,
-        orderType: 'ORCAMENTO',
+        vehicleId: dto.vehicleId ?? null,
+        orderType: requestedOrderType === 'RETIFICA_MOTOR' ? 'RETIFICA_MOTOR' : 'ORCAMENTO',
         status: 'ABERTA',
         statusChangedAt: new Date(),
         notes: dto.notes,
@@ -221,11 +232,11 @@ export class ServiceOrdersService {
     // mas o fluxo de status começa sempre em ABERTA para seguir as etapas normalmente.
     const baseOrder = await this.createOrcamento(tenantId, dto, userId);
 
-    if (dto.orderType === 'ORDEM_SERVICO') {
+    if (dto.orderType === 'ORDEM_SERVICO' || dto.orderType === 'RETIFICA_MOTOR') {
       return this.prisma.serviceOrder.update({
         where: { id: baseOrder.id },
         data: {
-          orderType: 'ORDEM_SERVICO',
+          orderType: dto.orderType,
           // status permanece ABERTA — segue o fluxo normal de aprovação e execução
         },
         include: {

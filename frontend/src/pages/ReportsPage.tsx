@@ -50,6 +50,8 @@ const PRINT_STYLE = `
 const fmtBR = (v: number, dec = 2) =>
   Number(v ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 
+const fmt = (v: number) => `R$ ${fmtBR(v)}`;
+
 const fmtDate = (s: string) => new Date(s).toLocaleDateString('pt-BR');
 
 const STATUS_LABEL: Record<string, string> = {

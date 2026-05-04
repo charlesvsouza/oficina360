@@ -31,6 +31,27 @@ export class ServiceOrdersService {
     ORCAMENTO:            ['EM_DIAGNOSTICO', 'ORCAMENTO_PRONTO', 'AGUARDANDO_APROVACAO', 'CANCELADO'],
   };
 
+  private readonly RETIFICA_STATUS_FLOW: Record<string, string[]> = {
+    ABERTA:                        ['DESMONTAGEM', 'CANCELADO'],
+    DESMONTAGEM:                   ['METROLOGIA', 'CANCELADO'],
+    METROLOGIA:                    ['ORCAMENTO_RETIFICA', 'CANCELADO'],
+    ORCAMENTO_RETIFICA:            ['AGUARDANDO_APROVACAO_RETIFICA', 'CANCELADO'],
+    AGUARDANDO_APROVACAO_RETIFICA: ['APROVADO', 'REPROVADO', 'CANCELADO'],
+    APROVADO:                      ['EM_RETIFICA', 'MONTAGEM', 'CANCELADO'],
+    REPROVADO:                     ['CANCELADO'],
+    EM_RETIFICA:                   ['MONTAGEM', 'CANCELADO'],
+    MONTAGEM:                      ['TESTE_FINAL', 'CANCELADO'],
+    TESTE_FINAL:                   ['PRONTO_ENTREGA', 'CANCELADO'],
+    PRONTO_ENTREGA:                ['FATURADO', 'CANCELADO'],
+    FATURADO:                      ['ENTREGUE'],
+    ENTREGUE:                      [],
+    CANCELADO:                     [],
+  };
+
+  private getStatusFlow(orderType?: string | null) {
+    return orderType === 'RETIFICA_MOTOR' ? this.RETIFICA_STATUS_FLOW : this.STATUS_FLOW;
+  }
+
   private toStockQuantity(value: number) {
     const parsed = Math.trunc(Number(value));
     if (!Number.isFinite(parsed) || parsed <= 0) {
@@ -423,7 +444,7 @@ export class ServiceOrdersService {
     const newStatus = dto.status;
 
     // Valida transição (ADMIN/MASTER podem fazer override do fluxo)
-    const allowed = this.STATUS_FLOW[currentStatus] || [];
+    const allowed = this.getStatusFlow(order.orderType)[currentStatus] || [];
     if (!allowed.includes(newStatus)) {
       if (dto.adminOverride) {
         const actor = await this.prisma.user.findUnique({ where: { id: userId } });

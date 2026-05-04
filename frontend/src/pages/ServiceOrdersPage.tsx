@@ -28,6 +28,13 @@ const statusConfig: Record<string, { label: string; color: string; icon?: string
   FATURADO:             { label: 'Faturado',              color: 'bg-green-100 text-green-700' },
   ENTREGUE:             { label: 'Entregue',              color: 'bg-slate-900 text-white' },
   CANCELADO:            { label: 'Cancelado',             color: 'bg-red-100 text-red-700' },
+  DESMONTAGEM:          { label: 'Desmontagem',          color: 'bg-slate-100 text-slate-700' },
+  METROLOGIA:           { label: 'Metrologia',           color: 'bg-indigo-100 text-indigo-700' },
+  ORCAMENTO_RETIFICA:   { label: 'Orçamento Retífica',   color: 'bg-blue-100 text-blue-700' },
+  AGUARDANDO_APROVACAO_RETIFICA: { label: 'Aguardando Aprovação', color: 'bg-orange-100 text-orange-700' },
+  EM_RETIFICA:          { label: 'Em Retífica',          color: 'bg-cyan-100 text-cyan-700' },
+  MONTAGEM:             { label: 'Montagem',             color: 'bg-violet-100 text-violet-700' },
+  TESTE_FINAL:          { label: 'Teste Final',          color: 'bg-emerald-100 text-emerald-700' },
 };
 
 const PAYMENT_METHODS = [
@@ -54,6 +61,23 @@ const STATUS_FLOW_UI: Record<string, string[]> = {
   CANCELADO:            [],
 };
 
+const RETIFICA_STATUS_FLOW_UI: Record<string, string[]> = {
+  ABERTA:                        ['DESMONTAGEM', 'CANCELADO'],
+  DESMONTAGEM:                   ['METROLOGIA', 'CANCELADO'],
+  METROLOGIA:                    ['ORCAMENTO_RETIFICA', 'CANCELADO'],
+  ORCAMENTO_RETIFICA:            ['AGUARDANDO_APROVACAO_RETIFICA', 'CANCELADO'],
+  AGUARDANDO_APROVACAO_RETIFICA: ['APROVADO', 'REPROVADO', 'CANCELADO'],
+  APROVADO:                      ['EM_RETIFICA', 'MONTAGEM', 'CANCELADO'],
+  REPROVADO:                     ['CANCELADO'],
+  EM_RETIFICA:                   ['MONTAGEM', 'CANCELADO'],
+  MONTAGEM:                      ['TESTE_FINAL', 'CANCELADO'],
+  TESTE_FINAL:                   ['PRONTO_ENTREGA', 'CANCELADO'],
+  PRONTO_ENTREGA:                ['FATURADO', 'CANCELADO'],
+  FATURADO:                      ['ENTREGUE'],
+  ENTREGUE:                      [],
+  CANCELADO:                     [],
+};
+
 // Labels de ação para cada transição (mais descritivos do que o nome do status)
 const STATUS_ACTION_LABEL: Record<string, string> = {
   EM_DIAGNOSTICO:       '🔍 Iniciar Diagnóstico',
@@ -67,6 +91,13 @@ const STATUS_ACTION_LABEL: Record<string, string> = {
   FATURADO:             '💰 Registrar Pagamento',
   ENTREGUE:             '🚗 Confirmar Entrega',
   CANCELADO:            '⛔ Cancelar O.S.',
+  DESMONTAGEM:          '🔩 Iniciar Desmontagem',
+  METROLOGIA:           '📏 Enviar para Metrologia',
+  ORCAMENTO_RETIFICA:   '📝 Gerar Orçamento Técnico',
+  AGUARDANDO_APROVACAO_RETIFICA: '📤 Enviar para Aprovação',
+  EM_RETIFICA:          '⚙️ Iniciar Retífica',
+  MONTAGEM:             '🛠️ Iniciar Montagem',
+  TESTE_FINAL:          '🧪 Executar Teste Final',
 };
 
 const FLOW_PHASES = [
@@ -77,6 +108,16 @@ const FLOW_PHASES = [
   { key: 'EXECUCAO',    label: 'Execução',    statuses: ['AGUARDANDO_PECAS', 'EM_EXECUCAO'] },
   { key: 'FINALIZACAO', label: 'Faturamento', statuses: ['PRONTO_ENTREGA', 'FATURADO'] },
   { key: 'ENTREGA',     label: 'Entrega',      statuses: ['ENTREGUE'] },
+];
+
+const RETIFICA_FLOW_PHASES = [
+  { key: 'ABERTURA', label: 'Abertura', statuses: ['ABERTA'] },
+  { key: 'DESMONTAGEM', label: 'Desmontagem', statuses: ['DESMONTAGEM'] },
+  { key: 'ANALISE', label: 'Metrologia', statuses: ['METROLOGIA'] },
+  { key: 'ORCAMENTO', label: 'Orçamento', statuses: ['ORCAMENTO_RETIFICA', 'AGUARDANDO_APROVACAO_RETIFICA'] },
+  { key: 'EXECUCAO', label: 'Retífica', statuses: ['APROVADO', 'EM_RETIFICA', 'MONTAGEM', 'TESTE_FINAL'] },
+  { key: 'FINALIZACAO', label: 'Finalização', statuses: ['PRONTO_ENTREGA', 'FATURADO'] },
+  { key: 'ENTREGA', label: 'Entrega', statuses: ['ENTREGUE'] },
 ];
 
 const DOC_STYLES = `
@@ -188,6 +229,8 @@ export function ServiceOrdersPage() {
   const isReprovado = selectedOrder?.status === 'REPROVADO';
   const isClosed = CLOSED_STATUSES.includes(selectedOrder?.status ?? '');
   const isRetificaOrder = selectedOrder?.orderType === 'RETIFICA_MOTOR';
+  const activeStatusFlow = isRetificaOrder ? RETIFICA_STATUS_FLOW_UI : STATUS_FLOW_UI;
+  const activeFlowPhases = isRetificaOrder ? RETIFICA_FLOW_PHASES : FLOW_PHASES;
 
   const getOrderAssetLabel = (order: any) => {
     if (order?.vehicle) {
@@ -409,7 +452,7 @@ export function ServiceOrdersPage() {
   };
 
   const getCurrentPhaseIndex = (status: string) => {
-    const idx = FLOW_PHASES.findIndex((phase) => phase.statuses.includes(status));
+    const idx = activeFlowPhases.findIndex((phase) => phase.statuses.includes(status));
     return idx >= 0 ? idx : 0;
   };
 
@@ -485,7 +528,7 @@ export function ServiceOrdersPage() {
       </div>
       <hr />
       <div style="font-size:8pt;margin-bottom:6px">
-        <strong>Veículo:</strong> ${(o.vehicle as any)?.brand || ''} ${(o.vehicle as any)?.model || ''} — Placa <strong>${(o.vehicle as any)?.plate || ''}</strong>
+        <strong>${(o.vehicle as any) ? 'Veículo' : 'Motor'}:</strong> ${(o.vehicle as any) ? `${(o.vehicle as any)?.brand || ''} ${(o.vehicle as any)?.model || ''} — Placa ${(o.vehicle as any)?.plate || ''}` : `${o.equipmentBrand || 'Motor'} ${o.equipmentModel || 'Avulso'}${o.serialNumber ? ` — Série ${o.serialNumber}` : ''}`}
         &nbsp;&nbsp;·&nbsp;&nbsp;
         <strong>Cliente:</strong> ${(o.customer as any)?.name || ''}
         &nbsp;&nbsp;·&nbsp;&nbsp;
@@ -614,13 +657,17 @@ export function ServiceOrdersPage() {
   const executorOptions = executors.filter((u: any) =>
     ['MASTER', 'ADMIN', 'CHEFE_OFICINA', 'MECANICO', 'PRODUTIVO'].includes(String(u.role || '').toUpperCase())
   );
-  const nextStatuses = selectedOrder ? (STATUS_FLOW_UI[selectedOrder.status] ?? []) : [];
+  const nextStatuses = selectedOrder ? (activeStatusFlow[selectedOrder.status] ?? []) : [];
 
   const filteredOrders = orders.filter(
     (o) =>
       o.id.toLowerCase().includes(search.toLowerCase()) ||
       o.customer?.name?.toLowerCase().includes(search.toLowerCase()) ||
-      o.vehicle?.plate?.toLowerCase().includes(search.toLowerCase())
+      o.vehicle?.plate?.toLowerCase().includes(search.toLowerCase()) ||
+      o.vehicle?.model?.toLowerCase().includes(search.toLowerCase()) ||
+      o.equipmentBrand?.toLowerCase().includes(search.toLowerCase()) ||
+      o.equipmentModel?.toLowerCase().includes(search.toLowerCase()) ||
+      o.serialNumber?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -655,7 +702,7 @@ export function ServiceOrdersPage() {
                   </td>
                   <td style={{ border: '2px solid #1e293b', padding: '8px 14px', textAlign: 'right', verticalAlign: 'top', minWidth: '155px' }}>
                     <div style={{ fontSize: '7.5pt', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.5px', color: '#666' }}>
-                      {selectedOrder.orderType === 'ORCAMENTO' ? 'Orçamento' : 'Ordem de Serviço'}
+                      {selectedOrder.orderType === 'ORCAMENTO' ? 'Orçamento' : selectedOrder.orderType === 'RETIFICA_MOTOR' ? 'Retífica de Motor' : 'Ordem de Serviço'}
                     </div>
                     <div style={{ fontSize: '19pt', fontWeight: 900, fontFamily: 'monospace', letterSpacing: '2px', lineHeight: 1.1 }}>
                       {selectedOrder.id.slice(0, 8).toUpperCase()}
@@ -669,7 +716,7 @@ export function ServiceOrdersPage() {
                       </div>
                     )}
                     <div style={{ fontSize: '8.5pt', color: '#444' }}>
-                      Tipo O.S.: {selectedOrder.orderType === 'ORCAMENTO' ? 'Orçamento' : 'OS'}
+                      Tipo O.S.: {selectedOrder.orderType === 'ORCAMENTO' ? 'Orçamento' : selectedOrder.orderType === 'RETIFICA_MOTOR' ? 'Retífica de Motor' : 'OS'}
                     </div>
                     {(selectedOrder.paymentMethod || edit.paymentMethod) && (
                       <div style={{ fontSize: '8.5pt', color: '#444' }}>
@@ -1093,11 +1140,11 @@ export function ServiceOrdersPage() {
                 <div className="mb-3 flex items-center justify-between">
                   <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Andamento da O.S.</h3>
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">
-                    Fase atual: {FLOW_PHASES[getCurrentPhaseIndex(selectedOrder.status)]?.label || 'Abertura'}
+                    Fase atual: {activeFlowPhases[getCurrentPhaseIndex(selectedOrder.status)]?.label || 'Abertura'}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 md:grid-cols-7">
-                  {FLOW_PHASES.map((phase, index) => {
+                  {activeFlowPhases.map((phase, index) => {
                     const currentIdx = getCurrentPhaseIndex(selectedOrder.status);
                     const isCurrent = index === currentIdx;
                     const isDone = index < currentIdx;

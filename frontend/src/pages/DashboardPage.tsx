@@ -381,7 +381,7 @@ export function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {[
           {
             title: 'Eficiência',
@@ -426,12 +426,12 @@ export function DashboardPage() {
       </div>
 
       {/* Produtividade por função */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.16 }}
-          className="xl:col-span-2 bg-white rounded-[2rem] border border-slate-200 shadow-sm p-8"
+          className="lg:col-span-1 xl:col-span-2 bg-white rounded-[2rem] border border-slate-200 shadow-sm p-8"
         >
           <div className="mb-6">
             <h3 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">

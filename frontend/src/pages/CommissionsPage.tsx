@@ -262,7 +262,7 @@ export function CommissionsPage() {
             <Trophy className="w-4 h-4 text-amber-500" />
             <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">Visão de Liderança</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             {leadership.slice(0, 8).map((p: any) => (
               <div key={p.userId} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
                 <p className="text-xs font-black text-slate-900">{p.name}</p>

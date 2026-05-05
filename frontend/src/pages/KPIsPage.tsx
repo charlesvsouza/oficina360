@@ -82,24 +82,29 @@ export function KPIsPage() {
     setLoading(true);
     setError('');
     try {
-      const [kpiRes, ordersRes, partsRes, commRes] = await Promise.all([
+      const [kpiRes, ordersRes, partsRes] = await Promise.all([
         reportsApi.getIndicadores(),
         serviceOrdersApi.getAll(),
         inventoryApi.getAllParts(),
-        commissionsApi.getAll(),
       ]);
       setKpiData(kpiRes.data ?? null);
       setOrders(Array.isArray(ordersRes.data) ? ordersRes.data : []);
       setParts(Array.isArray(partsRes.data) ? partsRes.data : []);
-      setCommissions({
-        totals: commRes.data?.totals || { total: 0, pending: 0, paid: 0 },
-        leadership: Array.isArray(commRes.data?.leadership?.leaderboard) ? commRes.data.leadership.leaderboard : [],
-      });
     } catch (e) {
       console.error(e);
       setError('Não foi possível carregar os KPI\'s. Tente novamente em instantes.');
     } finally {
       setLoading(false);
+    }
+    // Comissões são carregadas separadamente para não bloquear o resto da página
+    try {
+      const commRes = await commissionsApi.getAll();
+      setCommissions({
+        totals: commRes.data?.totals || { total: 0, pending: 0, paid: 0 },
+        leadership: Array.isArray(commRes.data?.leadership?.leaderboard) ? commRes.data.leadership.leaderboard : [],
+      });
+    } catch {
+      // Se o plano não tiver acesso a comissões, apenas ignora (exibe zeros)
     }
   };
 
@@ -396,7 +401,7 @@ export function KPIsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {[
           { title: 'Receita líquida', value: money(atual.receitaLiquida), icon: DollarSign, tone: 'text-emerald-600' },
           { title: 'Margem bruta', value: `${money(atual.margemBruta)} (${pct(atual.margemBrutaPerc)})`, icon: TrendingIcon, tone: atual.margemBruta >= 0 ? 'text-emerald-600' : 'text-red-600' },
@@ -423,7 +428,7 @@ export function KPIsPage() {
         <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-1">Fase 1 · Indicadores de Performance Operacional</h3>
         <p className="text-xs text-slate-500 mb-4">Métricas mais usadas em gestão de concessionárias e autocenters para acompanhamento diário.</p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3 mb-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 mb-4">
           <InfoCard
             title="ELR (R$/hora)"
             value={`${money(fase1.elr)} / h`}
@@ -461,7 +466,7 @@ export function KPIsPage() {
           />
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
             <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">Aging de OS em aberto</p>
             <ResponsiveContainer width="100%" height={230}>
@@ -510,7 +515,7 @@ export function KPIsPage() {
         <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-1">Fase 2 · Qualidade e Agenda</h3>
         <p className="text-xs text-slate-500 mb-4">Leituras para melhorar previsibilidade operacional e qualidade de execução.</p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
           <InfoCard
             title="First Time Fix"
             value={pct(fase2.firstTimeFixRate)}
@@ -541,7 +546,7 @@ export function KPIsPage() {
           />
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
             <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">Distribuição da agenda por turno</p>
             <ResponsiveContainer width="100%" height={230}>
@@ -583,7 +588,7 @@ export function KPIsPage() {
         </div>
       </section>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
           <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-1">Tema 1 · Financeiro</h3>
           <p className="text-xs text-slate-500 mb-4">Visão de estrutura do resultado para o período selecionado.</p>
@@ -618,8 +623,8 @@ export function KPIsPage() {
         </section>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 xl:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 lg:col-span-1 xl:col-span-2">
           <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-1">Tema 3 · Operações de oficina</h3>
           <p className="text-xs text-slate-500 mb-4">Fluxo de OS por etapa para gestão do gargalo operacional.</p>
           <ResponsiveContainer width="100%" height={260}>

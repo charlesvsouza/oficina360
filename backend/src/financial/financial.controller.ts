@@ -30,7 +30,7 @@ export class FinancialController {
   }
 
   @Get('dre')
-  @RequirePlan('REDE')
+  @RequirePlan('PRO')
   @ApiOperation({ summary: 'DRE — Demonstrativo de Resultado do Exercício' })
   async getDRE(
     @Tenant() tenant: { tenantId: string },
@@ -46,7 +46,7 @@ export class FinancialController {
   }
 
   @Get('dre-anual')
-  @RequirePlan('REDE')
+  @RequirePlan('PRO')
   @ApiOperation({ summary: 'DRE consolidado anual' })
   async getDREAnual(
     @Tenant() tenant: { tenantId: string },
@@ -60,7 +60,7 @@ export class FinancialController {
   }
 
   @Get('indicadores')
-  @RequirePlan('REDE')
+  @RequirePlan('PRO')
   @ApiOperation({ summary: 'KPIs financeiros: mês atual, trimestre, semestre, semestre anterior, anual' })
   async getIndicadores(@Tenant() tenant: { tenantId: string }) {
     return this.financialService.getIndicadores(tenant.tenantId);

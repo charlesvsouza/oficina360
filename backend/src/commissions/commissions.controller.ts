@@ -10,7 +10,7 @@ import { CommissionsService } from './commissions.service';
 @Controller('commissions')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, PlanGuard)
-@RequirePlan('REDE')
+@RequirePlan('PRO')
 export class CommissionsController {
   constructor(private readonly service: CommissionsService) {}
 

@@ -189,6 +189,31 @@
 
 ---
 
+### 🔜 Sprint 3.1 — Site Institucional v3 + SEO Técnico + CMS Comercial *(planejado para próxima sessão)*
+
+- [ ] **Replatform do site institucional** — separar claramente marketing site e app operacional
+  - Recomendação base: manter o app autenticado em subdomínio/app separado e reconstruir o site público com renderização orientada a SEO
+  - Avaliar `sigmaauto.com.br` para marketing e `app.sigmaauto.com.br` para operação autenticada
+  - Comparar deploy em Vercel/Next.js vs Hostinger (somente se houver suporte estável a SSR/Node ou VPS dedicado)
+- [ ] **SEO técnico real** — corrigir descoberta e indexação por Google
+  - Metadata por página, Open Graph, Twitter Cards e canonical por rota pública
+  - JSON-LD estruturado (`SoftwareApplication`, `Organization`, `FAQPage`, `Product`/`Offer` para planos)
+  - Sitemap segmentado, robots revisado, Search Console, Bing Webmaster e auditoria de indexação
+  - Melhorar semântica HTML, heading hierarchy, performance LCP/CLS/INP e linking interno
+- [ ] **CMS / Torre de Comando Comercial** — transformar páginas institucionais em conteúdo administrável
+  - Banners, hero, diferenciais, planos, FAQs, notícias, depoimentos, CTAs e widgets editáveis
+  - Possível implementação inicial via tabelas/JSON gerenciados no próprio admin antes de adotar headless CMS externo
+  - Permitir campanhas, landing pages sazonais e páginas por segmento sem depender de deploy para toda alteração
+- [ ] **Nova direção visual “futurista industrial”**
+  - Manter a base cromática atual, mas elevar acabamento visual: grid técnico, widgets, brilho controlado, superfícies translúcidas e tipografia mais forte
+  - Unificar linguagem entre landing, páginas institucionais e elementos de produto para parecer uma plataforma única
+- [ ] **Correção do header/hero da área pública**
+  - Revisar a barra superior do `MarketingShell` para impedir quebra/empilhamento de ações em larguras intermediárias
+  - Ajustar posição do botão de acesso/saída para nunca “cair” abaixo da linha visual do hero
+  - Reorganizar navegação e CTA com comportamento responsivo mais previsível
+
+---
+
 ### 🚀 Sprint 4 — Aquisição de Novos Clientes *(aguardando primeiras aquisições)*
 
 > Será iniciado após os primeiros clientes pagantes, com base em feedback real de uso.

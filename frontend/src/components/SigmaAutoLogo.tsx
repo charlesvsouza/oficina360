@@ -54,20 +54,26 @@ export function SigmaAutoLogo({ variant = 'compact', size = 36, className = '' }
       {/* Barra superior */}
       <line x1="10" y1="9" x2="30" y2="9" stroke="url(#sa-grad)" strokeWidth="2.8" strokeLinecap="round" />
 
-      {/* Diagonal sup: topo-direito → centro */}
-      <line x1="29" y1="9.5" x2="13" y2="20.5" stroke="url(#sa-grad)" strokeWidth="2.8" strokeLinecap="round" />
+      {/* Diagonal sup: topo-esquerdo → vértice direito-centro */}
+      <line x1="11" y1="9.5" x2="28" y2="20.5" stroke="url(#sa-grad)" strokeWidth="2.8" strokeLinecap="round" />
 
-      {/* Diagonal inf: centro → baixo-direito */}
-      <line x1="13" y1="19.5" x2="27" y2="30" stroke="url(#sa-grad)" strokeWidth="2.8" strokeLinecap="round" />
+      {/* Diagonal inf: vértice direito-centro → baixo-esquerdo */}
+      <line x1="28" y1="20.5" x2="11" y2="31" stroke="url(#sa-grad)" strokeWidth="2.8" strokeLinecap="round" />
 
-      {/* Barra inferior com corpo de seta */}
-      <line x1="10" y1="31" x2="27.5" y2="31" stroke="url(#sa-grad)" strokeWidth="2.8" strokeLinecap="round" />
-
-      {/* Ponta da seta → */}
-      <polyline
-        points="24,26.5 30,31 24,35.5"
+      {/* Barra inferior + seta com curva suave para cima */}
+      <path
+        d="M 10 31.5 L 20 31.5 Q 30 31.5 31 22"
         stroke="url(#sa-grad)"
         strokeWidth="2.8"
+        strokeLinecap="round"
+        fill="none"
+      />
+
+      {/* Ponta da seta ↑ (apontando para cima) */}
+      <polyline
+        points="27,25 31,21.5 35,25"
+        stroke="url(#sa-grad)"
+        strokeWidth="2.4"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"

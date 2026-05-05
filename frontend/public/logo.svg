@@ -14,15 +14,15 @@
   <rect width="40" height="40" rx="10" fill="url(#sa-bg)"/>
   <rect width="40" height="40" rx="10" fill="url(#sa-grad)" fill-opacity="0.12"/>
 
-  <!-- Sigma (Σ) estilizado com seta -->
+  <!-- Sigma (Σ) correto: vértice no lado direito + seta curva para cima -->
   <!-- Barra superior -->
   <line x1="10" y1="9" x2="30" y2="9" stroke="url(#sa-grad)" stroke-width="2.8" stroke-linecap="round"/>
-  <!-- Diagonal superior -->
-  <line x1="29" y1="9.5" x2="13" y2="20.5" stroke="url(#sa-grad)" stroke-width="2.8" stroke-linecap="round"/>
-  <!-- Diagonal inferior -->
-  <line x1="13" y1="19.5" x2="27" y2="30" stroke="url(#sa-grad)" stroke-width="2.8" stroke-linecap="round"/>
-  <!-- Barra inferior -->
-  <line x1="10" y1="31" x2="27.5" y2="31" stroke="url(#sa-grad)" stroke-width="2.8" stroke-linecap="round"/>
-  <!-- Seta → -->
-  <polyline points="24,26.5 30,31 24,35.5" stroke="url(#sa-grad)" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Diagonal superior: esquerda → vértice direito-centro -->
+  <line x1="11" y1="9.5" x2="28" y2="20.5" stroke="url(#sa-grad)" stroke-width="2.8" stroke-linecap="round"/>
+  <!-- Diagonal inferior: vértice direito-centro → esquerda -->
+  <line x1="28" y1="20.5" x2="11" y2="31" stroke="url(#sa-grad)" stroke-width="2.8" stroke-linecap="round"/>
+  <!-- Barra inferior com curva suave para cima -->
+  <path d="M 10 31.5 L 20 31.5 Q 30 31.5 31 22" stroke="url(#sa-grad)" stroke-width="2.8" stroke-linecap="round" fill="none"/>
+  <!-- Seta apontando para cima -->
+  <polyline points="27,25 31,21.5 35,25" stroke="url(#sa-grad)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
 </svg>

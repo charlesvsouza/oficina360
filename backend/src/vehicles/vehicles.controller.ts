@@ -33,14 +33,14 @@ export class VehiclesController {
   }
 
   @Post()
-  @Roles('ADMIN', 'PRODUTIVO')
+  @Roles('MASTER', 'ADMIN', 'PRODUTIVO')
   @ApiOperation({ summary: 'Create vehicle' })
   async create(@Tenant() tenant: { tenantId: string }, @Body() dto: CreateVehicleDto) {
     return this.vehiclesService.create(tenant.tenantId, dto);
   }
 
   @Patch(':id')
-  @Roles('ADMIN', 'PRODUTIVO')
+  @Roles('MASTER', 'ADMIN', 'PRODUTIVO')
   @ApiOperation({ summary: 'Update vehicle' })
   async update(
     @Tenant() tenant: { tenantId: string },

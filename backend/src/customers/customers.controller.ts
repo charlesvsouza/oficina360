@@ -27,14 +27,14 @@ export class CustomersController {
   }
 
   @Post()
-  @Roles('ADMIN', 'PRODUTIVO')
+  @Roles('MASTER', 'ADMIN', 'PRODUTIVO')
   @ApiOperation({ summary: 'Create customer' })
   async create(@Tenant() tenant: { tenantId: string }, @Body() dto: CreateCustomerDto) {
     return this.customersService.create(tenant.tenantId, dto);
   }
 
   @Patch(':id')
-  @Roles('ADMIN', 'PRODUTIVO')
+  @Roles('MASTER', 'ADMIN', 'PRODUTIVO')
   @ApiOperation({ summary: 'Update customer' })
   async update(
     @Tenant() tenant: { tenantId: string },

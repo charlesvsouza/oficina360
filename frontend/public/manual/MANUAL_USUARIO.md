@@ -1,6 +1,6 @@
 # Manual do Usuário — SigmaAuto
 
-**Versão:** 2.0 — Maio/2026  
+**Versão:** 2.1 — Maio/2026  
 **Acesso:** [sigmaauto.com.br](https://sigmaauto.com.br)  
 **Suporte:** suporte@sigmaauto.com.br
 
@@ -29,6 +29,7 @@
 19. [Manutenção Preventiva Automática](#19-manutenção-preventiva-automática)
 20. [NPS — Pesquisa de Satisfação](#20-nps--pesquisa-de-satisfação)
 21. [Módulo Retífica de Motores — Guia Completo](#21-módulo-retífica-de-motores--guia-completo)
+22. [Agenda — Agendamento Interno de OS](#22-agenda--agendamento-interno-de-os)
 
 ---
 
@@ -62,8 +63,9 @@ O Dashboard é a tela inicial após o login. Ele exibe:
 | **Faturamento** | Total recebido no mês atual (OS concluídas e pagas) |
 | **OS em Aberto** | Ordens de serviço ainda não finalizadas |
 | **Gráfico de Faturamento** | Receita dos últimos 6 meses |
+| **Agenda de Hoje** | Lista das OS agendadas para hoje ordenadas por horário |
 
-> Dica: o painel atualiza automaticamente a cada acesso. Para ver dados mais recentes, recarregue a página.
+O painel **Agenda de Hoje** aparece automaticamente quando há OS com agendamento marcado para o dia atual. Clique em **"Ver completa →"** para abrir a página de agenda semanal.
 
 ---
 
@@ -122,7 +124,9 @@ A OS é o coração do sistema. Ela registra todo o trabalho realizado em um ve�
 1. Clique em **Ordens de Serviço** → **"Nova OS"**
 2. Selecione o **cliente** e o **veículo**
 3. Informe o **motivo da entrada** (reclamação do cliente)
-4. Clique em **Criar OS**
+4. Informe a **KM de entrada** do veículo (se aplicável)
+5. Defina a **data e hora de agendamento** (campo opcional) — aparecerá na Agenda do Dashboard e na página `/agenda`
+6. Clique em **Criar OS**
 
 ### 5.2 Status da OS
 
@@ -956,6 +960,77 @@ Sim. A qualquer momento dentro da OS, clique no botão de laudo para reabrir e r
 
 **O fluxo de retífica aparece no Kanban convencional?**
 Não. OS do tipo Retífica aparecem apenas no **Kanban de Retífica** (menu lateral → Retífica). O Kanban convencional exibe apenas OS de veículos.
+
+---
+
+## 22. Agenda — Agendamento Interno de OS
+
+O módulo de Agenda permite organizar o fluxo diário e semanal da oficina visualizando todas as OS com data/hora de agendamento marcada.
+
+---
+
+### 22.1 Agendar uma OS
+
+**Na criação:**
+1. Ao criar uma nova OS, preencha o campo **"Agendamento (data e hora)"** logo abaixo do KM de entrada
+2. Selecione a data e a hora desejada no seletor de data/hora
+3. Conclua normalmente a criação da OS
+
+**Editando uma OS já criada:**
+1. Abra a OS na listagem
+2. No painel lateral de edição, localize a seção **"Agendamento"**
+3. Preencha ou altere a data/hora
+4. Clique em **"Salvar alterações"**
+
+> Dica: o campo de agendamento é livre e independente do status da OS. Você pode agendar uma OS já em execução para uma data de entrega prevista, por exemplo.
+
+---
+
+### 22.2 Painel "Agenda de Hoje" no Dashboard
+
+A tela principal do Dashboard exibe automaticamente um painel **"Agenda de Hoje"** sempre que houver OS agendadas para o dia corrente.
+
+- OS listadas em ordem cronológica de horário
+- Exibe: horário, cliente, veículo e status atual da OS
+- Clique em qualquer OS para ir diretamente para a listagem
+- Clique em **"Ver completa →"** para abrir a página de Agenda semanal
+
+---
+
+### 22.3 Página Agenda (/agenda)
+
+A página de Agenda exibe uma **grade semanal com 7 colunas** (domingo a sábado), mostrando todas as OS agendadas distribuídas pelos dias da semana.
+
+**Acessar:**
+1. Clique em **Agenda** no menu lateral (grupo Atendimento)
+
+**Navegação por semana:**
+- Use as setas **‹** e **›** no cabeçalho para navegar entre semanas
+- Clique em **"Hoje"** para voltar à semana atual
+- O dia atual é destacado em azul
+
+**Cards de OS:**
+Cada OS agendada aparece como um card no dia correspondente, exibindo:
+- Horário do agendamento
+- Nome do cliente
+- Veículo (marca, modelo) ou equipamento (Retífica)
+- Badge colorido de status
+
+Clique em qualquer card para ir para a listagem de Ordens de Serviço.
+
+**Lista consolidada:**
+Abaixo da grade semanal, uma lista consolidada exibe todas as OS da semana em ordem cronológica com data, horário, cliente, veículo, status e número da OS.
+
+**Botão "Nova OS":**
+Cria uma nova OS diretamente da página de Agenda para agilizar o cadastro de agendamentos.
+
+---
+
+### 22.4 Dicas de uso
+
+- Use o agendamento para **organizar a fila diária** e evitar acumulo de veículos parados
+- Combine com o **Kanban de Pátio** para ter uma visão completa do fluxo: agenda no dashboard mostra o que vai chegar, o Kanban mostra o que já está na oficina
+- Ao telefonar confirmando a visita, já abra a OS e defina o horário — ele aparecerá no painel do dia seguinte
 
 ---
 

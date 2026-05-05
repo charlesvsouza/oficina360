@@ -165,13 +165,27 @@
 
 ---
 
-### 🔜 Sprint 3 — IA e Conversão *(iniciado em 05/05/2026)*
+### ✅ Sprint 3 — IA, Conversão e Agendamento *(concluído em 05/05/2026)*
 
 - [x] **IA Assistiva no Orçamento** — sugestão de serviços e peças por sintoma relatado *(05/05/2026)*
   - Backend: `AiModule` — `POST /ai/suggest` — OpenAI GPT-4o-mini + fallback por palavras-chave
   - Frontend: botão "IA" no modal de catálogo, painel expansível com campo de sintoma e sugestões clicáveis
   - Sem `OPENAI_API_KEY`: fallback automático por matching de palavras-chave no catálogo local
 - [x] **Página Notícias** — atualizada com lançamentos recentes e funcionalidades futuras como roadmap público *(05/05/2026)*
+- [x] **Agendamento Interno de OS** — campo `scheduledDate` + página `/agenda` + painel no Dashboard *(05/05/2026 — commit `b9a5646`)*
+  - Campo `scheduledDate DateTime?` no schema Prisma (já existente)
+  - Input `datetime-local` no formulário de criação de OS e no painel lateral de edição
+  - Painel "Agenda de Hoje" no Dashboard — lista OS do dia ordenadas por horário, link para `/agenda`
+  - Página `/agenda` — grade semanal com 7 colunas, navegação por semana (anterior/próxima/hoje), destaque do dia atual, lista consolidada abaixo
+  - Item "Agenda" adicionado ao menu lateral (grupo Atendimento, ícone `CalendarDays`)
+- [x] **Correções de Layout** *(05/05/2026 — commits `419dbd9`, `a7aacd4`)*
+  - Sidebar desktop: `overflow-y-auto` (era `overflow-hidden` — itens ficavam escondidos em telas pequenas)
+  - Header desktop: avatar + nome + e-mail + botão Sair movidos para a extremidade direita
+  - Scrollbar fina e discreta na nav da sidebar via CSS
+- [x] **Correções Módulo Retífica** *(05/05/2026 — commits `62f1c85`, `5964182`, `cf9c46b`)*
+  - Campos `motorBrand/motorModel/motorSerial` → `equipmentBrand/equipmentModel/serialNumber` (alinhamento com schema Prisma)
+  - Fix build TS: `Set<unknown>` → `Set<string>` em `metrologiaTarget`
+  - Centralizar `SLA_HOURS` em `retificaConstants.ts`, validar metrologia obrigatória no backend antes de avançar para Orçamento Técnico, proteção contra duplicação de itens
 
 ---
 

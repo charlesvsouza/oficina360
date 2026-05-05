@@ -57,6 +57,15 @@
 | Checklist Entrada/Saída | ✅ | 15 áreas, 5 condições, fotos comprimidas, nível de combustível |
 | WhatsApp Automático | ✅ | 5 templates por evento de OS via Evolution API |
 | WhatsApp Admin UI | ✅ | Tela `/whatsapp` com status, QR Code e desconexão — **ONLINE** |
+| Comissões | ✅ | Cálculo automático por faturamento, taxas por função, pagamento manual, relatório |
+| Relatórios Gerenciais | ✅ | 6 tipos (OS, DRE mensal/anual, KPIs, comissões, compras) com preview A4 e impressão |
+| DRE | ✅ | Página dedicada `/dre` com seletor mês/ano, impressão completa, histórico 6 meses |
+| KPIs — Gestão à Vista | ✅ | Página `/kpis` com 10+ indicadores operacionais/financeiros em 5 períodos |
+| Módulo Retífica | ✅ | Fluxo próprio de 11 status, Kanban Retífica, Metrologia 2 etapas, Laudo Técnico |
+| IA Assistiva | ✅ | Sugestão de serviços/peças por sintoma — GPT-4o-mini + fallback keywords |
+| Manutenção Preventiva | ✅ | Cron diário às 8h, lembrete WhatsApp por KM/data, página `/maintenance` |
+| NPS Automático | ✅ | Pesquisa pós-entrega via WhatsApp, dashboard score, resposta pública por link |
+| Agendamento Interno | ✅ | Campo `scheduledDate` na OS, painel no Dashboard, página `/agenda` semanal |
 
 ---
 
@@ -75,7 +84,7 @@ Dashboard (/dashboard)
 ```
 
 **Rotas públicas:** `/`, `/planos`, `/login`, `/register`, `/forgot-password`  
-**Rotas protegidas:** `/dashboard`, `/customers`, `/vehicles`, `/service-orders`, `/services`, `/inventory`, `/financial`, `/settings`, `/users`  
+**Rotas protegidas:** `/dashboard`, `/customers`, `/vehicles`, `/service-orders`, `/agenda`, `/services`, `/inventory`, `/financial`, `/dre`, `/kpis`, `/commissions`, `/reports`, `/settings`, `/users`, `/whatsapp`, `/maintenance`, `/nps`, `/retifica`, `/dashboard-retifica`  
 **Rotas Super Admin:** `/admin/login`, `/admin`
 
 ---
@@ -121,11 +130,14 @@ Dashboard (/dashboard)
 ## Commits Recentes (git log)
 
 ```
-eae6701 fix(backend): add axios dependency for WhatsApp Evolution API integration
-8fe69fe feat(whatsapp): WhatsApp Automático via Evolution API
-1d79fb3 feat(checklist): Checklist de Entrada/Saída com fotos
-ac61ac0 feat(kanban): Kanban de Pátio com modo TV
-4247027 feat: block plan downgrade in settings, only allow upgrade until current plan expires
+68bc595 chore(deps): remover pacote qrcode nao utilizado do backend
+63aa0f7 fix(dashboard): restaurar abertura do useMemo productivityData
+b9a5646 feat(agenda): campo scheduledDate na OS + painel Agenda do Dia + pagina /agenda semanal + menu lateral
+a7aacd4 feat(layout): mover avatar+nome+logout para extremidade direita do header desktop
+419dbd9 fix(layout): sidebar desktop com overflow-y-auto + scrollbar discreta
+cf9c46b refactor(retifica): centralizar SLA_HOURS + validar metrologia no backend + proteger duplicacao
+5964182 fix(retifica): corrigir tipo Set<string> no metrologiaTarget para build TS
+62f1c85 fix(retifica): corrigir campos motorBrand/motorModel/motorSerial -> equipmentBrand/equipmentModel/serialNumber
 ```
 
 ---
@@ -141,6 +153,10 @@ ac61ac0 feat(kanban): Kanban de Pátio com modo TV
 | `frontend/src/pages/DashboardPage.tsx` | Painel principal |
 | `frontend/src/pages/SettingsPage.tsx` | Configurações + assinatura + usuários |
 | `frontend/src/components/Layout.tsx` | Sidebar + topbar da área logada |
+| `frontend/src/pages/AgendaPage.tsx` | Grade semanal de agendamentos — `/agenda` |
+| `frontend/src/pages/DashboardPage.tsx` | Painel principal com painel Agenda do Dia |
+| `frontend/src/pages/ServiceOrdersPage.tsx` | OS — campo scheduledDate (criação + edição) |
+| `frontend/src/lib/retificaConstants.ts` | Constantes do módulo Retífica (SLA_HOURS) |
 | `frontend/src/store/authStore.ts` | Estado de autenticação (Zustand) |
 | `frontend/src/api/client.ts` | Chamadas à API (Axios) |
 | `backend/src/app.module.ts` | Módulo raiz NestJS |

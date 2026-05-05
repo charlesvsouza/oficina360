@@ -170,13 +170,19 @@ function fmtBR(v: number | string | undefined, dec = 2) {
 export function ServiceOrdersPage() {
   const { user, tenant } = useAuthStore();
   const navigate = useNavigate();
+  const userRole = String(user?.role ?? '').toUpperCase();
   const planName = tenant?.subscription?.plan?.name || 'START';
   const canUseChecklist = canAccessFeature(planName, 'CHECKLIST');
   const canUseRetificaMode = canAccessRetificaMode(planName);
-  const canManageStock = ['MASTER', 'ADMIN', 'MECANICO', 'PRODUTIVO'].includes(user?.role ?? '');
-  const canDelete = user?.role === 'MASTER';
-  const canChangeStatus = ['MASTER', 'ADMIN', 'GERENTE', 'CHEFE_OFICINA'].includes(user?.role ?? '');
-  const canAssignExecutor = ['MASTER', 'ADMIN', 'CHEFE_OFICINA', 'GERENTE'].includes(user?.role ?? '');
+  const canManageItems = ['MASTER', 'ADMIN', 'CHEFE_OFICINA', 'PRODUTIVO'].includes(userRole);
+  const canManageStock = canManageItems;
+  const canEditOrderDetails = ['MASTER', 'ADMIN', 'CHEFE_OFICINA', 'PRODUTIVO'].includes(userRole);
+  const canCreateDiagnostic = ['MASTER', 'ADMIN', 'CHEFE_OFICINA', 'PRODUTIVO'].includes(userRole);
+  const canSyncOrder = ['MASTER', 'ADMIN', 'PRODUTIVO'].includes(userRole);
+  const canReserveParts = ['MASTER', 'ADMIN', 'GERENTE', 'CHEFE_OFICINA', 'SECRETARIA'].includes(userRole);
+  const canDelete = userRole === 'MASTER';
+  const canChangeStatus = ['MASTER', 'ADMIN', 'GERENTE', 'CHEFE_OFICINA'].includes(userRole);
+  const canAssignExecutor = canManageItems;
   const CLOSED_STATUSES = ['FATURADO', 'ENTREGUE', 'CANCELADO', 'REPROVADO'];
   const printContentRef = useRef<HTMLDivElement>(null);
   const printFrameRef = useRef<HTMLIFrameElement>(null);
@@ -357,6 +363,10 @@ export function ServiceOrdersPage() {
 
   const createDiagnosticOrder = async () => {
     if (!selectedOrder) return;
+    if (!canCreateDiagnostic) {
+      alert('Seu perfil não possui permissão para criar O.S. de diagnóstico.');
+      return;
+    }
     setCreatingDiagOrder(true);
     try {
       const res = await serviceOrdersApi.createDiagnosticOrder(selectedOrder.id);
@@ -372,6 +382,10 @@ export function ServiceOrdersPage() {
 
   const saveDetails = async (closeAfterSave = false) => {
     if (!selectedOrder) return;
+    if (!canEditOrderDetails) {
+      alert('Seu perfil não possui permissão para editar os dados da O.S.');
+      return;
+    }
     try {
       await serviceOrdersApi.update(selectedOrder.id, edit);
       const res = await serviceOrdersApi.getById(selectedOrder.id);
@@ -388,6 +402,10 @@ export function ServiceOrdersPage() {
 
   const recalculateTotals = async () => {
     if (!selectedOrder) return;
+    if (!canSyncOrder) {
+      alert('Seu perfil não possui permissão para atualizar esta O.S.');
+      return;
+    }
 
     const changedEntries = Object.entries(pendingQtyByItem).filter(([itemId, newQty]) => {
       const current = selectedOrder.items?.find((i: any) => i.id === itemId);
@@ -400,7 +418,7 @@ export function ServiceOrdersPage() {
     });
 
     if (hasPartChangeWithoutPermission) {
-      alert('Somente MASTER e ADMIN podem alterar quantidade de pecas.');
+      alert('Seu perfil não possui permissão para alterar quantidade de peças.');
       return;
     }
 
@@ -621,8 +639,12 @@ export function ServiceOrdersPage() {
 
   const addItem = async (itemData: any) => {
     if (!selectedOrder) return;
+    if (!canManageItems) {
+      alert('Seu perfil não possui permissão para adicionar itens nesta O.S.');
+      return;
+    }
     if (itemData?.type === 'part' && !canManageStock) {
-      alert('Somente MASTER e ADMIN podem alterar estoque de pecas.');
+      alert('Seu perfil não possui permissão para alterar estoque de peças.');
       return;
     }
     try {
@@ -652,9 +674,13 @@ export function ServiceOrdersPage() {
 
   const updateItem = async (itemId: string, data: any) => {
     if (!selectedOrder) return;
+    if (!canManageItems) {
+      alert('Seu perfil não possui permissão para editar itens nesta O.S.');
+      return;
+    }
     const current = selectedOrder.items?.find((i: any) => i.id === itemId);
     if (current?.type?.toLowerCase() === 'part' && !canManageStock) {
-      alert('Somente MASTER e ADMIN podem alterar estoque de pecas.');
+      alert('Seu perfil não possui permissão para alterar estoque de peças.');
       return;
     }
     try {
@@ -667,9 +693,13 @@ export function ServiceOrdersPage() {
 
   const removeItem = async (itemId: string) => {
     if (!selectedOrder || !confirm('Remover este item? O estoque será estornado.')) return;
+    if (!canManageItems) {
+      alert('Seu perfil não possui permissão para remover itens nesta O.S.');
+      return;
+    }
     const current = selectedOrder.items?.find((i: any) => i.id === itemId);
     if (current?.type?.toLowerCase() === 'part' && !canManageStock) {
-      alert('Somente MASTER e ADMIN podem alterar estoque de pecas.');
+      alert('Seu perfil não possui permissão para alterar estoque de peças.');
       return;
     }
     try {
@@ -1115,9 +1145,9 @@ export function ServiceOrdersPage() {
                 </button>
                 <button
                   onClick={() => saveDetails(false)}
-                  disabled={isClosed}
+                  disabled={isClosed || !canEditOrderDetails}
                   className="h-10 px-5 rounded-xl text-xs font-bold flex items-center gap-2 bg-slate-900 text-white hover:bg-slate-800 transition-all shadow-lg disabled:opacity-40 disabled:cursor-not-allowed"
-                  title={isClosed ? 'OS finalizada não pode ser editada' : undefined}
+                  title={isClosed ? 'OS finalizada não pode ser editada' : !canEditOrderDetails ? 'Sem permissão para editar O.S.' : undefined}
                 >
                   <Save size={15} /> Salvar alterações
                 </button>
@@ -1134,7 +1164,7 @@ export function ServiceOrdersPage() {
             </div>
 
             {/* Banner: OS reprovada + opção de diagnóstico */}
-            {isReprovado && showDiagBanner && (
+            {isReprovado && showDiagBanner && canCreateDiagnostic && (
               <div className="mx-6 mt-4 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
                   <span className="text-2xl">🔍</span>
@@ -1390,7 +1420,9 @@ export function ServiceOrdersPage() {
                   </h3>
                   <button
                     onClick={() => openCatalog('service')}
+                    disabled={!canManageItems}
                     className="text-[9px] font-black uppercase tracking-widest bg-slate-900 text-white px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors flex items-center gap-1"
+                    title={!canManageItems ? 'Sem permissão para adicionar itens' : undefined}
                   >
                     <Plus size={12} /> Adicionar Serviço
                   </button>
@@ -1443,7 +1475,11 @@ export function ServiceOrdersPage() {
                         <td className="px-5 py-3 text-slate-600">R$ {fmtBR(item.unitPrice)}</td>
                         <td className="px-5 py-3 font-black text-slate-900 text-right">R$ {fmtBR(item.totalPrice)}</td>
                         <td className="px-5 py-3 text-right">
-                          <button onClick={() => removeItem(item.id)} className="p-1 text-slate-300 hover:text-red-500 rounded transition-colors">
+                          <button
+                            onClick={() => removeItem(item.id)}
+                            disabled={isClosed || !canManageItems}
+                            className={cn('p-1 rounded transition-colors', isClosed || !canManageItems ? 'text-slate-200 cursor-not-allowed' : 'text-slate-300 hover:text-red-500')}
+                          >
                             <Trash2 size={14} />
                           </button>
                         </td>
@@ -1469,7 +1505,7 @@ export function ServiceOrdersPage() {
                       'text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1',
                       canManageStock ? 'bg-primary-600 text-white hover:bg-primary-700' : 'bg-slate-300 text-slate-500'
                     )}
-                    title={canManageStock ? 'Lancar peca' : 'Somente MASTER/ADMIN podem alterar estoque'}
+                    title={canManageStock ? 'Lançar peça' : 'Sem permissão para alterar estoque'}
                   >
                     <Plus size={12} /> Lançar Peça
                   </button>
@@ -1560,7 +1596,7 @@ export function ServiceOrdersPage() {
                     })}
 
                     {/* Botão Reservar Peças — visível em APROVADO e AGUARDANDO_PECAS com peças na OS */}
-                    {['APROVADO', 'AGUARDANDO_PECAS'].includes(selectedOrder?.status) && partItems.length > 0 && (
+                    {canReserveParts && ['APROVADO', 'AGUARDANDO_PECAS'].includes(selectedOrder?.status) && partItems.length > 0 && (
                       <button
                         onClick={() => { setReserveResult(null); setExpectedPartsDate(''); setShowReserveParts(true); }}
                         className="w-full px-3 py-2 rounded-xl text-[10px] font-black tracking-wide transition-all text-left bg-amber-500 text-white hover:bg-amber-600 shadow-sm flex items-center gap-1.5"
@@ -1598,8 +1634,9 @@ export function ServiceOrdersPage() {
                 <div className="bg-slate-900 rounded-[2rem] p-6 text-white shadow-xl flex flex-col gap-3">
                   <button
                     onClick={recalculateTotals}
-                    disabled={syncingTotals}
+                    disabled={syncingTotals || !canSyncOrder}
                     className="mb-2 inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-700 bg-slate-800 px-4 py-2 text-[11px] font-black uppercase tracking-wider text-white transition-all hover:bg-slate-700 disabled:opacity-60"
+                    title={!canSyncOrder ? 'Sem permissão para atualizar O.S.' : undefined}
                   >
                     {syncingTotals ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                     Atualizar O.S.

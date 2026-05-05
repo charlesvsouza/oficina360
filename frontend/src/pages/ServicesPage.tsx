@@ -26,6 +26,7 @@ export function ServicesPage() {
   const [sortBy, setSortBy] = useState<'name' | 'price'>('name');
   const [showModal, setShowModal] = useState(false);
   const [editingService, setEditingService] = useState<any>(null);
+  const [modalError, setModalError] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -70,7 +71,8 @@ export function ServicesPage() {
       resetForm();
       loadServices();
     } catch (error: any) {
-      alert(error?.response?.data?.message || 'Falha ao salvar servico.');
+      const msg = error?.response?.data?.message;
+      setModalError(Array.isArray(msg) ? msg.join(', ') : msg || 'Falha ao salvar serviço.');
       console.error('Falha ao salvar serviço:', error);
     }
   };
@@ -111,6 +113,7 @@ export function ServicesPage() {
 
   const resetForm = () => {
     setEditingService(null);
+    setModalError('');
     setFormData({
       name: '',
       description: '',
@@ -391,10 +394,16 @@ export function ServicesPage() {
                   />
                 </div>
 
+                {modalError && (
+                  <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                    {modalError}
+                  </p>
+                )}
+
                 <div className="flex justify-end gap-3 pt-6 border-t border-slate-100">
                   <button
                     type="button"
-                    onClick={() => setShowModal(false)}
+                    onClick={() => { setShowModal(false); setModalError(''); }}
                     className="px-6 py-2.5 rounded-xl text-sm font-bold text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-all"
                   >
                     Cancelar

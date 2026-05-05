@@ -235,6 +235,8 @@ export function InventoryPage() {
   const [movQty, setMovQty] = useState(1);
   const [movType, setMovType] = useState<'ENTRY' | 'EXIT'>('ENTRY');
   const [movNote, setMovNote] = useState('');
+  const [partError, setPartError] = useState('');
+  const [movError, setMovError] = useState('');
   const canManageParts = user?.role === 'MASTER' || user?.role === 'ADMIN';
 
   useEffect(() => { loadAll(); }, []);
@@ -253,7 +255,7 @@ export function InventoryPage() {
     }
   };
 
-  const openNew = () => { setEditingPart(null); setFormData({ ...EMPTY_FORM }); setShowModal(true); };
+  const openNew = () => { setEditingPart(null); setFormData({ ...EMPTY_FORM }); setPartError(''); setShowModal(true); };
 
   const openEdit = (part: any) => {
     setEditingPart(part);
@@ -266,6 +268,7 @@ export function InventoryPage() {
       supplierId: part.supplierId || '',
     });
     setShowModal(true);
+    setPartError('');
   };
 
   const handleAutoCode = () => {
@@ -303,7 +306,8 @@ export function InventoryPage() {
       setShowModal(false);
       loadAll();
     } catch (err: any) {
-      alert(err?.response?.data?.message || 'Erro ao salvar peca.');
+      const msg = err?.response?.data?.message;
+      setPartError(Array.isArray(msg) ? msg.join(', ') : msg || 'Erro ao salvar peça.');
       console.error(err);
     }
   };
@@ -320,7 +324,8 @@ export function InventoryPage() {
       setMovQty(1); setMovNote('');
       loadAll();
     } catch (err: any) {
-      alert(err?.response?.data?.message || 'Erro ao registrar movimentação');
+      const msg = err?.response?.data?.message;
+      setMovError(Array.isArray(msg) ? msg.join(', ') : msg || 'Erro ao registrar movimentação.');
     }
   };
 
@@ -638,8 +643,14 @@ export function InventoryPage() {
                     className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white focus:outline-none focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 transition-all text-sm min-h-[70px] resize-none" />
                 </div>
 
+                {partError && (
+                  <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                    {partError}
+                  </p>
+                )}
+
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                  <button type="button" onClick={() => setShowModal(false)}
+                  <button type="button" onClick={() => { setShowModal(false); setPartError(''); }}
                     className="px-6 py-2.5 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-100 transition-all">Cancelar</button>
                   <button type="submit"
                     className="px-8 py-2.5 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-sm active:scale-95">
@@ -696,8 +707,13 @@ export function InventoryPage() {
                   <input value={movNote} onChange={e => setMovNote(e.target.value)} placeholder="Nota fiscal, motivo, etc."
                     className="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm focus:outline-none focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 transition-all" />
                 </div>
+                {movError && (
+                  <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                    {movError}
+                  </p>
+                )}
                 <div className="flex justify-end gap-3 pt-2">
-                  <button onClick={() => setShowMovModal(null)} className="px-6 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-all">Cancelar</button>
+                  <button onClick={() => { setShowMovModal(null); setMovError(''); }} className="px-6 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-all">Cancelar</button>
                   <button onClick={handleMovement}
                     className={cn('px-8 py-2.5 text-white rounded-xl font-bold transition-all active:scale-95 shadow-sm',
                       movType === 'ENTRY' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-500 hover:bg-red-600')}>

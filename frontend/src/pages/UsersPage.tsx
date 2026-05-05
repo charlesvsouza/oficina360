@@ -35,6 +35,8 @@ export function UsersPage() {
   const [resetTargetUser, setResetTargetUser] = useState<any>(null);
   const [resetPassword, setResetPassword] = useState('');
   const [showResetPassword, setShowResetPassword] = useState(false);
+  const [userError, setUserError] = useState('');
+  const [resetError, setResetError] = useState('');
   
   const [formData, setFormData] = useState({
     name: '',
@@ -118,8 +120,9 @@ export function UsersPage() {
       setShowModal(false);
       resetForm();
       loadUsers();
-    } catch (error) {
-      alert('Falha ao salvar usuário. Verifique as permissões ou se o email já existe.');
+    } catch (error: any) {
+      const msg = error?.response?.data?.message;
+      setUserError(Array.isArray(msg) ? msg.join(', ') : msg || 'Falha ao salvar usuário. Verifique as permissões ou se o email já existe.');
       console.error('Failed to save user:', error);
     }
   };
@@ -179,7 +182,7 @@ export function UsersPage() {
     e.preventDefault();
     if (!resetTargetUser) return;
     if (!resetPassword || resetPassword.length < 6) {
-      alert('A nova senha precisa ter no minimo 6 caracteres.');
+      setResetError('A nova senha precisa ter no mínimo 6 caracteres.');
       return;
     }
 
@@ -189,9 +192,10 @@ export function UsersPage() {
       setShowResetModal(false);
       setResetTargetUser(null);
       setResetPassword('');
+      setResetError('');
       loadUsers();
     } catch (error) {
-      alert('Falha ao redefinir senha.');
+      setResetError('Falha ao redefinir senha.');
       console.error('Failed to reset password:', error);
     }
   };
@@ -547,10 +551,16 @@ export function UsersPage() {
                 <label htmlFor="isActive" className="text-sm font-bold text-slate-700 cursor-pointer">Usuário ativo e autorizado a acessar o sistema</label>
               </div>
 
+              {userError && (
+                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                  {userError}
+                </p>
+              )}
+
               <div className="flex justify-end gap-4 pt-4">
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => { setShowModal(false); setUserError(''); }}
                   className="px-8 py-3 text-slate-400 font-black text-xs uppercase tracking-widest hover:text-slate-800 transition-colors"
                 >
                   Cancelar
@@ -611,10 +621,16 @@ export function UsersPage() {
                 </div>
               </div>
 
+              {resetError && (
+                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                  {resetError}
+                </p>
+              )}
+
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowResetModal(false)}
+                  onClick={() => { setShowResetModal(false); setResetError(''); }}
                   className="px-6 py-3 text-slate-400 font-black text-xs uppercase tracking-widest hover:text-slate-800 transition-colors"
                 >
                   Cancelar

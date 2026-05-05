@@ -69,6 +69,7 @@ export function FinancialPage() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [transactionError, setTransactionError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [tenantData, setTenantData] = useState<any>(null);
   const [summary, setSummary] = useState({ income: 0, expense: 0, balance: 0 });
@@ -107,16 +108,18 @@ export function FinancialPage() {
   const handleAddTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canManageFinancial) {
-      alert('Seu perfil nao possui permissao para lancar movimentacoes financeiras.');
+      setTransactionError('Seu perfil não possui permissão para lançar movimentações financeiras.');
       return;
     }
     try {
       await financialApi.create(formData);
       setShowAddModal(false);
+      setTransactionError('');
       loadFinancialData();
       setFormData({ description: '', amount: 0, type: 'EXPENSE', category: 'Geral', date: new Date().toISOString().split('T')[0] });
-    } catch {
-      alert('Erro ao salvar transação');
+    } catch (error: any) {
+      const msg = error?.response?.data?.message;
+      setTransactionError(Array.isArray(msg) ? msg.join(', ') : msg || 'Erro ao salvar transação. Tente novamente.');
     }
   };
 
@@ -569,6 +572,11 @@ export function FinancialPage() {
                 </div>
 
                 <div className="pt-6">
+                  {transactionError && (
+                    <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">
+                      {transactionError}
+                    </p>
+                  )}
                   <button
                     type="submit"
                     disabled={!canManageFinancial}

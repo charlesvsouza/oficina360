@@ -155,6 +155,8 @@ export function DashboardPage() {
       .filter((o: any) => o.scheduledDate && new Date(o.scheduledDate).toDateString() === todayStr)
       .sort((a: any, b: any) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime());
   }, [orders]);
+
+  const productivityData = useMemo(() => {
     const cutoffDate = new Date();
     cutoffDate.setHours(0, 0, 0, 0);
     cutoffDate.setDate(cutoffDate.getDate() - (productivityWindowDays - 1));

@@ -91,8 +91,36 @@ function buildLaudoHtml(os: any, metrologia: MetrologiaData | null, tenant: any)
       <td class="tc">${fmtMM(cyl.diametroMedido)}</td>
       <td class="tc">${fmtMM(cyl.ovalização)}</td>
       <td class="tc">${fmtMM(cyl.conicidade)}</td>
-      <td class="tc">${fmtMM(cyl.folga)}</td>
+      <td class="tc">${fmtMM((cyl as any).folgaPistao ?? (cyl as any).folga)}</td>
     </tr>
+  `).join('');
+
+  const munhoesRows = (metrologia?.munhoes ?? []).map((m, i) => `
+    <tr>
+      <td class="tc">${i + 1}</td>
+      <td class="tc">${fmtMM(m.diametroNominal)}</td>
+      <td class="tc">${fmtMM(m.diametroMedido)}</td>
+      <td class="tc">${fmtMM(m.ovalização)}</td>
+      <td class="tc">${fmtMM(m.conicidade)}</td>
+    </tr>
+  `).join('');
+
+  const moentesRows = (metrologia?.moentes ?? []).map((m, i) => `
+    <tr>
+      <td class="tc">${i + 1}</td>
+      <td class="tc">${fmtMM(m.diametroNominal)}</td>
+      <td class="tc">${fmtMM(m.diametroMedido)}</td>
+      <td class="tc">${fmtMM(m.ovalização)}</td>
+      <td class="tc">${fmtMM(m.conicidade)}</td>
+    </tr>
+  `).join('');
+
+  const mancaisRows = (metrologia?.mancaisBloco ?? []).map((m, i) => `
+    <tr><td class="tc">${i + 1}</td><td class="tc">${fmtMM(m.diametroNominal)}</td><td class="tc">${fmtMM(m.diametroMedido)}</td></tr>
+  `).join('');
+
+  const bielasRows = (metrologia?.bielas ?? []).map((b, i) => `
+    <tr><td class="tc">${i + 1}</td><td class="tc">${fmtMM(b.diametroNominal)}</td><td class="tc">${fmtMM(b.diametroMedido)}</td></tr>
   `).join('');
 
   const servicosRows = servicos.length
@@ -162,10 +190,22 @@ function buildLaudoHtml(os: any, metrologia: MetrologiaData | null, tenant: any)
 
   <!-- Metrologia -->
   ${metrologia ? `
+  <!-- Empenamentos -->
   <table>
     <tr class="amber-hdr">
-      <th colspan="6">Metrologia — ${metrologia.numeroCilindros} cilindros · Técnico: ${fmt(metrologia.tecnico)} · Leitura: ${fmtDate(metrologia.dataLeitura)}</th>
+      <th colspan="4">Metrologia — ${metrologia.numeroCilindros} cilindros · Técnico: ${fmt(metrologia.tecnico)} · Leitura: ${fmtDate(metrologia.dataLeitura)}</th>
     </tr>
+    <tr>
+      <th style="width:25%">Empenamento — Face do cabeçote</th>
+      <td style="width:25%">${fmtMM(metrologia.empenamentoCabecote)} mm</td>
+      <th style="width:25%">Empenamento — Face do bloco</th>
+      <td>${fmtMM(metrologia.empenamentoBloco)} mm</td>
+    </tr>
+  </table>
+
+  <!-- Cilindros -->
+  <table>
+    <tr class="hdr"><th colspan="6">Diâmetros dos Cilindros</th></tr>
     <tr>
       <th class="tc" style="width:8%">Cil.</th>
       <th class="tc">Ø Nominal (mm)</th>
@@ -175,8 +215,67 @@ function buildLaudoHtml(os: any, metrologia: MetrologiaData | null, tenant: any)
       <th class="tc">Folga Pistão (mm)</th>
     </tr>
     ${cilindrosRows}
-    ${metrologia.observacoes ? `<tr><td colspan="6" style="background:#fffbeb; font-style:italic; color:#555;">Obs: ${metrologia.observacoes}</td></tr>` : ''}
   </table>
+
+  <!-- Munhões principais -->
+  ${munhoesRows ? `
+  <table>
+    <tr class="amber-hdr"><th colspan="5">Munhões do Virabrequim — Principais (${metrologia.numeroMunhoes})</th></tr>
+    <tr>
+      <th class="tc" style="width:8%">#</th>
+      <th class="tc">Ø Nominal (mm)</th>
+      <th class="tc">Ø Medido (mm)</th>
+      <th class="tc">Ovalização (mm)</th>
+      <th class="tc">Conicidade (mm)</th>
+    </tr>
+    ${munhoesRows}
+  </table>` : ''}
+
+  <!-- Moentes -->
+  ${moentesRows ? `
+  <table>
+    <tr class="amber-hdr"><th colspan="5">Moentes do Virabrequim — Munhões de Biela (${metrologia.numeroMoentes})</th></tr>
+    <tr>
+      <th class="tc" style="width:8%">#</th>
+      <th class="tc">Ø Nominal (mm)</th>
+      <th class="tc">Ø Medido (mm)</th>
+      <th class="tc">Ovalização (mm)</th>
+      <th class="tc">Conicidade (mm)</th>
+    </tr>
+    ${moentesRows}
+  </table>` : ''}
+
+  <!-- Mancais do bloco / Bielas -->
+  ${mancaisRows || bielasRows ? `
+  <table>
+    <tr>
+      ${mancaisRows ? `
+      <td style="border:none; padding:0; vertical-align:top; width:48%;">
+        <table>
+          <tr class="hdr"><th colspan="3">Mancais de Apoio do Bloco (${metrologia.numeroMancais})</th></tr>
+          <tr><th class="tc" style="width:15%">#</th><th class="tc">Ø Nominal (mm)</th><th class="tc">Ø Medido (mm)</th></tr>
+          ${mancaisRows}
+        </table>
+      </td>
+      <td style="border:none; padding:0; width:4%;"></td>
+      ` : ''}
+      ${bielasRows ? `
+      <td style="border:none; padding:0; vertical-align:top; width:48%;">
+        <table>
+          <tr class="hdr"><th colspan="3">Cabeças de Biela — Ø Interno (${metrologia.numeroBielas})</th></tr>
+          <tr><th class="tc" style="width:15%">#</th><th class="tc">Ø Nominal (mm)</th><th class="tc">Ø Medido (mm)</th></tr>
+          ${bielasRows}
+        </table>
+      </td>
+      ` : ''}
+    </tr>
+  </table>` : ''}
+
+  ${metrologia.observacoes ? `
+  <table>
+    <tr><td style="background:#fffbeb; font-style:italic; color:#555;"><strong>Obs. Metrologia:</strong> ${metrologia.observacoes}</td></tr>
+  </table>` : ''}
+
   ` : `
   <table>
     <tr class="amber-hdr"><th>Metrologia</th></tr>

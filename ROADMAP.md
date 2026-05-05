@@ -171,7 +171,7 @@
   - Backend: `AiModule` — `POST /ai/suggest` — OpenAI GPT-4o-mini + fallback por palavras-chave
   - Frontend: botão "IA" no modal de catálogo, painel expansível com campo de sintoma e sugestões clicáveis
   - Sem `OPENAI_API_KEY`: fallback automático por matching de palavras-chave no catálogo local
-- [ ] **Página Notícias** — atualizada com lançamentos recentes e funcionalidades futuras como roadmap público *(05/05/2026)*
+- [x] **Página Notícias** — atualizada com lançamentos recentes e funcionalidades futuras como roadmap público *(05/05/2026)*
 
 ---
 

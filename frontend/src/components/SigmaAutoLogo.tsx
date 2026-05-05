@@ -20,65 +20,13 @@ interface SigmaAutoLogoProps {
 
 export function SigmaAutoLogo({ variant = 'compact', size = 36, className = '' }: SigmaAutoLogoProps) {
   const Icon = (
-    <svg
+    <img
+      src="/logo.png"
+      alt="SigmaAuto"
       width={size}
       height={size}
-      viewBox="0 0 40 40"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <defs>
-        <linearGradient id="sa-grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#f59e0b" />
-          <stop offset="100%" stopColor="#ff7b2f" />
-        </linearGradient>
-        {/* Brilho sutil no topo */}
-        <linearGradient id="sa-bg" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#1e1b10" />
-          <stop offset="100%" stopColor="#0f0f12" />
-        </linearGradient>
-      </defs>
-
-      {/* Background rounded square */}
-      <rect width="40" height="40" rx="10" fill="url(#sa-bg)" />
-      <rect width="40" height="40" rx="10" fill="url(#sa-grad)" fillOpacity="0.12" />
-
-      {/*
-        Sigma (Σ) estilizado:
-        - Barra superior horizontal
-        - Diagonal superior descendo para o centro
-        - Diagonal inferior descendo do centro (mais curta)
-        - Barra inferior com seta →
-      */}
-      {/* Barra superior */}
-      <line x1="10" y1="9" x2="30" y2="9" stroke="url(#sa-grad)" strokeWidth="2.8" strokeLinecap="round" />
-
-      {/* Diagonal sup: topo-esquerdo → vértice direito-centro */}
-      <line x1="11" y1="9.5" x2="28" y2="20.5" stroke="url(#sa-grad)" strokeWidth="2.8" strokeLinecap="round" />
-
-      {/* Diagonal inf: vértice direito-centro → baixo-esquerdo */}
-      <line x1="28" y1="20.5" x2="11" y2="31" stroke="url(#sa-grad)" strokeWidth="2.8" strokeLinecap="round" />
-
-      {/* Barra inferior + seta com curva suave para cima */}
-      <path
-        d="M 10 31.5 L 20 31.5 Q 30 31.5 31 22"
-        stroke="url(#sa-grad)"
-        strokeWidth="2.8"
-        strokeLinecap="round"
-        fill="none"
-      />
-
-      {/* Ponta da seta ↑ (apontando para cima) */}
-      <polyline
-        points="27,25 31,21.5 35,25"
-        stroke="url(#sa-grad)"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-    </svg>
+      style={{ objectFit: 'contain' }}
+    />
   );
 
   if (variant === 'icon') {

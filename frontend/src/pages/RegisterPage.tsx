@@ -3,7 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
 import { authApi } from '../api/client';
-import { Wrench, Mail, Lock, User, Building, Loader2, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, User, Building, Loader2, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { SigmaAutoLogo } from '../components/SigmaAutoLogo';
 import { formatCpfCnpj } from '../lib/masks';
 
 export function RegisterPage() {
@@ -75,10 +76,7 @@ export function RegisterPage() {
         <div className="hidden lg:flex flex-col justify-between p-12 bg-gradient-to-br from-blue-600/20 to-transparent border-r border-white/10">
           <div>
             <div className="flex items-center gap-3 mb-8">
-              <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-                <Wrench className="text-white" size={20} />
-              </div>
-              <span className="text-xl font-bold tracking-tight">Sigma Auto</span>
+              <SigmaAutoLogo variant="full" />
             </div>
 
             <h1 className="text-4xl font-bold leading-tight mb-6">

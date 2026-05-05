@@ -3,7 +3,8 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
 import { authApi, subscriptionsApi } from '../api/client';
-import { Wrench, Mail, Lock, Loader2, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Loader2, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { SigmaAutoLogo } from '../components/SigmaAutoLogo';
 const LOGIN_PROGRESS_DURATION_MS = 30000;
 
 export function LoginPage() {
@@ -109,10 +110,7 @@ export function LoginPage() {
         <div className="glass-card bg-slate-900/40 p-8 md:p-10 rounded-[2.5rem] border border-white/10 relative overflow-hidden backdrop-blur-2xl">
           {/* Logo Section */}
           <div className="flex flex-col items-center mb-10">
-            <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20 mb-4">
-              <Wrench className="text-white" size={28} />
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">Sigma Auto</h1>
+            <SigmaAutoLogo variant="full" className="mb-2" />
             <p className="text-slate-300 text-sm mt-1">Bem-vindo de volta!</p>
           </div>
 

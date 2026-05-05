@@ -211,6 +211,11 @@ export class UpdateOrcamentoDto {
   @IsOptional()
   @IsBoolean()
   reserveStock?: boolean;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  scheduledDate?: string;
 }
 
 export class UpdateStatusDto {

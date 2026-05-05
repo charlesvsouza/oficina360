@@ -293,6 +293,10 @@ export class ServiceOrdersService {
       updateData.reserveStock = dto.reserveStock;
     }
 
+    if (dto.scheduledDate !== undefined) {
+      updateData.scheduledDate = dto.scheduledDate ? new Date(dto.scheduledDate) : null;
+    }
+
     return this.prisma.serviceOrder.update({
       where: { id },
       data: updateData,

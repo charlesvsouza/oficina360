@@ -369,7 +369,10 @@ export function KanbanRetificaPage() {
         });
       } catch { /* ignora falha individual de item */ }
     }
+    // Recarrega OS atualizada e abre laudo para impressão
+    const res = await serviceOrdersApi.getById(id);
     setMetrologiaTarget(null);
+    setLaudoTarget(res.data);
     await load(true);
   };
 

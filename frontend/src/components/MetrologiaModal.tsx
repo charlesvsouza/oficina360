@@ -657,7 +657,7 @@ export function MetrologiaModal({ osId, osNumber, onSave, onCancel, initialData 
                   className="flex items-center gap-2 px-6 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-black rounded-xl transition-all">
                   {saved  ? <><CheckCircle2 size={15} /> Salvo!</> :
                    saving ? <><Loader2 size={15} className="animate-spin" /> Salvando…</> :
-                            <>Confirmar e avançar para Metrologia</>}
+                            <>Confirmar Metrologia e imprimir laudo</>}
                 </button>
               </>
             )}

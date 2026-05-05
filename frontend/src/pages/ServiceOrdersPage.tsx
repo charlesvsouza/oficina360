@@ -13,6 +13,7 @@ import { useAuthStore } from '../store/authStore';
 import { ImportOSModal } from '../components/ImportOSModal';
 import { ChecklistModal } from '../components/ChecklistModal';
 import { MetrologiaModal, type MetrologiaData, type SuggestedItem } from '../components/MetrologiaModal';
+import { LaudoRetificaModal } from '../components/LaudoRetificaModal';
 import { canAccessFeature, canAccessRetificaMode } from '../lib/planAccess';
 
 const statusConfig: Record<string, { label: string; color: string; icon?: string }> = {
@@ -250,6 +251,7 @@ export function ServiceOrdersPage() {
 
   // Modal de metrologia (aberto a partir do Andamento da O.S.)
   const [metrologiaOsTarget, setMetrologiaOsTarget] = useState<{ id: string; number: string; notes: string | null } | null>(null);
+  const [laudoRetificaOs, setLaudoRetificaOs] = useState<any | null>(null);
 
   const handleMetrologiaSaveFromDetail = async (data: MetrologiaData, items: SuggestedItem[]) => {
     if (!metrologiaOsTarget) return;
@@ -269,7 +271,11 @@ export function ServiceOrdersPage() {
         });
       } catch { /* ignora falha individual */ }
     }
+    // Recarrega a OS atualizada e abre o laudo para impressão
+    const res = await serviceOrdersApi.getById(id);
+    setSelectedOrder(res.data);
     setMetrologiaOsTarget(null);
+    setLaudoRetificaOs(res.data);
     await loadOrders();
   };
 
@@ -2181,6 +2187,15 @@ export function ServiceOrdersPage() {
           })()}
           onSave={handleMetrologiaSaveFromDetail}
           onCancel={() => setMetrologiaOsTarget(null)}
+        />
+      )}
+
+      {/* Laudo de Retífica — abre automaticamente após salvar metrologia */}
+      {laudoRetificaOs && (
+        <LaudoRetificaModal
+          os={laudoRetificaOs}
+          tenant={tenant}
+          onClose={() => setLaudoRetificaOs(null)}
         />
       )}
 

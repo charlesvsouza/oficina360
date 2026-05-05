@@ -141,7 +141,7 @@ async function main() {
     executors[u.id] = await prisma.user.upsert({
       where: { tenantId_email: { tenantId: demoTenant.id, email: u.email } },
       update: {},
-      create: { tenantId: demoTenant.id, passwordHash: userPwd, isActive: true, commissionPercent, ...rest },
+      create: { tenantId: demoTenant.id, passwordHash: userPwd, isActive: true, ...rest },
     });
   }
   console.log(`✅ ${executorData.length} executores criados`);

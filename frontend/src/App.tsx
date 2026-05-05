@@ -47,6 +47,7 @@ import { RetificaMotoresPage } from './pages/RetificaMotoresPage';
 import { MaintenancePage } from './pages/MaintenancePage';
 import { NpsPage } from './pages/NpsPage';
 import { NpsAnswerPage } from './pages/NpsAnswerPage';
+import { AgendaPage } from './pages/AgendaPage';
 import { ImpersonationBanner } from './components/ImpersonationBanner';
 import { SessionSecurity } from './components/SessionSecurity';
 
@@ -99,6 +100,7 @@ export default function App() {
             <Route path="/users" element={<UsersPage />} />
             <Route path="/vehicles" element={<VehiclesPage />} />
             <Route path="/service-orders" element={<ServiceOrdersPage />} />
+            <Route path="/agenda" element={<AgendaPage />} />
             <Route path="/services" element={<ServicesPage />} />
             <Route path="/inventory" element={<InventoryPage />} />
             <Route path="/retifica" element={<RetificaModeRoute><RetificaMotoresPage /></RetificaModeRoute>} />

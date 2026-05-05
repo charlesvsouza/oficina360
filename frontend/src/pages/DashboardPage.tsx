@@ -149,7 +149,12 @@ export function DashboardPage() {
     });
   }, [orders]);
 
-  const productivityData = useMemo(() => {
+  const agendaHoje = useMemo(() => {
+    const todayStr = new Date().toDateString();
+    return orders
+      .filter((o: any) => o.scheduledDate && new Date(o.scheduledDate).toDateString() === todayStr)
+      .sort((a: any, b: any) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime());
+  }, [orders]);
     const cutoffDate = new Date();
     cutoffDate.setHours(0, 0, 0, 0);
     cutoffDate.setDate(cutoffDate.getDate() - (productivityWindowDays - 1));
@@ -695,6 +700,47 @@ export function DashboardPage() {
               </div>
             )}
           </div>
+
+          {/* Agenda do Dia */}
+          {agendaHoje.length > 0 && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 overflow-hidden"
+            >
+              <div className="flex items-center justify-between px-4 py-3 border-b border-blue-100">
+                <div className="flex items-center gap-2">
+                  <Calendar size={14} className="text-blue-500" />
+                  <p className="text-xs font-black text-blue-900 uppercase tracking-widest">Agenda de Hoje</p>
+                </div>
+                <button onClick={() => navigate('/agenda')} className="text-[10px] font-black text-blue-500 hover:underline">
+                  Ver completa →
+                </button>
+              </div>
+              <div className="divide-y divide-blue-100">
+                {agendaHoje.slice(0, 5).map((o: any) => (
+                  <div key={o.id}
+                    onClick={() => navigate('/service-orders')}
+                    className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-blue-100/50 transition-colors"
+                  >
+                    <span className="text-[11px] font-black text-blue-700 w-11 shrink-0">
+                      {new Date(o.scheduledDate).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-slate-800 truncate">{o.customer?.name || 'Cliente'}</p>
+                      <p className="text-[10px] text-slate-500 truncate">
+                        {o.vehicle ? `${o.vehicle.brand} ${o.vehicle.model} — ${o.vehicle.plate}` : (o.equipmentBrand || 'Sem veículo')}
+                      </p>
+                    </div>
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-blue-200 text-blue-800">
+                      #{o.id.slice(-5).toUpperCase()}
+                    </span>
+                  </div>
+                ))}
+                {agendaHoje.length > 5 && (
+                  <p className="px-4 py-2 text-[10px] text-blue-500 font-bold">+{agendaHoje.length - 5} mais agendados hoje</p>
+                )}
+              </div>
+            </motion.div>
+          )}
 
           {planName === 'START' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}

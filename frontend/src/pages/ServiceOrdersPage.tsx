@@ -207,11 +207,13 @@ export function ServiceOrdersPage() {
     equipmentBrand: '',
     equipmentModel: '',
     serialNumber: '',
+    scheduledDate: '',
   });
 
   const [edit, setEdit] = useState({
     complaint: '', diagnosis: '', technicalReport: '',
     observations: '', notes: '', paymentMethod: '', reserveStock: false,
+    scheduledDate: '',
   });
 
   // Catalog state
@@ -347,6 +349,7 @@ export function ServiceOrdersPage() {
         notes: o.notes || '',
         paymentMethod: o.paymentMethod || '',
         reserveStock: Boolean(o.reserveStock),
+        scheduledDate: o.scheduledDate ? new Date(o.scheduledDate).toISOString().slice(0, 16) : '',
       });
       setPendingQtyByItem({});
           // Carrega status dos checklists
@@ -1635,6 +1638,17 @@ export function ServiceOrdersPage() {
                   </div>
                 </div>
 
+                {/* Agendamento */}
+                <div className="space-y-2">
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Agendamento</h4>
+                  <input
+                    type="datetime-local"
+                    value={edit.scheduledDate}
+                    onChange={(e) => setEdit({ ...edit, scheduledDate: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold focus:ring-2 focus:ring-slate-900/10 transition-all"
+                  />
+                </div>
+
                 {/* Forma de pagamento */}
                 <div className="space-y-3">
                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Forma de Pagamento</h4>
@@ -2198,13 +2212,14 @@ export function ServiceOrdersPage() {
                     ...newOrder,
                     vehicleId: newOrder.vehicleId || undefined,
                     kmEntrada: newOrder.vehicleId ? newOrder.kmEntrada : undefined,
+                    scheduledDate: newOrder.scheduledDate || undefined,
                     equipmentBrand: newOrder.orderType === 'RETIFICA_MOTOR' ? (newOrder.equipmentBrand || undefined) : undefined,
                     equipmentModel: newOrder.orderType === 'RETIFICA_MOTOR' ? (newOrder.equipmentModel || undefined) : undefined,
                     serialNumber: newOrder.orderType === 'RETIFICA_MOTOR' ? (newOrder.serialNumber || undefined) : undefined,
                   };
                   const res = await serviceOrdersApi.create(payload);
                   setShowCreateModal(false);
-                  setNewOrder({ customerId: '', vehicleId: '', complaint: '', kmEntrada: 0, reserveStock: false, orderType: 'ORCAMENTO', equipmentBrand: '', equipmentModel: '', serialNumber: '' });
+                  setNewOrder({ customerId: '', vehicleId: '', complaint: '', kmEntrada: 0, reserveStock: false, orderType: 'ORCAMENTO', equipmentBrand: '', equipmentModel: '', serialNumber: '', scheduledDate: '' });
                   loadOrders();
                   selectOrder(res.data);
                 } catch (err: any) { alert('Erro ao criar OS: ' + (err?.response?.data?.message || err?.message || 'Verifique os dados.')); }
@@ -2284,6 +2299,10 @@ export function ServiceOrdersPage() {
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">KM Entrada</label>
                   <input type="number" className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white text-sm font-bold focus:ring-4 focus:ring-slate-900/5 transition-all" value={newOrder.kmEntrada} onChange={(e) => setNewOrder({ ...newOrder, kmEntrada: Number(e.target.value) })} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Data / Hora do Agendamento</label>
+                  <input type="datetime-local" className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white text-sm font-bold focus:ring-4 focus:ring-slate-900/5 transition-all" value={newOrder.scheduledDate} onChange={(e) => setNewOrder({ ...newOrder, scheduledDate: e.target.value })} />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Reclamação Principal</label>

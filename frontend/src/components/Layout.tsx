@@ -24,6 +24,7 @@ import {
   Award,
   Cog,
   Star,
+  CalendarDays,
 } from 'lucide-react';
 import { useState } from 'react';
 import { canAccessFeature, canAccessRetificaMode, featureLabel, getFeatureMinPlan, getFeatureUpgradeMessage, getPlanLabel, type PlanFeatureKey } from '../lib/planAccess';
@@ -70,6 +71,7 @@ export function Layout() {
       label: 'Atendimento',
       items: [
         { to: '/service-orders', icon: ClipboardList, label: 'Ordens de Serviço', premium: false },
+        { to: '/agenda', icon: CalendarDays, label: 'Agenda', premium: false },
         { to: '/customers', icon: Users, label: 'Clientes', premium: false },
         { to: '/vehicles', icon: Car, label: 'Veículos', premium: false },
       ],

@@ -165,7 +165,17 @@
 
 ---
 
-### � Sprint 3 — Aquisição de Novos Clientes *(aguardando primeiras aquisições)*
+### 🔜 Sprint 3 — IA e Conversão *(iniciado em 05/05/2026)*
+
+- [x] **IA Assistiva no Orçamento** — sugestão de serviços e peças por sintoma relatado *(05/05/2026)*
+  - Backend: `AiModule` — `POST /ai/suggest` — OpenAI GPT-4o-mini + fallback por palavras-chave
+  - Frontend: botão "IA" no modal de catálogo, painel expansível com campo de sintoma e sugestões clicáveis
+  - Sem `OPENAI_API_KEY`: fallback automático por matching de palavras-chave no catálogo local
+- [ ] **Página Notícias** — atualizada com lançamentos recentes e funcionalidades futuras como roadmap público *(05/05/2026)*
+
+---
+
+### 🚀 Sprint 4 — Aquisição de Novos Clientes *(aguardando primeiras aquisições)*
 
 > Será iniciado após os primeiros clientes pagantes, com base em feedback real de uso.
 
@@ -175,11 +185,10 @@
 
 ---
 
-### 🚀 Sprint 4 — Enterprise / Franquias (plano REDE)
+### 🚀 Sprint 5 — Enterprise / Franquias (plano REDE)
 
 - [ ] **Gestão Multi-Unidades** — login único, relatórios por filial
 - [ ] **Emissão NF-e / NFS-e** — integração Focus NF-e ou eNotas
-- [ ] **IA Assistiva no Orçamento** — sugestão de serviços por sintoma
 - [ ] **Marketplace de Peças** — consulta de estoque em distribuidores
 
 ---

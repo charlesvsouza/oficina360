@@ -242,6 +242,16 @@ export const maintenanceApi = {
   getDue: () => api.get('/maintenance/due'),
 };
 
+export const aiApi = {
+  suggest: (data: {
+    description: string;
+    vehicleBrand?: string;
+    vehicleModel?: string;
+    vehicleYear?: number;
+    existingItems?: string[];
+  }) => api.post('/ai/suggest', data),
+};
+
 export const npsApi = {
   getDashboard: () => api.get('/nps/dashboard'),
   sendForOrder: (serviceOrderId: string) => api.post(`/nps/send/${serviceOrderId}`),

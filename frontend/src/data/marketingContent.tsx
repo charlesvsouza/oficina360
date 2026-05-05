@@ -186,22 +186,52 @@ export const quickLinks = [
 
 export const news: NewsItem[] = [
   {
-    tag: 'Em producao',
-    date: 'Em andamento',
-    title: 'Painel de produtividade por tecnico',
-    excerpt: 'Estamos evoluindo os indicadores operacionais para ajudar o gestor a acompanhar produtividade, tempo medio de execucao e gargalos da equipe com mais contexto.',
+    tag: 'Lancamento',
+    date: 'Maio 2026',
+    title: 'IA Assistiva no Orçamento',
+    excerpt: 'Descreveu o problema do veículo? A IA analisa o sintoma e sugere serviços e peças do seu próprio catálogo. Com OpenAI integrada, o orçamento fica pronto mais rápido e com menos chance de esquecer itens.',
+  },
+  {
+    tag: 'Lancamento',
+    date: 'Maio 2026',
+    title: 'Módulo de Retífica de Motores',
+    excerpt: 'Fluxo completo para retificadoras: desmontagem, metrologia em 2 etapas, diagnóstico automático de serviços, laudo técnico para impressão e painel Kanban dedicado com SLA por motor.',
+  },
+  {
+    tag: 'Lancamento',
+    date: 'Abril / Maio 2026',
+    title: 'NPS Automático e Manutenção Preventiva',
+    excerpt: 'Pesquisa de satisfação enviada automaticamente via WhatsApp após a entrega do veículo, com dashboard de NPS em tempo real. E lembretes automáticos de revisão por KM ou data — tudo sem intervenção manual.',
   },
   {
     tag: 'Em breve',
     date: 'Proximas entregas',
-    title: 'Lembretes inteligentes de revisao e retorno',
-    excerpt: 'Estamos preparando recursos para facilitar o relacionamento recorrente com o cliente, com comunicacoes de acompanhamento e lembretes de manutencao.',
+    title: 'Agendamento Online para o Cliente',
+    excerpt: 'Um link público da sua oficina onde o cliente agenda o serviço 24 horas por dia, 7 dias por semana — sem precisar ligar, sem esperar atendimento. Será lançado após as primeiras aquisições de clientes pagantes.',
   },
   {
     tag: 'Em breve',
-    date: 'Planejamento continuo',
-    title: 'Mais automacoes no fluxo de O.S.',
-    excerpt: 'Estamos desenvolvendo melhorias para reduzir cliques no dia a dia, acelerar etapas da ordem de servico e tornar o fechamento mais previsivel.',
+    date: 'Proximas entregas',
+    title: 'Portal do Cliente (PWA)',
+    excerpt: 'O cliente acompanha o status da O.S. em tempo real, aprova orçamentos pelo celular e consulta o histórico completo do seu veículo. Funciona como um app, sem precisar instalar nada.',
+  },
+  {
+    tag: 'Planejamento',
+    date: 'Futuro',
+    title: 'NF-e e NFS-e Integrados',
+    excerpt: 'Emissão de nota fiscal direto da tela de faturamento, integrado com Focus NF-e ou eNotas. Sem abrir outro sistema, sem retrabalho de digitação.',
+  },
+  {
+    tag: 'Planejamento',
+    date: 'Futuro',
+    title: 'Gestão Multi-Unidades e Redes',
+    excerpt: 'Para redes de oficinas e franquias: login único, relatórios consolidados por filial e controle de estoque inter-unidades. Disponível no plano REDE.',
+  },
+  {
+    tag: 'Planejamento',
+    date: 'Futuro',
+    title: 'Marketplace de Peças',
+    excerpt: 'Consulta de disponibilidade e preços em distribuidores como Delloparts e Nakata direto do sistema, sem sair do orçamento. Compra com um clique, nota automática.',
   },
 ];
 

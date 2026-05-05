@@ -22,6 +22,7 @@ import { WhatsappModule } from './whatsapp/whatsapp.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
 import { CommissionsModule } from './commissions/commissions.module';
 import { NpsModule } from './nps/nps.module';
+import { AiModule } from './ai/ai.module';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
 
 @Module({
@@ -58,6 +59,7 @@ import { TenantMiddleware } from './common/middleware/tenant.middleware';
     MaintenanceModule,
     CommissionsModule,
     NpsModule,
+    AiModule,
   ],
   providers: [TenantMiddleware],
 })

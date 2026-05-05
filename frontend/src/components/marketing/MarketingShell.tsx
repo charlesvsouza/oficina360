@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Facebook, Instagram, Linkedin, Menu, Twitter, X, Youtube } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { SigmaAutoLogo } from '../SigmaAutoLogo';
 import { navLinks } from '../../data/marketingContent';
 import { useAuthStore } from '../../store/authStore';
 
@@ -63,8 +64,8 @@ export function MarketingShell({ children }: MarketingShellProps) {
         }`}
       >
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between gap-6">
-          <Link to="/" className="text-sm font-black tracking-tight text-white flex-shrink-0">
-            Sigma<span className="text-[#ff7b2f]">Auto</span>
+          <Link to="/" className="flex-shrink-0">
+            <SigmaAutoLogo variant="compact" size={32} />
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">

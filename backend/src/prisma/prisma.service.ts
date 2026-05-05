@@ -67,6 +67,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     await this.exec(`ALTER TABLE service_orders ADD COLUMN IF NOT EXISTS "purchaseOrderNumber" TEXT`);
     await this.exec(`ALTER TABLE vehicle_checklists ADD COLUMN IF NOT EXISTS "ownerName" TEXT`);
     await this.exec(`ALTER TABLE vehicle_checklists ADD COLUMN IF NOT EXISTS "ownerType" TEXT DEFAULT 'PROPRIETARIO'`);
+    // Subscription billing cycle + renewal reminder (05/05/2026)
+    await this.exec(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS "billingCycle" TEXT NOT NULL DEFAULT 'MONTHLY'`);
+    await this.exec(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS "renewalReminderSentAt" TIMESTAMPTZ`);
     // NPS Responses
     await this.exec(`
       CREATE TABLE IF NOT EXISTS nps_responses (

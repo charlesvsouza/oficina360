@@ -108,7 +108,7 @@
 
 ---
 
-### 🔄 Sprint 2 — Fidelização e Relatórios *(em andamento — iniciado em 03/05/2026)*
+### ✅ Sprint 2 — Fidelização e Relatórios *(concluído em 05/05/2026)*
 
 - [x] **Comissão de Mecânicos** — backend 100% implementado (CommissionsModule, CommissionRate, Commission)
   - Modelos `CommissionRate` e `Commission` adicionados ao schema Prisma
@@ -147,9 +147,9 @@
   - [x] Label "Metrologia" clicável no Andamento da O.S. na ServiceOrdersPage
   - [x] Botão `← Voltar` para retroceder fase (ADMIN/MASTER) em OS não finalizadas
   - [x] Confirmar metrologia → abre LaudoRetificaModal automaticamente para impressão (Kanban + ServiceOrdersPage)
-- [ ] **Seed de Dados Demo** — 48 OS + 10 executores + comissões *(pendente)*
-- [ ] **Lembrete de Manutenção Preventiva** — WhatsApp automático por KM/data
-- [ ] **NPS Automático** — pesquisa pós-entrega, dashboard de satisfação
+- [x] **Seed de Dados Demo** — 49 OS + 10 executores + comissões *(04/05/2026 — commits `d5c22f1` + `8d58a82`)*
+- [x] **Lembrete de Manutenção Preventiva** — WhatsApp automático por KM/data *(implementado — `MaintenanceModule` + cron 8h + `MaintenancePage`)*
+- [x] **NPS Automático** — pesquisa pós-entrega, dashboard de satisfação *(implementado — `NpsModule` + cron 9h + `NpsPage` + resposta pública)*
 
 ---
 
@@ -165,7 +165,9 @@
 
 ---
 
-### 🚀 Sprint 3 — Aquisição de Novos Clientes
+### � Sprint 3 — Aquisição de Novos Clientes *(aguardando primeiras aquisições)*
+
+> Será iniciado após os primeiros clientes pagantes, com base em feedback real de uso.
 
 - [ ] **Agendamento Online Público** — link da oficina, cliente agenda 24x7
 - [ ] **Portal do Cliente (PWA)** — status em tempo real, histórico, aprovação

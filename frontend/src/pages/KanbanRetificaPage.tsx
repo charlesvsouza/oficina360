@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSearchParams } from 'react-router-dom';
 import { serviceOrdersApi } from '../api/client';
 import { useAuthStore } from '../store/authStore';
 import {
@@ -84,12 +85,14 @@ function RetificaCard({
   advancing,
   tvMode,
   onLaudo,
+  focused,
 }: {
   os: any;
   onAdvance: (id: string, nextStatus: string) => void;
   advancing: string | null;
   tvMode: boolean;
   onLaudo: (os: any) => void;
+  focused?: boolean;
 }) {
   const next = NEXT_STATUS[os.status];
   const isAdv = advancing === os.id;
@@ -119,12 +122,20 @@ function RetificaCard({
 
   return (
     <motion.div
+      id={`retifica-os-${os.id}`}
       layout
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className={`bg-slate-800/60 border-2 ${alertBorder} rounded-xl p-3 space-y-2 hover:border-white/20 transition-all ${tvMode ? 'text-sm' : 'text-xs'} ${level === 'danger' ? 'animate-pulse' : ''}`}
+      className={`bg-slate-800/60 border-2 ${focused ? 'border-cyan-300 shadow-[0_0_0_3px_rgba(34,211,238,0.25)]' : alertBorder} rounded-xl p-3 space-y-2 hover:border-white/20 transition-all ${tvMode ? 'text-sm' : 'text-xs'} ${level === 'danger' ? 'animate-pulse' : ''}`}
     >
+      {focused && (
+        <div className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-[10px] font-black bg-cyan-500/15 text-cyan-300">
+          <Timer size={11} className="shrink-0" />
+          Foco vindo do Dashboard
+        </div>
+      )}
+
       {/* Alerta */}
       {level !== 'none' && (
         <div className={`flex items-center gap-1.5 rounded-lg px-2 py-1 text-[10px] font-black ${
@@ -208,12 +219,14 @@ function RetificaCard({
 // ─── Página ───────────────────────────────────────────────────────────────────
 export function KanbanRetificaPage() {
   const { tenant } = useAuthStore();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [orders, setOrders]   = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
   const [advancing, setAdvancing] = useState<string | null>(null);
   const [tvMode, setTvMode]   = useState(false);
   const [lastRefresh, setLastRefresh] = useState(new Date());
+  const [focusedOsId, setFocusedOsId] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Modal de metrologia
@@ -245,6 +258,33 @@ export function KanbanRetificaPage() {
     intervalRef.current = setInterval(() => load(true), 60_000);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, []);
+
+  useEffect(() => {
+    const osParam = searchParams.get('os');
+    if (!osParam || orders.length === 0) return;
+
+    const exists = orders.some((o) => o.id === osParam);
+    if (!exists) return;
+
+    setFocusedOsId(osParam);
+
+    const timer = setTimeout(() => {
+      const el = document.getElementById(`retifica-os-${osParam}`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+    }, 120);
+
+    const clearFocus = setTimeout(() => {
+      setFocusedOsId((current) => (current === osParam ? null : current));
+      const next = new URLSearchParams(searchParams);
+      next.delete('os');
+      setSearchParams(next, { replace: true });
+    }, 12000);
+
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(clearFocus);
+    };
+  }, [orders, searchParams, setSearchParams]);
 
   const handleAdvance = async (id: string, nextStatus: string) => {
     // Intercepta avanço para METROLOGIA — abre modal antes
@@ -373,6 +413,7 @@ export function KanbanRetificaPage() {
                             advancing={advancing}
                             tvMode={tvMode}
                             onLaudo={setLaudoTarget}
+                            focused={focusedOsId === os.id}
                           />
                         ))
                       )}

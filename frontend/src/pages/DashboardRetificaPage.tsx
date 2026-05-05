@@ -493,7 +493,7 @@ export function DashboardRetificaPage() {
                     </p>
                   </div>
                   <button
-                    onClick={() => navigate('/kanban-retifica')}
+                    onClick={() => navigate(`/kanban-retifica?os=${item.id}`)}
                     className="shrink-0 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold"
                   >
                     Tratar no Kanban

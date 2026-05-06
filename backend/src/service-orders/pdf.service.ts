@@ -30,7 +30,7 @@ export class PdfService {
       // Garante que o browser esteja inicializado
       if (!this.browser) {
         this.browser = await puppeteer.launch({
-          headless: 'new',
+          headless: true,
           args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -61,7 +61,7 @@ export class PdfService {
 
       await page.close();
 
-      return pdfBuffer;
+      return Buffer.from(pdfBuffer);
     } catch (error) {
       console.error('Erro ao gerar PDF com Puppeteer:', error);
       throw new InternalServerErrorException(

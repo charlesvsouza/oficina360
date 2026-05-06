@@ -13,7 +13,7 @@ export class PdfService implements OnModuleDestroy {
   private async getBrowser(): Promise<puppeteer.Browser> {
     if (!this.browser) {
       this.browser = await puppeteer.launch({
-        headless: 'new',
+        headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
       });
     }
@@ -51,7 +51,7 @@ export class PdfService implements OnModuleDestroy {
       });
 
       await page.close();
-      return pdfBuffer;
+  return Buffer.from(pdfBuffer);
     } catch (error) {
       console.error('Erro ao renderizar PDF:', error);
       throw new InternalServerErrorException('Falha ao renderizar PDF');

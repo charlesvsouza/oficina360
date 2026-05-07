@@ -25,6 +25,13 @@ const STATE_LABEL: Record<ConnectionState, string> = {
   unknown: 'Desconhecido',
 };
 
+function toConnectionState(value: unknown): ConnectionState {
+  if (value === 'open' || value === 'connecting' || value === 'close' || value === 'unknown') {
+    return value;
+  }
+  return 'unknown';
+}
+
 export function WhatsappPage() {
   const [status, setStatus] = useState<WaStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
@@ -60,6 +67,7 @@ export function WhatsappPage() {
   }
 
   const providerName = status?.provider || 'META_CLOUD';
+  const uiState = toConnectionState(status?.state);
 
   if (!status?.configured) {
     return (
@@ -137,8 +145,8 @@ export function WhatsappPage() {
           <p className="font-bold text-slate-900">
             {status?.connected ? 'WhatsApp Conectado' : 'WhatsApp Desconectado'}
           </p>
-          <p className={cn('text-sm font-semibold', stateColor[status?.state ?? 'unknown'])}>
-            {STATE_LABEL[(status?.state as ConnectionState) ?? 'unknown'] || String(status?.state || 'Desconhecido')}
+          <p className={cn('text-sm font-semibold', stateColor[uiState])}>
+            {STATE_LABEL[uiState] || String(status?.state || 'Desconhecido')}
             {` — provider: ${providerName}`}
           </p>
           {!!status?.message && <p className="text-xs text-slate-500 mt-1">{status.message}</p>}

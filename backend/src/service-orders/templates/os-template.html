@@ -36,10 +36,12 @@
         }
         
         .company-logo {
-            font-size: 24px;
+            font-size: 20px;
             font-weight: bold;
             color: #333;
-            letter-spacing: 2px;
+            letter-spacing: 1px;
+            line-height: 1.2;
+            max-width: 55%;
         }
         
         .company-info {
@@ -247,9 +249,8 @@
     <div class="container">
         <!-- CABEÇALHO -->
         <div class="header">
-            <div class="company-logo">SYGMAAUTO</div>
+            <div class="company-logo">{{companyName}}</div>
             <div class="company-info">
-                <strong>{{companyName}}</strong>
                 {{companyAddress}}<br>
                 {{companyPhone}}<br>
                 {{companyEmail}}<br>

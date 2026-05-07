@@ -44,6 +44,8 @@
 | `META_WHATSAPP_TOKEN` | Condicional | Obrigatoria quando `WHATSAPP_PROVIDER=META_CLOUD`. |
 | `META_WHATSAPP_PHONE_NUMBER_ID` | Condicional | Obrigatoria quando `WHATSAPP_PROVIDER=META_CLOUD`. |
 | `META_WHATSAPP_API_VERSION` | Nao | Default: `v22.0`. |
+| `META_WHATSAPP_APP_SECRET` | Condicional | Obrigatoria para validar assinatura `X-Hub-Signature-256` do webhook. |
+| `META_WHATSAPP_VERIFY_TOKEN` | Condicional | Obrigatoria para validacao inicial do webhook (`hub.challenge`). |
 | `MP_ACCESS_TOKEN` | Sim | Mercado Pago (producao). |
 | `MP_WEBHOOK_SECRET` | Sim | Assinatura de webhook Mercado Pago. |
 | `MP_MODE` | Sim | `production` |

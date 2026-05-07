@@ -70,6 +70,26 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     // Subscription billing cycle + renewal reminder (05/05/2026)
     await this.exec(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS "billingCycle" TEXT NOT NULL DEFAULT 'MONTHLY'`);
     await this.exec(`ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS "renewalReminderSentAt" TIMESTAMPTZ`);
+    // WhatsApp webhook events (durable idempotency + audit)
+    await this.exec(`
+      CREATE TABLE IF NOT EXISTS whatsapp_webhook_events (
+        id                TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        provider          TEXT NOT NULL,
+        "eventKey"       TEXT NOT NULL,
+        "eventType"      TEXT,
+        payload           JSONB NOT NULL,
+        "firstReceivedAt" TIMESTAMPTZ NOT NULL DEFAULT now(),
+        "lastReceivedAt" TIMESTAMPTZ NOT NULL DEFAULT now(),
+        "processCount"   INTEGER NOT NULL DEFAULT 1,
+        "createdAt"      TIMESTAMPTZ NOT NULL DEFAULT now(),
+        "updatedAt"      TIMESTAMPTZ NOT NULL DEFAULT now(),
+        CONSTRAINT whatsapp_webhook_events_provider_event_key_unique UNIQUE (provider, "eventKey")
+      )
+    `);
+    await this.exec(`
+      CREATE INDEX IF NOT EXISTS whatsapp_webhook_events_provider_created_at_idx
+      ON whatsapp_webhook_events (provider, "createdAt")
+    `);
     // NPS Responses
     await this.exec(`
       CREATE TABLE IF NOT EXISTS nps_responses (

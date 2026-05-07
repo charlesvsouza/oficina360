@@ -1,14 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createHmac, timingSafeEqual } from 'crypto';
+import { Prisma } from '@prisma/client';
+import { createHmac, createHash, timingSafeEqual } from 'crypto';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class WhatsappMetaWebhookService {
   private readonly logger = new Logger(WhatsappMetaWebhookService.name);
-  private readonly processedEventIds = new Map<string, number>();
-  private readonly eventTtlMs = 6 * 60 * 60 * 1000;
 
-  constructor(private readonly config: ConfigService) {}
+  constructor(
+    private readonly config: ConfigService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   isEnabled(): boolean {
     return this.providerMode === 'META_CLOUD';
@@ -38,9 +41,7 @@ export class WhatsappMetaWebhookService {
     return timingSafeEqual(expectedBuffer, receivedBuffer);
   }
 
-  processInboundEvent(payload: any): { processed: number; duplicates: number } {
-    this.cleanupOldEvents();
-
+  async processInboundEvent(payload: any): Promise<{ processed: number; duplicates: number }> {
     const ids = this.extractEventIds(payload);
     if (ids.length === 0) {
       const fallbackId = this.buildFallbackEventId(payload);
@@ -50,13 +51,43 @@ export class WhatsappMetaWebhookService {
     let processed = 0;
     let duplicates = 0;
 
+    const eventType = this.extractEventType(payload);
+    const now = new Date();
+
     for (const id of ids) {
-      if (this.processedEventIds.has(id)) {
+      const existing = await this.prisma.whatsappWebhookEvent.findUnique({
+        where: {
+          provider_eventKey: {
+            provider: this.providerMode,
+            eventKey: id,
+          },
+        },
+      });
+
+      if (existing) {
+        await this.prisma.whatsappWebhookEvent.update({
+          where: { id: existing.id },
+          data: {
+            processCount: { increment: 1 },
+            lastReceivedAt: now,
+            eventType,
+            payload: payload as Prisma.InputJsonValue,
+          },
+        });
         duplicates++;
         continue;
       }
 
-      this.processedEventIds.set(id, Date.now());
+      await this.prisma.whatsappWebhookEvent.create({
+        data: {
+          provider: this.providerMode,
+          eventKey: id,
+          eventType,
+          payload: payload as Prisma.InputJsonValue,
+          firstReceivedAt: now,
+          lastReceivedAt: now,
+        },
+      });
       processed++;
     }
 
@@ -77,15 +108,6 @@ export class WhatsappMetaWebhookService {
 
   private get appSecret(): string {
     return this.config.get<string>('META_WHATSAPP_APP_SECRET') ?? '';
-  }
-
-  private cleanupOldEvents(): void {
-    const now = Date.now();
-    for (const [id, ts] of this.processedEventIds.entries()) {
-      if (now - ts > this.eventTtlMs) {
-        this.processedEventIds.delete(id);
-      }
-    }
   }
 
   private extractEventIds(payload: any): string[] {
@@ -118,7 +140,13 @@ export class WhatsappMetaWebhookService {
 
   private buildFallbackEventId(payload: any): string {
     const raw = JSON.stringify(payload ?? {});
-    const hash = createHmac('sha256', 'meta-webhook-fallback').update(raw).digest('hex');
+    const hash = createHash('sha256').update(raw).digest('hex');
     return `fallback:${hash}`;
+  }
+
+  private extractEventType(payload: any): string {
+    const firstEntry = Array.isArray(payload?.entry) ? payload.entry[0] : null;
+    const firstChange = Array.isArray(firstEntry?.changes) ? firstEntry.changes[0] : null;
+    return firstChange?.field ?? payload?.object ?? 'unknown';
   }
 }

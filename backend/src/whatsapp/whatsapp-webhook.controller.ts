@@ -62,7 +62,7 @@ export class WhatsappWebhookController {
   /** Meta inbound events: POST /whatsapp/meta-webhook */
   @Post('meta-webhook')
   @HttpCode(200)
-  receiveMetaWebhook(
+  async receiveMetaWebhook(
     @Req() req: Request,
     @Body() body: any,
     @Headers('x-hub-signature-256') signature?: string,
@@ -77,7 +77,7 @@ export class WhatsappWebhookController {
       throw new UnauthorizedException('Invalid Meta webhook signature');
     }
 
-    const result = this.metaWebhook.processInboundEvent(body);
+    const result = await this.metaWebhook.processInboundEvent(body);
     return { received: true, ...result };
   }
 }

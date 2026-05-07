@@ -25,6 +25,10 @@ export class WhatsappAdminService {
     return this.config.get<string>('BACKEND_PUBLIC_URL') ?? '';
   }
 
+  private get providerMode(): string {
+    return (this.config.get<string>('WHATSAPP_PROVIDER') ?? 'EVOLUTION').trim().toUpperCase();
+  }
+
   isConfigured(): boolean {
     return !!(this.apiUrl && this.globalApiKey);
   }
@@ -89,6 +93,16 @@ export class WhatsappAdminService {
   }
 
   async getStatus() {
+    if (this.providerMode !== 'EVOLUTION') {
+      return {
+        configured: false,
+        connected: false,
+        state: 'not_applicable',
+        provider: this.providerMode,
+        message: 'Fluxo de QR disponivel apenas para provider EVOLUTION.',
+      };
+    }
+
     if (!this.isConfigured()) {
       return { configured: false, connected: false, state: 'unknown' };
     }
@@ -101,6 +115,13 @@ export class WhatsappAdminService {
   }
 
   async getQrCode(): Promise<{ qrCode: string | null; error?: string }> {
+    if (this.providerMode !== 'EVOLUTION') {
+      return {
+        qrCode: null,
+        error: `Provider ${this.providerMode} nao utiliza conexao por QR.`,
+      };
+    }
+
     if (!this.isConfigured()) {
       return { qrCode: null, error: 'Evolution API não configurada — defina EVOLUTION_API_URL e EVOLUTION_API_KEY' };
     }
@@ -197,6 +218,7 @@ export class WhatsappAdminService {
   }
 
   async disconnect(): Promise<void> {
+    if (this.providerMode !== 'EVOLUTION') return;
     if (!this.isConfigured()) return;
 
     const item = await this.fetchCurrentInstance();

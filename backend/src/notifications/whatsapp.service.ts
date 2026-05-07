@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
+import { WhatsappProviderService } from './whatsapp-provider.service';
 
 export interface WaOrderPayload {
   customerName: string;
@@ -17,29 +16,14 @@ export interface WaOrderPayload {
 export class WhatsappService {
   private readonly logger = new Logger(WhatsappService.name);
 
-  constructor(private readonly config: ConfigService) {}
-
-  private get apiUrl(): string {
-    return this.config.get<string>('EVOLUTION_API_URL') ?? '';
-  }
-
-  private get globalApiKey(): string {
-    return this.config.get<string>('EVOLUTION_API_KEY') ?? '';
-  }
-
-  private get instanceName(): string {
-    return this.config.get<string>('EVOLUTION_INSTANCE') ?? 'sygmaauto';
-  }
+  constructor(private readonly providerService: WhatsappProviderService) {}
 
   isConfigured(): boolean {
-    return !!(this.apiUrl && this.globalApiKey);
+    return this.providerService.getProvider().isConfigured();
   }
 
-  /** Normaliza número para formato E.164 (55 + DDD + número) */
-  private normalizePhone(phone: string): string {
-    const digits = phone.replace(/\D/g, '');
-    if (digits.startsWith('55') && digits.length >= 12) return digits;
-    return `55${digits}`;
+  getProviderName(): string {
+    return this.providerService.getProvider().name;
   }
 
   async sendText(to: string, message: string): Promise<void> {
@@ -47,31 +31,16 @@ export class WhatsappService {
   }
 
   private async send(to: string, message: string): Promise<void> {
-    if (!this.isConfigured()) {
-      this.logger.warn(`WhatsApp não configurado — mensagem para ${to} descartada`);
+    const provider = this.providerService.getProvider();
+
+    if (!provider.isConfigured()) {
+      this.logger.warn(
+        `Provider WhatsApp ${provider.name} nao configurado — mensagem para ${to} descartada`,
+      );
       return;
     }
 
-    const number = this.normalizePhone(to);
-
-    try {
-      await axios.post(
-        `${this.apiUrl}/message/sendText/${this.instanceName}`,
-        { number, text: message },
-        {
-          headers: {
-            apikey: this.globalApiKey,
-            'Content-Type': 'application/json',
-          },
-          timeout: 8000,
-        },
-      );
-      this.logger.log(`WhatsApp enviado para ${number}`);
-    } catch (err: any) {
-      this.logger.error(
-        `Falha ao enviar WhatsApp para ${number}: ${err?.response?.data?.message ?? err.message}`,
-      );
-    }
+    await provider.sendText(to, message);
   }
 
   // ── Templates ──────────────────────────────────────────────────────────────

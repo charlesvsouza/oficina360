@@ -37,9 +37,13 @@
 
 | Variavel | Obrigatoria | Observacao |
 |---|---|---|
+| `WHATSAPP_PROVIDER` | Sim | `EVOLUTION` (legado) ou `META_CLOUD` (oficial). |
 | `EVOLUTION_API_URL` | Sim | Endpoint da Evolution API. |
 | `EVOLUTION_API_KEY` | Sim | Chave da Evolution API. |
 | `EVOLUTION_INSTANCE` | Sim | Nome da instancia WhatsApp. |
+| `META_WHATSAPP_TOKEN` | Condicional | Obrigatoria quando `WHATSAPP_PROVIDER=META_CLOUD`. |
+| `META_WHATSAPP_PHONE_NUMBER_ID` | Condicional | Obrigatoria quando `WHATSAPP_PROVIDER=META_CLOUD`. |
+| `META_WHATSAPP_API_VERSION` | Nao | Default: `v22.0`. |
 | `MP_ACCESS_TOKEN` | Sim | Mercado Pago (producao). |
 | `MP_WEBHOOK_SECRET` | Sim | Assinatura de webhook Mercado Pago. |
 | `MP_MODE` | Sim | `production` |
@@ -62,6 +66,11 @@
 | `CHECKOUT_ALLOWED_RETURN_ORIGINS` | Recomendado | Hardening de retorno de checkout. |
 | `ALLOW_INTERNAL_PLAN_CHANGE` | Opcional | Controle de alteracao interna de plano. |
 | `SUPER_ADMIN_BOOTSTRAP_SECRET` | Opcional | Bootstrap controlado de superadmin. |
+
+## Nota de seguranca para WhatsApp
+
+- Para producao com clientes finais, priorizar `WHATSAPP_PROVIDER=META_CLOUD` (API oficial).
+- O modo `EVOLUTION` deve ser tratado como legado/transicao devido ao risco operacional de bloqueio temporario de conexao por QR.
 
 ## Variaveis automaticas do Railway (nao editar)
 

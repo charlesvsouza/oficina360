@@ -670,7 +670,7 @@ export function ServiceOrdersPage() {
     </style></head><body>
       <div class="header-row">
         <div>
-          <div class="company-name">${t.name || ''}</div>
+          <div class="company-name">${t.tradeName || t.name || t.legalName || ''}</div>
           ${t.document ? `<div>${t.document}</div>` : ''}
           ${t.address ? `<div>${t.address}</div>` : ''}
           <div>${[t.phone ? 'Tel: ' + t.phone : '', t.email].filter(Boolean).join(' - ')}</div>
@@ -898,7 +898,7 @@ export function ServiceOrdersPage() {
                 <tr>
                   <td style={{ border: 'none', paddingLeft: 0, verticalAlign: 'top', width: '62%' }}>
                     <div style={{ fontSize: '15pt', fontWeight: 900, lineHeight: 1.1 }}>
-                      {tenantFullData?.name ?? ''}
+                      {tenantFullData?.tradeName || tenantFullData?.name || tenantFullData?.legalName || ''}
                     </div>
                     {(tenantFullData?.taxId || tenantFullData?.document) && (
                       <div style={{ fontSize: '8.5pt', marginTop: '2px' }}>
@@ -953,7 +953,7 @@ export function ServiceOrdersPage() {
               <tbody>
                 <tr className="hdr"><td colSpan={4}>DADOS DO CLIENTE</td></tr>
                 <tr>
-                  <td colSpan={2}><strong>Nome / Razao Social:</strong> {selectedOrder.customer?.name}</td>
+                  <td colSpan={2}><strong>Nome do Cliente:</strong> {selectedOrder.customer?.name}</td>
                   <td><strong>CPF / CNPJ:</strong> {selectedOrder.customer?.document || '-'}</td>
                   <td><strong>Telefone:</strong> {selectedOrder.customer?.phone || '-'}</td>
                 </tr>
@@ -1419,7 +1419,7 @@ export function ServiceOrdersPage() {
                   </h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="col-span-2">
-                      <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Nome / Razao Social</p>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Nome do Cliente</p>
                       <p className="font-black text-slate-900">{selectedOrder.customer?.name}</p>
                     </div>
                     <div>

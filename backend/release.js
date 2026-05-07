@@ -127,6 +127,11 @@ async function ensureMissingTables(url) {
     await client.query(`
       ALTER TABLE tenants ADD COLUMN IF NOT EXISTS "defaultCommissionPercent" DOUBLE PRECISION DEFAULT 0;
     `);
+    // Compatibilidade legada: evita erro de login caso o deploy suba antes do schema completo.
+    await client.query(`
+      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS "whatsappMetaPhoneNumberId" TEXT;
+      ALTER TABLE tenants ADD COLUMN IF NOT EXISTS "whatsappDisplayNumber" TEXT;
+    `);
     // vehicleId opcional na ServiceOrder (Modo Retífica — motor avulso)
     await client.query(`
       ALTER TABLE service_orders ALTER COLUMN "vehicleId" DROP NOT NULL;

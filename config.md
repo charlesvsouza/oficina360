@@ -101,3 +101,13 @@
 ## Nota operacional
 
 - O erro `P1012` do Prisma em producao, neste contexto, significa quase sempre problema de `DATABASE_URL` ausente, vazia ou mal formatada.
+
+## Registro legado (compatibilidade de schema)
+
+- Data: 2026-05-07
+- Contexto: apos a introducao da configuracao de WhatsApp por tenant, alguns ambientes ficaram com drift de schema e o login passou a falhar com erro de coluna ausente em `tenants.whatsappMetaPhoneNumberId`.
+- Acao permanente aplicada: o `release.js` agora executa, antes do `prisma db push`, os comandos abaixo com `IF NOT EXISTS`:
+  - `ALTER TABLE tenants ADD COLUMN IF NOT EXISTS "whatsappMetaPhoneNumberId" TEXT;`
+  - `ALTER TABLE tenants ADD COLUMN IF NOT EXISTS "whatsappDisplayNumber" TEXT;`
+- Classificacao: legado/compatibilidade operacional para evitar indisponibilidade em caso de deploy com banco desatualizado.
+- Observacao: o caminho principal continua sendo `prisma db push`; este fallback apenas previne colapso operacional no bootstrap.
